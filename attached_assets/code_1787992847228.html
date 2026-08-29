@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AssetControl - Admin Console</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-error-container": "#ffdad6",
+                      "surface-dim": "#131315",
+                      "primary-fixed": "#dce1fb",
+                      "on-primary-container": "#72778d",
+                      "background": "#131315",
+                      "inverse-primary": "#585e73",
+                      "on-primary-fixed": "#151b2d",
+                      "secondary-container": "#3c4a5e",
+                      "primary-fixed-dim": "#c0c6de",
+                      "on-primary": "#2a3043",
+                      "error-container": "#93000a",
+                      "tertiary-container": "#110400",
+                      "secondary-fixed-dim": "#b9c7e0",
+                      "surface-container-highest": "#353436",
+                      "secondary": "#b9c7e0",
+                      "on-primary-fixed-variant": "#40465a",
+                      "surface-tint": "#c0c6de",
+                      "secondary-fixed": "#d5e3fd",
+                      "on-error": "#690005",
+                      "on-tertiary": "#422b1d",
+                      "on-background": "#e5e2e3",
+                      "on-secondary-fixed-variant": "#3a485c",
+                      "tertiary": "#e4bfaa",
+                      "surface-container-lowest": "#0e0e0f",
+                      "error": "#ffb4ab",
+                      "surface-container": "#201f21",
+                      "surface": "#131315",
+                      "tertiary-fixed": "#ffdbc8",
+                      "on-surface": "#e5e2e3",
+                      "surface-variant": "#353436",
+                      "surface-container-low": "#1b1b1d",
+                      "inverse-on-surface": "#303032",
+                      "surface-bright": "#39393a",
+                      "on-secondary-container": "#abb9d2",
+                      "on-tertiary-fixed": "#2b170a",
+                      "primary-container": "#020617",
+                      "tertiary-fixed-dim": "#e4bfaa",
+                      "on-tertiary-container": "#917260",
+                      "primary": "#c0c6de",
+                      "inverse-surface": "#e5e2e3",
+                      "on-surface-variant": "#c6c6cd",
+                      "surface-container-high": "#2a2a2b",
+                      "on-secondary": "#233144",
+                      "outline": "#909097",
+                      "outline-variant": "#46464c",
+                      "on-secondary-fixed": "#0d1c2f",
+                      "on-tertiary-fixed-variant": "#5b4131"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "md": "16px",
+                      "xl": "32px",
+                      "lg": "24px",
+                      "unit": "4px",
+                      "margin-desktop": "40px",
+                      "sm": "8px",
+                      "xs": "4px",
+                      "gutter": "16px",
+                      "margin-mobile": "16px"
+              },
+              "fontFamily": {
+                      "headline-sm": [
+                              "geist"
+                      ],
+                      "headline-md": [
+                              "geist"
+                      ],
+                      "body-sm": [
+                              "jetbrainsMono"
+                      ],
+                      "body-lg": [
+                              "jetbrainsMono"
+                      ],
+                      "body-md": [
+                              "jetbrainsMono"
+                      ],
+                      "display-lg": [
+                              "geist"
+                      ],
+                      "headline-lg": [
+                              "geist"
+                      ],
+                      "code-label": [
+                              "jetbrainsMono"
+                      ]
+              },
+              "fontSize": {
+                      "headline-sm": [
+                              "18px",
+                              {
+                                      "lineHeight": "1.4",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "1.3",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "1.4",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "1.6",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "1.5",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "display-lg": [
+                              "48px",
+                              {
+                                      "lineHeight": "1.1",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "code-label": [
+                              "11px",
+                              {
+                                      "lineHeight": "1",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "500"
+                              }
+                      ]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        /* Custom scrollbar for data density */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #020617; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b; 
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3c4a5e; 
+        }
+        
+        /* Chart Animation */
+        .bar-chart-fill {
+            transform-origin: bottom;
+            animation: growUp 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+        @keyframes growUp {
+            from { transform: scaleY(0); }
+            to { transform: scaleY(1); }
+        }
+    </style>
+</head>
+<body class="bg-primary-container text-on-surface font-body-sm antialiased overflow-x-hidden">
+<!-- JSON Component: SideNavBar -->
+<nav class="bg-surface-container-lowest dark:bg-surface-container-lowest fixed left-0 top-0 h-full w-64 border-r border-outline-variant dark:border-outline-variant flex flex-col py-md px-sm z-40">
+<!-- Brand / Header -->
+<div class="px-sm pb-lg mb-md border-b border-surface-container-high flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-primary-fixed flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-primary-fixed" style="font-variation-settings: 'FILL' 1;">terminal</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-on-surface dark:text-on-surface">AssetControl</h1>
+<p class="font-code-label text-code-label text-on-surface-variant opacity-70">Admin Console</p>
+</div>
+</div>
+<!-- Main Navigation Tabs -->
+<div class="flex-1 overflow-y-auto space-y-1">
+<!-- Active Tab: Dashboard -->
+<a class="flex items-center gap-sm px-sm py-2 bg-secondary-container dark:bg-secondary-container text-on-secondary-container dark:text-on-secondary-container rounded-lg active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined text-base" data-icon="dashboard">dashboard</span>
+<span class="font-jetbrainsMono text-body-sm">Dashboard</span>
+</a>
+<a class="flex items-center gap-sm px-sm py-2 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-high transition-colors duration-150 rounded-lg active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined text-base" data-icon="inventory_2">inventory_2</span>
+<span class="font-jetbrainsMono text-body-sm">Inventory</span>
+</a>
+<a class="flex items-center gap-sm px-sm py-2 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-high transition-colors duration-150 rounded-lg active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined text-base" data-icon="build">build</span>
+<span class="font-jetbrainsMono text-body-sm">Maintenance</span>
+</a>
+<a class="flex items-center gap-sm px-sm py-2 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-high transition-colors duration-150 rounded-lg active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined text-base" data-icon="database">database</span>
+<span class="font-jetbrainsMono text-body-sm">Custom Fields</span>
+</a>
+<a class="flex items-center gap-sm px-sm py-2 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-high transition-colors duration-150 rounded-lg active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined text-base" data-icon="analytics">analytics</span>
+<span class="font-jetbrainsMono text-body-sm">Analytics</span>
+</a>
+<a class="flex items-center gap-sm px-sm py-2 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-high transition-colors duration-150 rounded-lg active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined text-base" data-icon="settings">settings</span>
+<span class="font-jetbrainsMono text-body-sm">Settings</span>
+</a>
+</div>
+<!-- CTA -->
+<div class="pt-md mt-md border-t border-surface-container-high">
+<button class="w-full flex items-center justify-center gap-2 bg-on-primary text-primary h-8 rounded font-body-sm hover:bg-secondary-container transition-colors focus-within:ring-1 focus-within:ring-primary shadow-[0_0_8px_rgba(192,198,222,0.1)]">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">add</span>
+                Add New Asset
+            </button>
+</div>
+<!-- Footer Tabs -->
+<div class="mt-sm space-y-1">
+<a class="flex items-center gap-sm px-sm py-2 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-high transition-colors duration-150 rounded-lg active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined text-base" data-icon="help">help</span>
+<span class="font-jetbrainsMono text-body-sm">Support</span>
+</a>
+<a class="flex items-center gap-sm px-sm py-2 text-on-surface-variant dark:text-on-surface-variant hover:bg-surface-container-high transition-colors duration-150 rounded-lg active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined text-base" data-icon="logout">logout</span>
+<span class="font-jetbrainsMono text-body-sm">Sign Out</span>
+</a>
+</div>
+<!-- User Profile Avatar Placeholder -->
+<div class="mt-md pt-sm flex items-center gap-3 px-sm">
+<div class="w-8 h-8 rounded-full bg-surface-variant overflow-hidden border border-outline-variant shrink-0">
+<img class="w-full h-full object-cover" data-alt="A macro photography shot of an intricately designed, glowing blue microprocessor chip against a completely black background, illuminated by subtle cool white studio lighting to highlight its geometric circuits." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4efCOTSvXtlrCz_J5DVCg7jiJGawbrq7--4EVNUVuo-3H4imL6I2s8lWPKnRZVMWvFOo0xqI7U6z1BlNdSHJanOH-frkqzCbfO_fbx6MlDdbPRPpmgXH1RQvdCUbFIt1PJbzdjWW8oLKwMzy6gm0okxjvRy-VLJfh8YcRz-Zke8FT9zsJkE0yY8-uP1XQEkdZSTVbt8T9YAs96d3a571DG2lSRh40cu8ZTplARjlfcFgz4coQ1gA"/>
+</div>
+<div class="truncate">
+<p class="font-code-label text-code-label text-on-surface">IT Administrator</p>
+<p class="text-[10px] text-on-surface-variant opacity-60">ID: SYS-001</p>
+</div>
+</div>
+</nav>
+<!-- JSON Component: TopAppBar -->
+<header class="bg-surface-container dark:bg-surface-container fixed top-0 right-0 w-[calc(100%-256px)] h-16 border-b border-outline-variant dark:border-outline-variant flex items-center justify-between px-lg z-50">
+<!-- Left: Context / Search -->
+<div class="flex items-center gap-xl h-full">
+<div class="font-headline-sm text-headline-sm font-semibold text-primary dark:text-primary tracking-tight">
+                Overview / Status
+            </div>
+<div class="hidden lg:flex items-center gap-lg h-full pt-4">
+<a class="font-jetbrainsMono text-body-sm text-on-surface-variant dark:text-on-surface-variant hover:text-primary transition-colors" href="#">Bulk Import</a>
+<a class="font-jetbrainsMono text-body-sm text-on-surface-variant dark:text-on-surface-variant hover:text-primary transition-colors" href="#">Scan QR</a>
+<a class="font-jetbrainsMono text-body-sm text-on-surface-variant dark:text-on-surface-variant hover:text-primary transition-colors" href="#">Audit</a>
+</div>
+</div>
+<!-- Right: Actions -->
+<div class="flex items-center gap-md">
+<!-- Global Search Input (Technical styling) -->
+<div class="relative hidden xl:block focus-within:ring-1 focus-within:ring-primary rounded">
+<span class="material-symbols-outlined absolute left-2 top-1.5 text-on-surface-variant text-sm" style="font-variation-settings: 'FILL' 1;">search</span>
+<input class="bg-[#020617] border border-outline-variant text-on-surface font-body-sm h-8 pl-8 pr-3 rounded w-64 focus:outline-none focus:border-primary placeholder:text-on-surface-variant placeholder:opacity-50" placeholder="Search ID, SN, or User..." type="text"/>
+</div>
+<div class="flex items-center gap-2 border-r border-outline-variant pr-md mr-2">
+<button aria-label="Notifications" class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors rounded hover:bg-surface-container-high">
+<span class="material-symbols-outlined text-lg" data-icon="notifications">notifications</span>
+</button>
+<button aria-label="History" class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors rounded hover:bg-surface-container-high">
+<span class="material-symbols-outlined text-lg" data-icon="history">history</span>
+</button>
+</div>
+<button class="h-8 px-sm bg-transparent border border-primary text-primary font-body-sm rounded hover:bg-on-primary transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">description</span>
+                Create Report
+            </button>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="ml-64 mt-16 p-lg pb-xl max-w-[1600px] mx-auto min-h-[calc(100vh-64px)]">
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-12 gap-gutter">
+<!-- Summary Card 1: Total Assets -->
+<div class="col-span-12 md:col-span-6 xl:col-span-3 bg-surface-container-lowest border border-outline-variant rounded-lg p-md flex flex-col gap-sm relative overflow-hidden group hover:border-primary transition-colors duration-300">
+<div class="flex justify-between items-start">
+<h3 class="font-code-label text-code-label text-on-surface-variant tracking-wider uppercase">Total Hardware</h3>
+<span class="material-symbols-outlined text-on-surface-variant opacity-50" style="font-variation-settings: 'FILL' 1;">dns</span>
+</div>
+<div class="flex items-baseline gap-2 mt-2">
+<span class="font-headline-lg text-headline-lg font-bold text-on-surface">542</span>
+<span class="font-code-label text-code-label text-primary">+12 this week</span>
+</div>
+<div class="mt-auto pt-sm flex items-center gap-2 border-t border-surface-container-high">
+<div class="w-2 h-2 rounded-full bg-primary shadow-[0_0_4px_theme(colors.primary)]"></div>
+<span class="text-[10px] font-jetbrainsMono text-on-surface-variant">System Nominal</span>
+</div>
+</div>
+<!-- Summary Card 2: Assigned -->
+<div class="col-span-12 md:col-span-6 xl:col-span-3 bg-surface-container-lowest border border-outline-variant rounded-lg p-md flex flex-col gap-sm hover:border-primary transition-colors duration-300">
+<div class="flex justify-between items-start">
+<h3 class="font-code-label text-code-label text-on-surface-variant tracking-wider uppercase">Deployed / Assigned</h3>
+<span class="material-symbols-outlined text-on-surface-variant opacity-50" style="font-variation-settings: 'FILL' 1;">person_check</span>
+</div>
+<div class="flex items-baseline gap-2 mt-2">
+<span class="font-headline-lg text-headline-lg font-bold text-on-surface">318</span>
+<span class="font-code-label text-code-label text-on-surface-variant opacity-50">58% utilization</span>
+</div>
+<div class="mt-auto pt-sm flex items-center gap-2 border-t border-surface-container-high">
+<div class="w-full bg-surface-variant h-1 rounded-full overflow-hidden">
+<div class="bg-primary-fixed h-full w-[58%] rounded-full"></div>
+</div>
+</div>
+</div>
+<!-- Summary Card 3: In Repair -->
+<div class="col-span-12 md:col-span-6 xl:col-span-3 bg-surface-container-lowest border border-outline-variant rounded-lg p-md flex flex-col gap-sm hover:border-error transition-colors duration-300">
+<div class="flex justify-between items-start">
+<h3 class="font-code-label text-code-label text-on-surface-variant tracking-wider uppercase">In Repair / RMA</h3>
+<span class="material-symbols-outlined text-on-surface-variant opacity-50" style="font-variation-settings: 'FILL' 1;">handyman</span>
+</div>
+<div class="flex items-baseline gap-2 mt-2">
+<span class="font-headline-lg text-headline-lg font-bold text-error">45</span>
+<span class="font-code-label text-code-label text-error">-3 resolved</span>
+</div>
+<div class="mt-auto pt-sm flex items-center gap-2 border-t border-surface-container-high">
+<div class="w-2 h-2 rounded-full bg-error shadow-[0_0_4px_theme(colors.error)]"></div>
+<span class="text-[10px] font-jetbrainsMono text-on-surface-variant">Action Required</span>
+</div>
+</div>
+<!-- Summary Card 4: Available -->
+<div class="col-span-12 md:col-span-6 xl:col-span-3 bg-surface-container-lowest border border-outline-variant rounded-lg p-md flex flex-col gap-sm hover:border-tertiary transition-colors duration-300">
+<div class="flex justify-between items-start">
+<h3 class="font-code-label text-code-label text-on-surface-variant tracking-wider uppercase">Available Stock</h3>
+<span class="material-symbols-outlined text-on-surface-variant opacity-50" style="font-variation-settings: 'FILL' 1;">shelves</span>
+</div>
+<div class="flex items-baseline gap-2 mt-2">
+<span class="font-headline-lg text-headline-lg font-bold text-on-surface">179</span>
+</div>
+<div class="mt-auto pt-sm flex items-center gap-2 border-t border-surface-container-high">
+<div class="w-2 h-2 rounded-full bg-tertiary shadow-[0_0_4px_theme(colors.tertiary)]"></div>
+<span class="text-[10px] font-jetbrainsMono text-on-surface-variant">Ready for deployment</span>
+</div>
+</div>
+<!-- Main Data Visualizations Row -->
+<!-- Asset Distribution Chart -->
+<div class="col-span-12 xl:col-span-8 bg-surface-container-lowest border border-outline-variant rounded-lg p-md flex flex-col h-[400px]">
+<div class="flex justify-between items-center mb-md pb-sm border-b border-surface-container-high">
+<h2 class="font-headline-sm text-headline-sm font-semibold text-on-surface">Hardware Distribution</h2>
+<div class="flex gap-2">
+<button class="font-code-label text-[10px] px-2 py-1 border border-outline-variant rounded bg-[#020617] text-on-surface hover:border-primary transition-colors">By Type</button>
+<button class="font-code-label text-[10px] px-2 py-1 border border-transparent rounded text-on-surface-variant hover:text-on-surface transition-colors">By Location</button>
+</div>
+</div>
+<!-- Pure CSS/HTML Bar Chart implementation for high-density minimalist look -->
+<div class="flex-1 flex items-end gap-2 pb-6 relative w-full pt-4">
+<!-- Y Axis Labels -->
+<div class="absolute left-0 top-0 h-full w-8 flex flex-col justify-between font-code-label text-[9px] text-on-surface-variant opacity-50 pb-6 pr-2 text-right border-r border-surface-container-high">
+<span>200</span>
+<span>150</span>
+<span>100</span>
+<span>50</span>
+<span>0</span>
+</div>
+<!-- Chart Area -->
+<div class="flex-1 h-full ml-10 flex items-end justify-between px-sm gap-2">
+<!-- Laptops -->
+<div class="flex flex-col items-center w-full group">
+<div class="relative w-full bg-surface-variant rounded-t-sm h-[180px] group-hover:bg-surface-bright transition-colors flex items-end justify-center">
+<div class="w-full bg-primary bar-chart-fill rounded-t-sm" style="height: 100%; animation-delay: 0.1s;"></div>
+</div>
+<span class="font-code-label text-[10px] mt-2 text-on-surface-variant text-center absolute -bottom-6">Laptops</span>
+<!-- Tooltip -->
+<div class="opacity-0 group-hover:opacity-100 absolute -top-8 bg-[#020617] border border-outline-variant px-2 py-1 rounded font-code-label text-[10px] text-primary transition-opacity z-10 pointer-events-none">180 Units</div>
+</div>
+<!-- Monitors -->
+<div class="flex flex-col items-center w-full group relative">
+<div class="relative w-full bg-surface-variant rounded-t-sm h-[145px] group-hover:bg-surface-bright transition-colors flex items-end justify-center">
+<div class="w-full bg-secondary bar-chart-fill rounded-t-sm" style="height: 100%; animation-delay: 0.2s;"></div>
+</div>
+<span class="font-code-label text-[10px] mt-2 text-on-surface-variant text-center absolute -bottom-6">Monitors</span>
+<div class="opacity-0 group-hover:opacity-100 absolute -top-8 bg-[#020617] border border-outline-variant px-2 py-1 rounded font-code-label text-[10px] text-secondary transition-opacity z-10 pointer-events-none">145 Units</div>
+</div>
+<!-- Desktops -->
+<div class="flex flex-col items-center w-full group relative">
+<div class="relative w-full bg-surface-variant rounded-t-sm h-[85px] group-hover:bg-surface-bright transition-colors flex items-end justify-center">
+<div class="w-full bg-primary bar-chart-fill rounded-t-sm" style="height: 100%; opacity: 0.6; animation-delay: 0.3s;"></div>
+</div>
+<span class="font-code-label text-[10px] mt-2 text-on-surface-variant text-center absolute -bottom-6">Desktops</span>
+</div>
+<!-- Servers -->
+<div class="flex flex-col items-center w-full group relative">
+<div class="relative w-full bg-surface-variant rounded-t-sm h-[40px] group-hover:bg-surface-bright transition-colors flex items-end justify-center">
+<div class="w-full bg-tertiary bar-chart-fill rounded-t-sm" style="height: 100%; animation-delay: 0.4s;"></div>
+</div>
+<span class="font-code-label text-[10px] mt-2 text-on-surface-variant text-center absolute -bottom-6">Servers</span>
+</div>
+<!-- Mobile Devices -->
+<div class="flex flex-col items-center w-full group relative">
+<div class="relative w-full bg-surface-variant rounded-t-sm h-[65px] group-hover:bg-surface-bright transition-colors flex items-end justify-center">
+<div class="w-full bg-secondary bar-chart-fill rounded-t-sm" style="height: 100%; opacity: 0.5; animation-delay: 0.5s;"></div>
+</div>
+<span class="font-code-label text-[10px] mt-2 text-on-surface-variant text-center absolute -bottom-6">Mobile</span>
+</div>
+<!-- Peripherals -->
+<div class="flex flex-col items-center w-full group relative">
+<div class="relative w-full bg-surface-variant rounded-t-sm h-[27px] group-hover:bg-surface-bright transition-colors flex items-end justify-center">
+<div class="w-full bg-primary-fixed-dim bar-chart-fill rounded-t-sm" style="height: 100%; animation-delay: 0.6s;"></div>
+</div>
+<span class="font-code-label text-[10px] mt-2 text-on-surface-variant text-center absolute -bottom-6">Periphs</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Recent Activity Feed -->
+<div class="col-span-12 xl:col-span-4 bg-surface-container-lowest border border-outline-variant rounded-lg p-md flex flex-col h-[400px]">
+<div class="flex justify-between items-center mb-sm pb-sm border-b border-surface-container-high">
+<h2 class="font-headline-sm text-headline-sm font-semibold text-on-surface">Recent Activity</h2>
+<span class="material-symbols-outlined text-on-surface-variant text-sm" style="font-variation-settings: 'FILL' 1;">feed</span>
+</div>
+<div class="flex-1 overflow-y-auto pr-2 space-y-3">
+<!-- Activity Item -->
+<div class="flex gap-3 items-start pb-3 border-b border-[#0f172a]">
+<div class="w-6 h-6 rounded bg-[#1e293b] flex items-center justify-center shrink-0 border border-outline-variant mt-1">
+<span class="material-symbols-outlined text-[12px] text-primary" style="font-variation-settings: 'FILL' 1;">assignment_returned</span>
+</div>
+<div>
+<p class="font-body-sm text-body-sm text-on-surface leading-tight">MacBook Pro M2 <span class="font-code-label text-[10px] bg-[#1e293b] px-1 rounded text-primary">LT-8842</span> returned to inventory.</p>
+<p class="font-code-label text-[10px] text-on-surface-variant mt-1 opacity-70">12 mins ago • by Sarah J.</p>
+</div>
+</div>
+<!-- Activity Item -->
+<div class="flex gap-3 items-start pb-3 border-b border-[#0f172a]">
+<div class="w-6 h-6 rounded bg-[#1e293b] flex items-center justify-center shrink-0 border border-outline-variant mt-1">
+<span class="material-symbols-outlined text-[12px] text-error" style="font-variation-settings: 'FILL' 1;">warning</span>
+</div>
+<div>
+<p class="font-body-sm text-body-sm text-on-surface leading-tight">Server Node <span class="font-code-label text-[10px] bg-[#1e293b] px-1 rounded text-primary">SRV-B-04</span> reported cooling failure.</p>
+<p class="font-code-label text-[10px] text-on-surface-variant mt-1 opacity-70">45 mins ago • System Alert</p>
+</div>
+</div>
+<!-- Activity Item -->
+<div class="flex gap-3 items-start pb-3 border-b border-[#0f172a]">
+<div class="w-6 h-6 rounded bg-[#1e293b] flex items-center justify-center shrink-0 border border-outline-variant mt-1">
+<span class="material-symbols-outlined text-[12px] text-tertiary" style="font-variation-settings: 'FILL' 1;">add_box</span>
+</div>
+<div>
+<p class="font-body-sm text-body-sm text-on-surface leading-tight">Batch import completed: 50 Dell Ultrasharp Monitors added.</p>
+<p class="font-code-label text-[10px] text-on-surface-variant mt-1 opacity-70">2 hours ago • by Admin</p>
+</div>
+</div>
+<!-- Activity Item -->
+<div class="flex gap-3 items-start pb-3 border-b border-[#0f172a]">
+<div class="w-6 h-6 rounded bg-[#1e293b] flex items-center justify-center shrink-0 border border-outline-variant mt-1">
+<span class="material-symbols-outlined text-[12px] text-secondary" style="font-variation-settings: 'FILL' 1;">assignment_ind</span>
+</div>
+<div>
+<p class="font-body-sm text-body-sm text-on-surface leading-tight">Assigned ThinkPad T14 <span class="font-code-label text-[10px] bg-[#1e293b] px-1 rounded text-primary">LT-9102</span> to new hire D. Smith.</p>
+<p class="font-code-label text-[10px] text-on-surface-variant mt-1 opacity-70">3 hours ago • by IT Support</p>
+</div>
+</div>
+<!-- Activity Item -->
+<div class="flex gap-3 items-start">
+<div class="w-6 h-6 rounded bg-[#1e293b] flex items-center justify-center shrink-0 border border-outline-variant mt-1">
+<span class="material-symbols-outlined text-[12px] text-primary" style="font-variation-settings: 'FILL' 1;">update</span>
+</div>
+<div>
+<p class="font-body-sm text-body-sm text-on-surface leading-tight">Firmware update deployed to Network Switch <span class="font-code-label text-[10px] bg-[#1e293b] px-1 rounded text-primary">SW-Core-1</span>.</p>
+<p class="font-code-label text-[10px] text-on-surface-variant mt-1 opacity-70">5 hours ago • Automated</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Maintenance Schedule Data Table -->
+<div class="col-span-12 bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden flex flex-col">
+<div class="p-md border-b border-surface-container-high flex justify-between items-center bg-[#020617]">
+<h2 class="font-headline-sm text-headline-sm font-semibold text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm" style="font-variation-settings: 'FILL' 1;">build_circle</span>
+                        Upcoming Maintenance Schedule
+                    </h2>
+<button class="font-code-label text-[10px] text-primary hover:underline">View All Schedule</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-[#020617] border-b border-outline-variant">
+<th class="py-2 px-md font-code-label text-code-label text-on-surface-variant opacity-40 uppercase tracking-wider font-normal">Asset ID</th>
+<th class="py-2 px-md font-code-label text-code-label text-on-surface-variant opacity-40 uppercase tracking-wider font-normal">Category</th>
+<th class="py-2 px-md font-code-label text-code-label text-on-surface-variant opacity-40 uppercase tracking-wider font-normal">Scheduled Date</th>
+<th class="py-2 px-md font-code-label text-code-label text-on-surface-variant opacity-40 uppercase tracking-wider font-normal">Technician</th>
+<th class="py-2 px-md font-code-label text-code-label text-on-surface-variant opacity-40 uppercase tracking-wider font-normal">Status/Priority</th>
+<th class="py-2 px-md w-10"></th>
+</tr>
+</thead>
+<tbody class="font-body-sm">
+<!-- Row 1 -->
+<tr class="border-b border-[#1e293b] bg-surface-container-lowest hover:bg-[#0f172a] transition-colors">
+<td class="py-3 px-md">
+<span class="font-code-label text-[11px] bg-[#1e293b] px-2 py-0.5 rounded text-primary border border-[#3c4a5e]">SRV-DB-Primary</span>
+</td>
+<td class="py-3 px-md text-on-surface">Database Server</td>
+<td class="py-3 px-md text-on-surface font-code-label">2023-10-25 02:00 Z</td>
+<td class="py-3 px-md text-on-surface-variant">J. Doe (Tier 3)</td>
+<td class="py-3 px-md">
+<div class="flex items-center gap-2">
+<div class="w-1.5 h-1.5 rounded-full bg-error shadow-[0_0_4px_theme(colors.error)]"></div>
+<span class="text-error font-code-label text-[10px]">High / Pending</span>
+</div>
+</td>
+<td class="py-3 px-md text-right">
+<button class="text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined text-sm">more_vert</span></button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="border-b border-[#1e293b] bg-[#020617] hover:bg-[#0f172a] transition-colors">
+<td class="py-3 px-md">
+<span class="font-code-label text-[11px] bg-[#1e293b] px-2 py-0.5 rounded text-on-surface border border-transparent">PRN-FL2-01</span>
+</td>
+<td class="py-3 px-md text-on-surface">Network Printer</td>
+<td class="py-3 px-md text-on-surface font-code-label">2023-10-26 14:00 Z</td>
+<td class="py-3 px-md text-on-surface-variant">External Vendor</td>
+<td class="py-3 px-md">
+<div class="flex items-center gap-2">
+<div class="w-1.5 h-1.5 rounded-full bg-secondary shadow-[0_0_4px_theme(colors.secondary)]"></div>
+<span class="text-secondary font-code-label text-[10px]">Normal / Scheduled</span>
+</div>
+</td>
+<td class="py-3 px-md text-right">
+<button class="text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined text-sm">more_vert</span></button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="border-b border-[#1e293b] bg-surface-container-lowest hover:bg-[#0f172a] transition-colors">
+<td class="py-3 px-md">
+<span class="font-code-label text-[11px] bg-[#1e293b] px-2 py-0.5 rounded text-on-surface border border-transparent">LT-POOL-12</span>
+</td>
+<td class="py-3 px-md text-on-surface">Laptop (Loaner)</td>
+<td class="py-3 px-md text-on-surface font-code-label">2023-10-27 09:00 Z</td>
+<td class="py-3 px-md text-on-surface-variant">IT Support Desk</td>
+<td class="py-3 px-md">
+<div class="flex items-center gap-2">
+<div class="w-1.5 h-1.5 rounded-full bg-secondary shadow-[0_0_4px_theme(colors.secondary)]"></div>
+<span class="text-secondary font-code-label text-[10px]">Normal / Scheduled</span>
+</div>
+</td>
+<td class="py-3 px-md text-right">
+<button class="text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined text-sm">more_vert</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</main>
+<script>
+        // Simple script to trigger chart animation again if needed or handle basic interactions
+        document.addEventListener('DOMContentLoaded', () => {
+            // The CSS animation handles the initial load.
+            // This is just a placeholder for any future JS logic needed for the command center feel.
+            console.log("AssetControl Dashboard Initialized.");
+        });
+    </script>
+</body></html>
