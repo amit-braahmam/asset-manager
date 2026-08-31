@@ -10,6 +10,14 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: dashboard
+    description: Command center dashboard data
+  - name: assets
+    description: Asset inventory and lifecycle operations
+  - name: maintenance
+    description: Maintenance schedule data
+  - name: locations
+    description: Managed asset locations
 paths:
   /healthz:
     get:
@@ -24,7 +32,290 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get dashboard summary
+      responses:
+        "200":
+          description: Current inventory summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+  /dashboard/activity:
+    get:
+      operationId: getDashboardActivity
+      tags: [dashboard]
+      summary: Get recent asset activity
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Recent activity entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityEvent"
+  /dashboard/maintenance:
+    get:
+      operationId: getDashboardMaintenance
+      tags: [dashboard]
+      summary: Get upcoming maintenance
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Upcoming maintenance rows
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MaintenanceItem"
+  /assets:
+    get:
+      operationId: listAssets
+      tags: [assets]
+      summary: List and filter assets
+      parameters:
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/Status"
+        - $ref: "#/components/parameters/Category"
+        - $ref: "#/components/parameters/LocationId"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Paginated asset list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssetListResponse"
+    post:
+      operationId: createAsset
+      tags: [assets]
+      summary: Create an asset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssetInput"
+      responses:
+        "201":
+          description: Created asset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+  /assets/{assetId}:
+    get:
+      operationId: getAsset
+      tags: [assets]
+      summary: Get an asset
+      parameters:
+        - $ref: "#/components/parameters/AssetId"
+      responses:
+        "200":
+          description: Asset details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssetDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: updateAsset
+      tags: [assets]
+      summary: Update an asset
+      parameters:
+        - $ref: "#/components/parameters/AssetId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssetUpdate"
+      responses:
+        "200":
+          description: Updated asset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /assets/{assetId}/assign:
+    post:
+      operationId: assignAsset
+      tags: [assets]
+      summary: Assign an asset to a person and location
+      parameters:
+        - $ref: "#/components/parameters/AssetId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssetAssignmentInput"
+      responses:
+        "200":
+          description: Assigned asset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssetDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /assets/{assetId}/return:
+    post:
+      operationId: returnAsset
+      tags: [assets]
+      summary: Return an asset to available stock
+      parameters:
+        - $ref: "#/components/parameters/AssetId"
+      responses:
+        "200":
+          description: Returned asset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssetDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /assets/{assetId}/status:
+    post:
+      operationId: updateAssetStatus
+      tags: [assets]
+      summary: Change an asset status
+      parameters:
+        - $ref: "#/components/parameters/AssetId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssetStatusInput"
+      responses:
+        "200":
+          description: Asset with updated status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssetDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /assets/{assetId}/history:
+    get:
+      operationId: getAssetHistory
+      tags: [assets]
+      summary: Get asset history
+      parameters:
+        - $ref: "#/components/parameters/AssetId"
+      responses:
+        "200":
+          description: Asset history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HistoryEvent"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /locations:
+    get:
+      operationId: listLocations
+      tags: [locations]
+      summary: List asset locations
+      responses:
+        "200":
+          description: Locations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Location"
+  /maintenance:
+    get:
+      operationId: listMaintenance
+      tags: [maintenance]
+      summary: List upcoming maintenance
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Maintenance items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MaintenanceItem"
 components:
+  parameters:
+    AssetId:
+      name: assetId
+      in: path
+      required: true
+      schema:
+        type: string
+    Search:
+      name: search
+      in: query
+      schema:
+        type: string
+    Status:
+      name: status
+      in: query
+      schema:
+        type: string
+        enum: [available, assigned, in_repair, rma, retired, lost]
+    Category:
+      name: category
+      in: query
+      schema:
+        type: string
+    LocationId:
+      name: locationId
+      in: query
+      schema:
+        type: string
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSize:
+      name: pageSize
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 12
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 5
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +324,288 @@ components:
           type: string
       required:
         - status
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+    DashboardSummary:
+      type: object
+      properties:
+        total:
+          type: integer
+        assigned:
+          type: integer
+        inRepair:
+          type: integer
+        available:
+          type: integer
+        utilization:
+          type: integer
+        changes:
+          type: object
+          properties:
+            total:
+              type: integer
+            assigned:
+              type: integer
+            inRepair:
+              type: integer
+          required: [total, assigned, inRepair]
+      required: [total, assigned, inRepair, available, utilization, changes]
+    Location:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        city:
+          type: string
+        assetCount:
+          type: integer
+      required: [id, name, city, assetCount]
+    Person:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        department:
+          type: string
+        email:
+          type: string
+      required: [id, name, department, email]
+    Asset:
+      type: object
+      properties:
+        id:
+          type: string
+        assetTag:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+        manufacturer:
+          type: string
+        model:
+          type: string
+        serialNumber:
+          type: string
+        status:
+          type: string
+          enum: [available, assigned, in_repair, rma, retired, lost]
+        condition:
+          type: string
+          enum: [excellent, good, fair, poor]
+        location:
+          $ref: "#/components/schemas/Location"
+        assignee:
+          anyOf:
+            - $ref: "#/components/schemas/Person"
+            - type: "null"
+        warrantyEnd:
+          type: ["string", "null"]
+          format: date
+        purchaseDate:
+          type: ["string", "null"]
+          format: date
+        purchaseCost:
+          type: ["number", "null"]
+        lastUpdated:
+          type: string
+          format: date-time
+      required:
+        - id
+        - assetTag
+        - name
+        - category
+        - manufacturer
+        - model
+        - serialNumber
+        - status
+        - condition
+        - location
+        - assignee
+        - warrantyEnd
+        - purchaseDate
+        - purchaseCost
+        - lastUpdated
+    AssetDetail:
+      allOf:
+        - $ref: "#/components/schemas/Asset"
+        - type: object
+          properties:
+            notes:
+              type: string
+            specifications:
+              type: object
+              additionalProperties:
+                type: string
+            history:
+              type: array
+              items:
+                $ref: "#/components/schemas/HistoryEvent"
+          required: [notes, specifications, history]
+    AssetInput:
+      type: object
+      properties:
+        assetTag:
+          type: string
+          minLength: 1
+        name:
+          type: string
+          minLength: 1
+        category:
+          type: string
+          minLength: 1
+        manufacturer:
+          type: string
+          minLength: 1
+        model:
+          type: string
+          minLength: 1
+        serialNumber:
+          type: string
+          minLength: 1
+        status:
+          type: string
+          enum: [available, assigned, in_repair, rma, retired, lost]
+          default: available
+        condition:
+          type: string
+          enum: [excellent, good, fair, poor]
+          default: good
+        locationId:
+          type: string
+        warrantyEnd:
+          type: ["string", "null"]
+          format: date
+        purchaseDate:
+          type: ["string", "null"]
+          format: date
+        purchaseCost:
+          type: ["number", "null"]
+        notes:
+          type: string
+          default: ""
+      required: [assetTag, name, category, manufacturer, model, serialNumber, locationId]
+    AssetUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        category:
+          type: string
+        manufacturer:
+          type: string
+        model:
+          type: string
+        serialNumber:
+          type: string
+        condition:
+          type: string
+          enum: [excellent, good, fair, poor]
+        locationId:
+          type: string
+        warrantyEnd:
+          type: ["string", "null"]
+          format: date
+        purchaseDate:
+          type: ["string", "null"]
+          format: date
+        purchaseCost:
+          type: ["number", "null"]
+        notes:
+          type: string
+    AssetAssignmentInput:
+      type: object
+      properties:
+        personId:
+          type: string
+        locationId:
+          type: string
+      required: [personId, locationId]
+    AssetStatusInput:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [available, assigned, in_repair, rma, retired, lost]
+        note:
+          type: string
+          default: ""
+      required: [status]
+    AssetListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Asset"
+        total:
+          type: integer
+        page:
+          type: integer
+        pageSize:
+          type: integer
+      required: [items, total, page, pageSize]
+    ActivityEvent:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [assignment, return, alert, import, maintenance, update]
+        message:
+          type: string
+        actor:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        assetTag:
+          type: ["string", "null"]
+      required: [id, type, message, actor, createdAt, assetTag]
+    HistoryEvent:
+      type: object
+      properties:
+        id:
+          type: string
+        action:
+          type: string
+        detail:
+          type: string
+        actor:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, action, detail, actor, createdAt]
+    MaintenanceItem:
+      type: object
+      properties:
+        id:
+          type: string
+        assetTag:
+          type: string
+        category:
+          type: string
+        scheduledAt:
+          type: string
+          format: date-time
+        technician:
+          type: string
+        priority:
+          type: string
+          enum: [high, normal, low]
+        status:
+          type: string
+          enum: [pending, scheduled, completed, overdue]
+      required: [id, assetTag, category, scheduledAt, technician, priority, status]
 

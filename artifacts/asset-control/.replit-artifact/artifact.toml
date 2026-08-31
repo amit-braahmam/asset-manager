@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "AssetControl"
+description = "A single-company IT asset management console for tracking hardware inventory, assignments, maintenance status, activity, and audit history across 400 to 800 assets."
+version = "1.0.0"
+id = "artifacts/asset-control"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20941
+
+[services.development]
+run = "pnpm --filter @workspace/asset-control run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/asset-control", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/asset-control/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20941"
+BASE_PATH = "/"
