@@ -1,0 +1,1 @@
+- [Toast compatibility](toast-compatibility.md) — use the workspace toast implementation for React UI notifications; standalone toast renderers may trigger duplicate-React hook errors.

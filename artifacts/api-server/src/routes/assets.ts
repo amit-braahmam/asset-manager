@@ -16,13 +16,13 @@ import {
   UpdateAssetStatusBody,
   UpdateAssetStatusParams,
   type ActivityEvent,
-  type Asset,
-  type AssetDetail,
-  type DashboardSummary,
-  type HistoryEvent,
-  type Location,
-  type MaintenanceItem,
-  type Person,
+  type Asset as ApiAsset,
+  type AssetDetail as ApiAssetDetail,
+  type DashboardSummary as ApiDashboardSummary,
+  type HistoryEvent as ApiHistoryEvent,
+  type Location as ApiLocation,
+  type MaintenanceItem as ApiMaintenanceItem,
+  type Person as ApiPerson,
 } from "@workspace/api-zod";
 import {
   assetHistoryTable,
@@ -31,6 +31,9 @@ import {
   locationsTable,
   maintenanceTable,
   peopleTable,
+  type Asset as DbAsset,
+  type Location as DbLocation,
+  type Person as DbPerson,
 } from "@workspace/db";
 import { db } from "@workspace/db";
 import { randomUUID } from "node:crypto";
@@ -38,9 +41,9 @@ import { randomUUID } from "node:crypto";
 const router: IRouter = Router();
 
 type AssetRow = {
-  asset: Asset;
-  location: Location;
-  person: Person | null;
+  asset: DbAsset;
+  location: DbLocation;
+  person: DbPerson | null;
 };
 
 const seedLocations = [
@@ -57,7 +60,20 @@ const seedPeople = [
   { id: "person-marcus", name: "Marcus Lee", department: "Sales", email: "marcus.lee@example.com" },
 ];
 
-const seedAssets = [
+type SeedAsset = [
+  string,
+  string,
+  string,
+  string,
+  string,
+  string,
+  string,
+  string,
+  string,
+  string | null,
+];
+
+const seedAssets: SeedAsset[] = [
   ["LT-8842", "MacBook Pro 14", "Laptop", "Apple", "MacBook Pro M2", "C02M2A8842", "available", "excellent", "loc-hq", null],
   ["LT-9102", "ThinkPad T14", "Laptop", "Lenovo", "ThinkPad T14 Gen 4", "PF4T149102", "assigned", "good", "loc-hq", "person-daniel"],
   ["LT-9217", "MacBook Air 13", "Laptop", "Apple", "MacBook Air M2", "C02A9217", "assigned", "excellent", "loc-lon", "person-priya"],
@@ -90,8 +106,7 @@ async function seedDatabase() {
   await db.insert(peopleTable).values(seedPeople).onConflictDoNothing();
 
   const now = new Date();
-  await db.insert(assetsTable).values(
-    seedAssets.map((asset, index) => ({
+  const seededAssets: Array<typeof assetsTable.$inferInsert> = seedAssets.map((asset, index) => ({
       id: `asset-${String(index + 1).padStart(3, "0")}`,
       assetTag: asset[0],
       name: asset[1],
@@ -107,14 +122,13 @@ async function seedDatabase() {
       purchaseDate: "2024-01-15",
       purchaseCost: index % 3 === 0 ? "1899.00" : "849.00",
       notes: "",
-      specifications:
-        asset[2] === "Laptop"
-          ? { CPU: "Apple M2 / Intel i7", RAM: "16 GB", Storage: "512 GB SSD" }
-          : { Profile: "Standard managed equipment", Coverage: "Business support" },
+      specifications: (asset[2] === "Laptop"
+        ? { CPU: "Apple M2 / Intel i7", RAM: "16 GB", Storage: "512 GB SSD" }
+        : { Profile: "Standard managed equipment", Coverage: "Business support" }) as Record<string, string>,
       createdAt: now,
       updatedAt: now,
-    })),
-  ).onConflictDoNothing();
+    }));
+  await db.insert(assetsTable).values(seededAssets).onConflictDoNothing();
 
   await db.insert(maintenanceTable).values([
     { id: "maint-001", assetId: "asset-010", scheduledAt: new Date("2026-09-04T02:00:00Z"), technician: "J. Doe · Tier 3", priority: "high", status: "pending" },
@@ -132,15 +146,23 @@ async function seedDatabase() {
   ]).onConflictDoNothing();
 }
 
-function toLocation(row: Location): Location {
+function toLocation(row: DbLocation, assetCount = 0): ApiLocation {
+  return { ...row, assetCount };
+}
+
+function toPerson(row: DbPerson | null): ApiPerson | null {
   return row;
 }
 
-function toPerson(row: Person | null): Person | null {
-  return row;
+function toDateValue(value: string | null): Date | null {
+  return value ? new Date(`${value}T00:00:00.000Z`) : null;
 }
 
-function toAsset(row: AssetRow): Asset {
+function toDateOnly(value: Date | null | undefined): string | null | undefined {
+  return value ? value.toISOString().slice(0, 10) : value;
+}
+
+function toAsset(row: AssetRow, locationAssetCount = 0): ApiAsset {
   return {
     id: row.asset.id,
     assetTag: row.asset.assetTag,
@@ -149,14 +171,14 @@ function toAsset(row: AssetRow): Asset {
     manufacturer: row.asset.manufacturer,
     model: row.asset.model,
     serialNumber: row.asset.serialNumber,
-    status: row.asset.status as Asset["status"],
-    condition: row.asset.condition as Asset["condition"],
-    location: toLocation(row.location),
+    status: row.asset.status as ApiAsset["status"],
+    condition: row.asset.condition as ApiAsset["condition"],
+    location: toLocation(row.location, locationAssetCount),
     assignee: toPerson(row.person),
-    warrantyEnd: row.asset.warrantyEnd,
-    purchaseDate: row.asset.purchaseDate,
+    warrantyEnd: toDateValue(row.asset.warrantyEnd),
+    purchaseDate: toDateValue(row.asset.purchaseDate),
     purchaseCost: row.asset.purchaseCost === null ? null : Number(row.asset.purchaseCost),
-    lastUpdated: row.asset.updatedAt.toISOString(),
+    lastUpdated: row.asset.updatedAt,
   };
 }
 
@@ -169,7 +191,7 @@ async function getAssetRows(): Promise<AssetRow[]> {
   return rows as AssetRow[];
 }
 
-async function getHistory(assetId: string): Promise<HistoryEvent[]> {
+async function getHistory(assetId: string): Promise<ApiHistoryEvent[]> {
   const rows = await db
     .select()
     .from(assetHistoryTable)
@@ -180,15 +202,17 @@ async function getHistory(assetId: string): Promise<HistoryEvent[]> {
     action: row.action,
     detail: row.detail,
     actor: row.actor,
-    createdAt: row.createdAt.toISOString(),
+    createdAt: row.createdAt,
   }));
 }
 
-async function getAssetDetail(assetId: string): Promise<AssetDetail | null> {
-  const row = (await getAssetRows()).find((item) => item.asset.id === assetId);
+async function getAssetDetail(assetId: string): Promise<ApiAssetDetail | null> {
+  const rows = await getAssetRows();
+  const row = rows.find((item) => item.asset.id === assetId);
   if (!row) return null;
+  const locationAssetCount = rows.filter((item) => item.asset.locationId === row.asset.locationId).length;
   return {
-    ...toAsset(row),
+    ...toAsset(row, locationAssetCount),
     notes: row.asset.notes,
     specifications: row.asset.specifications,
     history: await getHistory(assetId),
@@ -209,7 +233,7 @@ function activityType(action: string): ActivityEvent["type"] {
   return "update";
 }
 
-async function listMaintenanceItems(limit: number): Promise<MaintenanceItem[]> {
+async function listMaintenanceItems(limit: number): Promise<ApiMaintenanceItem[]> {
   const rows = await db
     .select({ maintenance: maintenanceTable, asset: assetsTable })
     .from(maintenanceTable)
@@ -220,10 +244,10 @@ async function listMaintenanceItems(limit: number): Promise<MaintenanceItem[]> {
     id: maintenance.id,
     assetTag: asset.assetTag,
     category: asset.name,
-    scheduledAt: maintenance.scheduledAt.toISOString(),
+    scheduledAt: maintenance.scheduledAt,
     technician: maintenance.technician,
-    priority: maintenance.priority as MaintenanceItem["priority"],
-    status: maintenance.status as MaintenanceItem["status"],
+    priority: maintenance.priority as ApiMaintenanceItem["priority"],
+    status: maintenance.status as ApiMaintenanceItem["status"],
   }));
 }
 
@@ -234,7 +258,7 @@ router.get("/dashboard/summary", async (_req, res) => {
   const assigned = rows.filter((row) => row.status === "assigned").length;
   const inRepair = rows.filter((row) => row.status === "in_repair" || row.status === "rma").length;
   const available = rows.filter((row) => row.status === "available").length;
-  const data: DashboardSummary = {
+  const data: ApiDashboardSummary = {
     total,
     assigned,
     inRepair,
@@ -259,7 +283,7 @@ router.get("/dashboard/activity", async (req, res) => {
     type: activityType(history.action),
     message: history.detail,
     actor: history.actor,
-    createdAt: history.createdAt.toISOString(),
+    createdAt: history.createdAt,
     assetTag: asset.assetTag,
   }));
   res.json(data);
@@ -296,8 +320,14 @@ router.get("/assets", async (req, res) => {
     .orderBy(desc(assetsTable.updatedAt));
 
   const start = (query.page - 1) * query.pageSize;
+  const locationCounts = new Map<string, number>();
+  rows.forEach((row) => {
+    locationCounts.set(row.asset.locationId, (locationCounts.get(row.asset.locationId) ?? 0) + 1);
+  });
   res.json({
-    items: rows.slice(start, start + query.pageSize).map((row) => toAsset(row as AssetRow)),
+    items: rows
+      .slice(start, start + query.pageSize)
+      .map((row) => toAsset(row as AssetRow, locationCounts.get(row.asset.locationId) ?? 0)),
     total: rows.length,
     page: query.page,
     pageSize: query.pageSize,
@@ -320,8 +350,8 @@ router.post("/assets", async (req, res) => {
     status: body.status,
     condition: body.condition,
     locationId: body.locationId,
-    warrantyEnd: body.warrantyEnd ?? null,
-    purchaseDate: body.purchaseDate ?? null,
+    warrantyEnd: toDateOnly(body.warrantyEnd) ?? null,
+    purchaseDate: toDateOnly(body.purchaseDate) ?? null,
     purchaseCost: body.purchaseCost === null || body.purchaseCost === undefined ? null : String(body.purchaseCost),
     notes: body.notes,
     specifications: {},
@@ -369,8 +399,8 @@ router.patch("/assets/:assetId", async (req, res) => {
     ...(body.serialNumber === undefined ? {} : { serialNumber: body.serialNumber }),
     ...(body.condition === undefined ? {} : { condition: body.condition }),
     ...(body.locationId === undefined ? {} : { locationId: body.locationId }),
-    ...(body.warrantyEnd === undefined ? {} : { warrantyEnd: body.warrantyEnd }),
-    ...(body.purchaseDate === undefined ? {} : { purchaseDate: body.purchaseDate }),
+    ...(body.warrantyEnd === undefined ? {} : { warrantyEnd: toDateOnly(body.warrantyEnd) }),
+    ...(body.purchaseDate === undefined ? {} : { purchaseDate: toDateOnly(body.purchaseDate) }),
     ...(body.purchaseCost === undefined ? {} : { purchaseCost: body.purchaseCost === null ? null : String(body.purchaseCost) }),
     ...(body.notes === undefined ? {} : { notes: body.notes }),
     updatedAt: new Date(),
