@@ -6,8 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './activityActionParameter';
 export * from './activityEvent';
 export * from './activityEventType';
+export * from './activitySearchParameter';
 export * from './asset';
 export * from './assetAssignmentInput';
 export * from './assetCondition';
@@ -22,6 +24,8 @@ export * from './assetStatusInput';
 export * from './assetStatusInputStatus';
 export * from './assetUpdate';
 export * from './assetUpdateCondition';
+export * from './bulkAssetStatusInput';
+export * from './bulkAssetStatusInputStatus';
 export * from './categoryParameter';
 export * from './dashboardSummary';
 export * from './dashboardSummaryChanges';
@@ -35,12 +39,22 @@ export * from './listAssetsParams';
 export * from './listMaintenanceParams';
 export * from './location';
 export * from './locationIdParameter';
+export * from './locationInput';
+export * from './locationUpdate';
+export * from './maintenanceInput';
+export * from './maintenanceInputPriority';
+export * from './maintenanceInputStatus';
 export * from './maintenanceItem';
 export * from './maintenanceItemPriority';
 export * from './maintenanceItemStatus';
+export * from './maintenanceUpdate';
+export * from './maintenanceUpdatePriority';
+export * from './maintenanceUpdateStatus';
 export * from './notFoundResponse';
 export * from './pageParameter';
 export * from './pageSizeParameter';
 export * from './person';
+export * from './personInput';
+export * from './personUpdate';
 export * from './searchParameter';
 export * from './statusParameter';

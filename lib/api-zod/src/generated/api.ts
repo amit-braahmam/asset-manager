@@ -43,7 +43,9 @@ export const getDashboardActivityQueryLimitMax = 50;
 
 
 export const GetDashboardActivityQueryParams = zod.object({
-  "limit": zod.coerce.number().int().min(1).max(getDashboardActivityQueryLimitMax).default(getDashboardActivityQueryLimitDefault)
+  "limit": zod.coerce.number().int().min(1).max(getDashboardActivityQueryLimitMax).default(getDashboardActivityQueryLimitDefault),
+  "action": zod.enum(['assignment', 'return', 'alert', 'import', 'maintenance', 'update']).optional(),
+  "search": zod.coerce.string().optional()
 })
 
 export const GetDashboardActivityResponseItem = zod.object({
@@ -471,6 +473,108 @@ export const ListLocationsResponse = zod.array(ListLocationsResponseItem)
 
 
 /**
+ * @summary Create an asset location
+ */
+
+
+
+
+export const CreateLocationBody = zod.object({
+  "name": zod.string().min(1),
+  "city": zod.string().min(1)
+})
+
+export const CreateLocationResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "city": zod.string(),
+  "assetCount": zod.int()
+})
+
+
+/**
+ * @summary Update an asset location
+ */
+export const UpdateLocationParams = zod.object({
+  "locationId": zod.coerce.string()
+})
+
+
+
+
+
+export const UpdateLocationBody = zod.object({
+  "name": zod.string().min(1).optional(),
+  "city": zod.string().min(1).optional()
+})
+
+export const UpdateLocationResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "city": zod.string(),
+  "assetCount": zod.int()
+})
+
+
+/**
+ * @summary List asset custodians
+ */
+export const ListPeopleResponseItem = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "department": zod.string(),
+  "email": zod.string()
+})
+export const ListPeopleResponse = zod.array(ListPeopleResponseItem)
+
+
+/**
+ * @summary Create an asset custodian
+ */
+
+
+
+
+export const CreatePersonBody = zod.object({
+  "name": zod.string().min(1),
+  "department": zod.string().min(1),
+  "email": zod.email()
+})
+
+export const CreatePersonResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "department": zod.string(),
+  "email": zod.string()
+})
+
+
+/**
+ * @summary Update an asset custodian
+ */
+export const UpdatePersonParams = zod.object({
+  "personId": zod.coerce.string()
+})
+
+
+
+
+
+export const UpdatePersonBody = zod.object({
+  "name": zod.string().min(1).optional(),
+  "department": zod.string().min(1).optional(),
+  "email": zod.email().optional()
+})
+
+export const UpdatePersonResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "department": zod.string(),
+  "email": zod.string()
+})
+
+
+/**
  * @summary List upcoming maintenance
  */
 export const listMaintenanceQueryLimitDefault = 5;
@@ -492,5 +596,111 @@ export const ListMaintenanceResponseItem = zod.object({
   "status": zod.enum(['pending', 'scheduled', 'completed', 'overdue'])
 })
 export const ListMaintenanceResponse = zod.array(ListMaintenanceResponseItem)
+
+
+/**
+ * @summary Schedule maintenance
+ */
+
+export const createMaintenanceBodyPriorityDefault = `normal`;
+export const createMaintenanceBodyStatusDefault = `scheduled`;
+
+export const CreateMaintenanceBody = zod.object({
+  "assetId": zod.string(),
+  "scheduledAt": zod.coerce.date(),
+  "technician": zod.string().min(1),
+  "priority": zod.enum(['high', 'normal', 'low']).default(createMaintenanceBodyPriorityDefault),
+  "status": zod.enum(['pending', 'scheduled', 'completed', 'overdue']).default(createMaintenanceBodyStatusDefault)
+})
+
+export const CreateMaintenanceResponse = zod.object({
+  "id": zod.string(),
+  "assetTag": zod.string(),
+  "category": zod.string(),
+  "scheduledAt": zod.coerce.date(),
+  "technician": zod.string(),
+  "priority": zod.enum(['high', 'normal', 'low']),
+  "status": zod.enum(['pending', 'scheduled', 'completed', 'overdue'])
+})
+
+
+/**
+ * @summary Update a maintenance item
+ */
+export const UpdateMaintenanceParams = zod.object({
+  "maintenanceId": zod.coerce.string()
+})
+
+
+
+
+export const UpdateMaintenanceBody = zod.object({
+  "scheduledAt": zod.coerce.date().optional(),
+  "technician": zod.string().min(1).optional(),
+  "priority": zod.enum(['high', 'normal', 'low']).optional(),
+  "status": zod.enum(['pending', 'scheduled', 'completed', 'overdue']).optional()
+})
+
+export const UpdateMaintenanceResponse = zod.object({
+  "id": zod.string(),
+  "assetTag": zod.string(),
+  "category": zod.string(),
+  "scheduledAt": zod.coerce.date(),
+  "technician": zod.string(),
+  "priority": zod.enum(['high', 'normal', 'low']),
+  "status": zod.enum(['pending', 'scheduled', 'completed', 'overdue'])
+})
+
+
+/**
+ * @summary Remove a maintenance item
+ */
+export const DeleteMaintenanceParams = zod.object({
+  "maintenanceId": zod.coerce.string()
+})
+
+export const DeleteMaintenanceResponse = zod.void()
+
+
+/**
+ * @summary Change status for several assets
+ */
+
+export const bulkUpdateAssetStatusBodyNoteDefault = ``;
+
+export const BulkUpdateAssetStatusBody = zod.object({
+  "assetIds": zod.array(zod.string()).min(1),
+  "status": zod.enum(['available', 'assigned', 'in_repair', 'rma', 'retired', 'lost']),
+  "note": zod.string().default(bulkUpdateAssetStatusBodyNoteDefault)
+})
+
+export const BulkUpdateAssetStatusResponseItem = zod.object({
+  "id": zod.string(),
+  "assetTag": zod.string(),
+  "name": zod.string(),
+  "category": zod.string(),
+  "manufacturer": zod.string(),
+  "model": zod.string(),
+  "serialNumber": zod.string(),
+  "status": zod.enum(['available', 'assigned', 'in_repair', 'rma', 'retired', 'lost']),
+  "condition": zod.enum(['excellent', 'good', 'fair', 'poor']),
+  "location": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "city": zod.string(),
+  "assetCount": zod.int()
+}),
+  "assignee": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "department": zod.string(),
+  "email": zod.string()
+}),zod.null()]),
+  "warrantyEnd": zod.coerce.date().nullable(),
+  "purchaseDate": zod.coerce.date().nullable(),
+  "purchaseCost": zod.number().nullable(),
+  "lastUpdated": zod.coerce.date()
+})
+export const BulkUpdateAssetStatusResponse = zod.array(BulkUpdateAssetStatusResponseItem)
 
 

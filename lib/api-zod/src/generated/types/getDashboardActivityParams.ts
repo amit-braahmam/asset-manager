@@ -5,6 +5,8 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ActivityActionParameter } from './activityActionParameter';
+import type { ActivitySearchParameter } from './activitySearchParameter';
 import type { LimitParameter } from './limitParameter';
 
 export type GetDashboardActivityParams = {
@@ -13,4 +15,6 @@ export type GetDashboardActivityParams = {
  * @maximum 50
  */
 limit?: LimitParameter;
+action?: ActivityActionParameter;
+search?: ActivitySearchParameter;
 };

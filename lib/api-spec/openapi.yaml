@@ -51,6 +51,8 @@ paths:
       summary: Get recent asset activity
       parameters:
         - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/ActivityAction"
+        - $ref: "#/components/parameters/ActivitySearch"
       responses:
         "200":
           description: Recent activity entries
@@ -241,6 +243,98 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Location"
+    post:
+      operationId: createLocation
+      tags: [locations]
+      summary: Create an asset location
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocationInput"
+      responses:
+        "201":
+          description: Created location
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Location"
+  /locations/{locationId}:
+    patch:
+      operationId: updateLocation
+      tags: [locations]
+      summary: Update an asset location
+      parameters:
+        - $ref: "#/components/parameters/LocationPathId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocationUpdate"
+      responses:
+        "200":
+          description: Updated location
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Location"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /people:
+    get:
+      operationId: listPeople
+      tags: [people]
+      summary: List asset custodians
+      responses:
+        "200":
+          description: People
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Person"
+    post:
+      operationId: createPerson
+      tags: [people]
+      summary: Create an asset custodian
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PersonInput"
+      responses:
+        "201":
+          description: Created person
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Person"
+  /people/{personId}:
+    patch:
+      operationId: updatePerson
+      tags: [people]
+      summary: Update an asset custodian
+      parameters:
+        - $ref: "#/components/parameters/PersonId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PersonUpdate"
+      responses:
+        "200":
+          description: Updated person
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Person"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /maintenance:
     get:
       operationId: listMaintenance
@@ -257,6 +351,76 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/MaintenanceItem"
+    post:
+      operationId: createMaintenance
+      tags: [maintenance]
+      summary: Schedule maintenance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MaintenanceInput"
+      responses:
+        "201":
+          description: Scheduled maintenance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MaintenanceItem"
+  /maintenance/{maintenanceId}:
+    patch:
+      operationId: updateMaintenance
+      tags: [maintenance]
+      summary: Update a maintenance item
+      parameters:
+        - $ref: "#/components/parameters/MaintenanceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MaintenanceUpdate"
+      responses:
+        "200":
+          description: Updated maintenance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MaintenanceItem"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteMaintenance
+      tags: [maintenance]
+      summary: Remove a maintenance item
+      parameters:
+        - $ref: "#/components/parameters/MaintenanceId"
+      responses:
+        "204":
+          description: Maintenance item removed
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /assets/bulk/status:
+    post:
+      operationId: bulkUpdateAssetStatus
+      tags: [assets]
+      summary: Change status for several assets
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BulkAssetStatusInput"
+      responses:
+        "200":
+          description: Updated assets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Asset"
 components:
   parameters:
     AssetId:
@@ -283,6 +447,35 @@ components:
         type: string
     LocationId:
       name: locationId
+      in: query
+      schema:
+        type: string
+    LocationPathId:
+      name: locationId
+      in: path
+      required: true
+      schema:
+        type: string
+    PersonId:
+      name: personId
+      in: path
+      required: true
+      schema:
+        type: string
+    MaintenanceId:
+      name: maintenanceId
+      in: path
+      required: true
+      schema:
+        type: string
+    ActivityAction:
+      name: action
+      in: query
+      schema:
+        type: string
+        enum: [assignment, return, alert, import, maintenance, update]
+    ActivitySearch:
+      name: search
       in: query
       schema:
         type: string
@@ -378,6 +571,50 @@ components:
         email:
           type: string
       required: [id, name, department, email]
+    PersonInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        department:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          format: email
+      required: [name, department, email]
+    PersonUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        department:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          format: email
+    LocationInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        city:
+          type: string
+          minLength: 1
+      required: [name, city]
+    LocationUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        city:
+          type: string
+          minLength: 1
     Asset:
       type: object
       properties:
@@ -608,4 +845,54 @@ components:
           type: string
           enum: [pending, scheduled, completed, overdue]
       required: [id, assetTag, category, scheduledAt, technician, priority, status]
+    MaintenanceInput:
+      type: object
+      properties:
+        assetId:
+          type: string
+        scheduledAt:
+          type: string
+          format: date-time
+        technician:
+          type: string
+          minLength: 1
+        priority:
+          type: string
+          enum: [high, normal, low]
+          default: normal
+        status:
+          type: string
+          enum: [pending, scheduled, completed, overdue]
+          default: scheduled
+      required: [assetId, scheduledAt, technician]
+    MaintenanceUpdate:
+      type: object
+      properties:
+        scheduledAt:
+          type: string
+          format: date-time
+        technician:
+          type: string
+          minLength: 1
+        priority:
+          type: string
+          enum: [high, normal, low]
+        status:
+          type: string
+          enum: [pending, scheduled, completed, overdue]
+    BulkAssetStatusInput:
+      type: object
+      properties:
+        assetIds:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        status:
+          type: string
+          enum: [available, assigned, in_repair, rma, retired, lost]
+        note:
+          type: string
+          default: ""
+      required: [assetIds, status]
 

@@ -42,6 +42,36 @@ export interface Person {
   email: string;
 }
 
+export interface PersonInput {
+  /** @minLength 1 */
+  name: string;
+  /** @minLength 1 */
+  department: string;
+  email: string;
+}
+
+export interface PersonUpdate {
+  /** @minLength 1 */
+  name?: string;
+  /** @minLength 1 */
+  department?: string;
+  email?: string;
+}
+
+export interface LocationInput {
+  /** @minLength 1 */
+  name: string;
+  /** @minLength 1 */
+  city: string;
+}
+
+export interface LocationUpdate {
+  /** @minLength 1 */
+  name?: string;
+  /** @minLength 1 */
+  city?: string;
+}
+
 export type AssetStatus = typeof AssetStatus[keyof typeof AssetStatus];
 
 
@@ -256,6 +286,80 @@ export interface MaintenanceItem {
   status: MaintenanceItemStatus;
 }
 
+export type MaintenanceInputPriority = typeof MaintenanceInputPriority[keyof typeof MaintenanceInputPriority];
+
+
+export const MaintenanceInputPriority = {
+  high: 'high',
+  normal: 'normal',
+  low: 'low',
+} as const;
+
+export type MaintenanceInputStatus = typeof MaintenanceInputStatus[keyof typeof MaintenanceInputStatus];
+
+
+export const MaintenanceInputStatus = {
+  pending: 'pending',
+  scheduled: 'scheduled',
+  completed: 'completed',
+  overdue: 'overdue',
+} as const;
+
+export interface MaintenanceInput {
+  assetId: string;
+  scheduledAt: string;
+  /** @minLength 1 */
+  technician: string;
+  priority?: MaintenanceInputPriority;
+  status?: MaintenanceInputStatus;
+}
+
+export type MaintenanceUpdatePriority = typeof MaintenanceUpdatePriority[keyof typeof MaintenanceUpdatePriority];
+
+
+export const MaintenanceUpdatePriority = {
+  high: 'high',
+  normal: 'normal',
+  low: 'low',
+} as const;
+
+export type MaintenanceUpdateStatus = typeof MaintenanceUpdateStatus[keyof typeof MaintenanceUpdateStatus];
+
+
+export const MaintenanceUpdateStatus = {
+  pending: 'pending',
+  scheduled: 'scheduled',
+  completed: 'completed',
+  overdue: 'overdue',
+} as const;
+
+export interface MaintenanceUpdate {
+  scheduledAt?: string;
+  /** @minLength 1 */
+  technician?: string;
+  priority?: MaintenanceUpdatePriority;
+  status?: MaintenanceUpdateStatus;
+}
+
+export type BulkAssetStatusInputStatus = typeof BulkAssetStatusInputStatus[keyof typeof BulkAssetStatusInputStatus];
+
+
+export const BulkAssetStatusInputStatus = {
+  available: 'available',
+  assigned: 'assigned',
+  in_repair: 'in_repair',
+  rma: 'rma',
+  retired: 'retired',
+  lost: 'lost',
+} as const;
+
+export interface BulkAssetStatusInput {
+  /** @minItems 1 */
+  assetIds: string[];
+  status: BulkAssetStatusInputStatus;
+  note?: string;
+}
+
 /**
  * Resource not found
  */
@@ -279,6 +383,20 @@ export type CategoryParameter = string;
 
 export type LocationIdParameter = string;
 
+export type ActivityActionParameter = typeof ActivityActionParameter[keyof typeof ActivityActionParameter];
+
+
+export const ActivityActionParameter = {
+  assignment: 'assignment',
+  return: 'return',
+  alert: 'alert',
+  import: 'import',
+  maintenance: 'maintenance',
+  update: 'update',
+} as const;
+
+export type ActivitySearchParameter = string;
+
 export type PageParameter = number;
 
 export type PageSizeParameter = number;
@@ -291,6 +409,8 @@ export type GetDashboardActivityParams = {
  * @maximum 50
  */
 limit?: LimitParameter;
+action?: ActivityActionParameter;
+search?: ActivitySearchParameter;
 };
 
 export type GetDashboardMaintenanceParams = {

@@ -3,7 +3,12 @@ import { and, asc, desc, eq, ilike, or } from "drizzle-orm";
 import {
   AssignAssetBody,
   AssignAssetParams,
+  BulkUpdateAssetStatusBody,
   CreateAssetBody,
+  CreateLocationBody,
+  CreateMaintenanceBody,
+  CreatePersonBody,
+  DeleteMaintenanceParams,
   GetAssetHistoryParams,
   GetAssetParams,
   GetDashboardActivityQueryParams,
@@ -11,6 +16,12 @@ import {
   ListAssetsQueryParams,
   ListMaintenanceQueryParams,
   ReturnAssetParams,
+  UpdateLocationBody,
+  UpdateLocationParams,
+  UpdateMaintenanceBody,
+  UpdateMaintenanceParams,
+  UpdatePersonBody,
+  UpdatePersonParams,
   UpdateAssetBody,
   UpdateAssetParams,
   UpdateAssetStatusBody,
@@ -240,7 +251,14 @@ async function listMaintenanceItems(limit: number): Promise<ApiMaintenanceItem[]
     .innerJoin(assetsTable, eq(maintenanceTable.assetId, assetsTable.id))
     .orderBy(asc(maintenanceTable.scheduledAt))
     .limit(limit);
-  return rows.map(({ maintenance, asset }) => ({
+  return rows.map(({ maintenance, asset }) => toMaintenanceItem(maintenance, asset));
+}
+
+function toMaintenanceItem(
+  maintenance: typeof maintenanceTable.$inferSelect,
+  asset: Pick<DbAsset, "assetTag" | "name">,
+): ApiMaintenanceItem {
+  return {
     id: maintenance.id,
     assetTag: asset.assetTag,
     category: asset.name,
@@ -248,7 +266,7 @@ async function listMaintenanceItems(limit: number): Promise<ApiMaintenanceItem[]
     technician: maintenance.technician,
     priority: maintenance.priority as ApiMaintenanceItem["priority"],
     status: maintenance.status as ApiMaintenanceItem["status"],
-  }));
+  };
 }
 
 router.get("/dashboard/summary", async (_req, res) => {
@@ -271,13 +289,20 @@ router.get("/dashboard/summary", async (_req, res) => {
 
 router.get("/dashboard/activity", async (req, res) => {
   await seedReady;
-  const limit = getLimit(req, GetDashboardActivityQueryParams);
+  const query = GetDashboardActivityQueryParams.parse(req.query);
+  const conditions = [];
+  if (query.action) conditions.push(eq(assetHistoryTable.action, query.action));
+  if (query.search) {
+    const search = `%${query.search}%`;
+    conditions.push(or(ilike(assetHistoryTable.detail, search), ilike(assetsTable.assetTag, search)));
+  }
   const rows = await db
     .select({ history: assetHistoryTable, asset: assetsTable })
     .from(assetHistoryTable)
     .innerJoin(assetsTable, eq(assetHistoryTable.assetId, assetsTable.id))
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(desc(assetHistoryTable.createdAt))
-    .limit(limit);
+    .limit(query.limit);
   const data: ActivityEvent[] = rows.map(({ history, asset }) => ({
     id: history.id,
     type: activityType(history.action),
@@ -369,6 +394,45 @@ router.post("/assets", async (req, res) => {
   );
   const detail = await getAssetDetail(id);
   res.status(201).json(detail);
+});
+
+router.post("/assets/bulk/status", async (req, res) => {
+  await seedReady;
+  const body = BulkUpdateAssetStatusBody.parse(req.body);
+  const assetIds = Array.from(new Set(body.assetIds));
+  const rows = await getAssetRows();
+  const existing = new Map(rows.map((row) => [row.asset.id, row]));
+  const missing = assetIds.filter((assetId) => !existing.has(assetId));
+  if (missing.length > 0) {
+    res.status(404).json({ error: `Assets not found: ${missing.join(", ")}` });
+    return;
+  }
+
+  const now = new Date();
+  for (const assetId of assetIds) {
+    await db.update(assetsTable).set({
+      status: body.status,
+      ...(body.status === "available" ? { assigneeId: null } : {}),
+      updatedAt: now,
+    }).where(eq(assetsTable.id, assetId));
+    await db.insert(assetHistoryTable).values(insertAssetHistorySchema.parse({
+      id: `hist-${randomUUID().slice(0, 8)}`,
+      assetId,
+      action: "update",
+      detail: `Bulk status update: ${body.status.replaceAll("_", " ")}.${body.note ? ` ${body.note}` : ""}`,
+      actor: "IT Administrator",
+    }));
+  }
+
+  const updatedRows = await getAssetRows();
+  const locationCounts = new Map<string, number>();
+  updatedRows.forEach((row) => {
+    locationCounts.set(row.asset.locationId, (locationCounts.get(row.asset.locationId) ?? 0) + 1);
+  });
+  res.json(assetIds.map((assetId) => {
+    const row = updatedRows.find((item) => item.asset.id === assetId);
+    return row ? toAsset(row, locationCounts.get(row.asset.locationId) ?? 0) : null;
+  }).filter((asset): asset is ApiAsset => asset !== null));
 });
 
 router.get("/assets/:assetId", async (req, res) => {
@@ -528,9 +592,141 @@ router.get("/locations", async (_req, res) => {
   })));
 });
 
+router.post("/locations", async (req, res) => {
+  await seedReady;
+  const body = CreateLocationBody.parse(req.body);
+  const location = {
+    id: `loc-${randomUUID().slice(0, 8)}`,
+    name: body.name,
+    city: body.city,
+  };
+  await db.insert(locationsTable).values(location);
+  res.status(201).json({ ...location, assetCount: 0 });
+});
+
+router.patch("/locations/:locationId", async (req, res) => {
+  await seedReady;
+  const { locationId } = UpdateLocationParams.parse(req.params);
+  const body = UpdateLocationBody.parse(req.body);
+  const existing = await db.select().from(locationsTable).where(eq(locationsTable.id, locationId)).limit(1);
+  if (existing.length === 0) {
+    res.status(404).json({ error: "Location not found" });
+    return;
+  }
+  await db.update(locationsTable).set({
+    ...(body.name === undefined ? {} : { name: body.name }),
+    ...(body.city === undefined ? {} : { city: body.city }),
+  }).where(eq(locationsTable.id, locationId));
+  const assetCount = await db.select({ locationId: assetsTable.locationId }).from(assetsTable).where(eq(assetsTable.locationId, locationId));
+  const updated = await db.select().from(locationsTable).where(eq(locationsTable.id, locationId)).limit(1);
+  res.json({ ...updated[0], assetCount: assetCount.length });
+});
+
+router.get("/people", async (_req, res) => {
+  await seedReady;
+  res.json(await db.select().from(peopleTable).orderBy(asc(peopleTable.name)));
+});
+
+router.post("/people", async (req, res) => {
+  await seedReady;
+  const body = CreatePersonBody.parse(req.body);
+  const person = {
+    id: `person-${randomUUID().slice(0, 8)}`,
+    name: body.name,
+    department: body.department,
+    email: body.email,
+  };
+  await db.insert(peopleTable).values(person);
+  res.status(201).json(person);
+});
+
+router.patch("/people/:personId", async (req, res) => {
+  await seedReady;
+  const { personId } = UpdatePersonParams.parse(req.params);
+  const body = UpdatePersonBody.parse(req.body);
+  const existing = await db.select().from(peopleTable).where(eq(peopleTable.id, personId)).limit(1);
+  if (existing.length === 0) {
+    res.status(404).json({ error: "Person not found" });
+    return;
+  }
+  await db.update(peopleTable).set({
+    ...(body.name === undefined ? {} : { name: body.name }),
+    ...(body.department === undefined ? {} : { department: body.department }),
+    ...(body.email === undefined ? {} : { email: body.email }),
+  }).where(eq(peopleTable.id, personId));
+  const updated = await db.select().from(peopleTable).where(eq(peopleTable.id, personId)).limit(1);
+  res.json(updated[0]);
+});
+
 router.get("/maintenance", async (req, res) => {
   await seedReady;
   res.json(await listMaintenanceItems(getLimit(req, ListMaintenanceQueryParams)));
+});
+
+router.post("/maintenance", async (req, res) => {
+  await seedReady;
+  const body = CreateMaintenanceBody.parse(req.body);
+  const asset = await db.select().from(assetsTable).where(eq(assetsTable.id, body.assetId)).limit(1);
+  if (asset.length === 0) {
+    res.status(404).json({ error: "Asset not found" });
+    return;
+  }
+  const maintenance = {
+    id: `maint-${randomUUID().slice(0, 8)}`,
+    assetId: body.assetId,
+    scheduledAt: body.scheduledAt,
+    technician: body.technician,
+    priority: body.priority,
+    status: body.status,
+  };
+  await db.insert(maintenanceTable).values(maintenance);
+  await db.insert(assetHistoryTable).values(insertAssetHistorySchema.parse({
+    id: `hist-${randomUUID().slice(0, 8)}`,
+    assetId: body.assetId,
+    action: "maintenance",
+    detail: `Maintenance scheduled with ${body.technician}.`,
+    actor: "IT Administrator",
+  }));
+  res.status(201).json(toMaintenanceItem(maintenance, asset[0]));
+});
+
+router.patch("/maintenance/:maintenanceId", async (req, res) => {
+  await seedReady;
+  const { maintenanceId } = UpdateMaintenanceParams.parse(req.params);
+  const body = UpdateMaintenanceBody.parse(req.body);
+  const current = await db.select({ maintenance: maintenanceTable, asset: assetsTable })
+    .from(maintenanceTable)
+    .innerJoin(assetsTable, eq(maintenanceTable.assetId, assetsTable.id))
+    .where(eq(maintenanceTable.id, maintenanceId))
+    .limit(1);
+  if (current.length === 0) {
+    res.status(404).json({ error: "Maintenance item not found" });
+    return;
+  }
+  await db.update(maintenanceTable).set({
+    ...(body.scheduledAt === undefined ? {} : { scheduledAt: body.scheduledAt }),
+    ...(body.technician === undefined ? {} : { technician: body.technician }),
+    ...(body.priority === undefined ? {} : { priority: body.priority }),
+    ...(body.status === undefined ? {} : { status: body.status }),
+  }).where(eq(maintenanceTable.id, maintenanceId));
+  const updated = await db.select({ maintenance: maintenanceTable, asset: assetsTable })
+    .from(maintenanceTable)
+    .innerJoin(assetsTable, eq(maintenanceTable.assetId, assetsTable.id))
+    .where(eq(maintenanceTable.id, maintenanceId))
+    .limit(1);
+  res.json(toMaintenanceItem(updated[0].maintenance, updated[0].asset));
+});
+
+router.delete("/maintenance/:maintenanceId", async (req, res) => {
+  await seedReady;
+  const { maintenanceId } = DeleteMaintenanceParams.parse(req.params);
+  const existing = await db.select().from(maintenanceTable).where(eq(maintenanceTable.id, maintenanceId)).limit(1);
+  if (existing.length === 0) {
+    res.status(404).json({ error: "Maintenance item not found" });
+    return;
+  }
+  await db.delete(maintenanceTable).where(eq(maintenanceTable.id, maintenanceId));
+  res.status(204).send();
 });
 
 export default router;
