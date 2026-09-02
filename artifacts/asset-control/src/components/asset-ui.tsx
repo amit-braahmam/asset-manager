@@ -1,8 +1,8 @@
 import { Link, useLocation } from 'wouter';
-import { useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { useClerk, useUser } from '@clerk/react';
-import { Bell, Boxes, CalendarClock, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, ClipboardList, FileText, Home, Menu, MoreHorizontal, PackagePlus, Search, Settings, ShieldCheck, UserRound, UsersRound, Wrench, X, ArrowUpRight, RefreshCw, Pencil, Trash2, Users } from 'lucide-react';
-import type { Asset, AssetStatus, MaintenanceItem } from '@workspace/api-client-react';
+import { Bell, Boxes, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, ClipboardList, FileText, Home, Menu, MoreHorizontal, Search, ShieldCheck, UsersRound, Wrench, X, ArrowUpRight, RefreshCw, Pencil, Trash2, Users } from 'lucide-react';
+import type { Asset, MaintenanceItem } from '@workspace/api-client-react';
 import { useRole, ROLE_LABELS, canViewTeam, canViewReports } from '@/lib/role';
 
 export const statusLabels: Record<string, string> = { available: 'Available', assigned: 'Assigned', in_repair: 'In repair', rma: 'RMA', retired: 'Retired', lost: 'Lost' };
@@ -44,7 +44,7 @@ export function Sidebar() {
   return <aside className="sidebar">
     <Link href="/" className="brand" data-testid="link-brand"><span className="brand-mark"><ShieldCheck size={20} strokeWidth={2.4} /></span><span className="brand-copy"><strong>asset<span>control</span></strong><small>OPERATIONS CONSOLE</small></span></Link>
     <nav className="side-nav"><div className="nav-section">Workspace</div>{nav.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`link-${label.toLowerCase()}`} className={`nav-item ${isActive(href) ? 'active' : ''}`}><Icon size={18} /><span className="nav-label">{label}</span></Link>)}</nav>
-    <div className="sidebar-foot"><div className="health-row"><span className="health-dot" /> All systems operational</div><Link href="/settings" className={`nav-item ${location === '/settings' ? 'active' : ''}`} data-testid="link-settings"><Settings size={18} /><span className="nav-label">Settings</span></Link><button className="profile profile-button" onClick={() => void signOut({ redirectUrl: '/' })}><span className="avatar">{(user?.firstName?.[0] ?? user?.emailAddresses[0]?.emailAddress[0] ?? "U").toUpperCase()}</span><span className="profile-copy"><b>{user?.fullName ?? user?.emailAddresses[0]?.emailAddress ?? "Signed-in operator"}</b><small data-testid="text-role">{roleLabel} · Sign out</small></span><MoreHorizontal size={17} /></button></div>
+    <div className="sidebar-foot"><div className="health-row"><span className="health-dot" /> All systems operational</div><button className="profile profile-button" onClick={() => void signOut({ redirectUrl: '/' })}><span className="avatar">{(user?.firstName?.[0] ?? user?.emailAddresses[0]?.emailAddress[0] ?? "U").toUpperCase()}</span><span className="profile-copy"><b>{user?.fullName ?? user?.emailAddresses[0]?.emailAddress ?? "Signed-in operator"}</b><small data-testid="text-role">{roleLabel} · Sign out</small></span><MoreHorizontal size={17} /></button></div>
   </aside>;
 }
 

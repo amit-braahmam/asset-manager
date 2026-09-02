@@ -1,25 +1,20 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { ClerkProvider, Show, SignIn, SignUp, useClerk } from "@clerk/react";
+import { ClerkProvider, Show, SignIn, SignUp, useAuth, useClerk } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
 import {
-  Activity,
   ArrowLeft,
   ArrowRight,
   BadgeCheck,
   Boxes,
   Check,
   ChevronDown,
-  CircleHelp,
   ClipboardCheck,
-  ClipboardList,
   Clock3,
-  Command,
   Download,
   FileText,
   FileUp,
-  LayoutDashboard,
   MapPin,
   PackagePlus,
   Pencil,
@@ -32,19 +27,16 @@ import {
   UserRound,
   Users,
   Wrench,
-  X,
 } from "lucide-react";
 import { Link, Redirect, Route, Router as WouterRouter, Switch, useLocation, useRoute } from "wouter";
 import type {
   Asset,
   AssetCondition,
-  AssetDetail,
   AssetInput,
   AssetStatus,
   AssetUpdate,
   ActivityEvent,
   ComplianceReport,
-  ComplianceReportInput,
   ComplianceReportUpdate,
   Location,
   LocationInput,
@@ -59,6 +51,7 @@ import type {
   UserInput,
 } from "@workspace/api-client-react";
 import {
+  setAuthTokenGetter,
   useAssignAsset,
   useBulkUpdateAssetStatus,
   useCreateAsset,
@@ -107,7 +100,6 @@ import {
   ALL_ROLES,
   type Role,
 } from "@/lib/role";
-import { ErrorBoundary } from "@/components/error-boundary";
 import {
   ActivityList,
   AppShell,
@@ -216,7 +208,7 @@ const conditionOptions = [
   { value: "fair", label: "Fair" },
   { value: "poor", label: "Poor" },
 ];
-const categories = ["Laptop", "Monitor", "Server", "Peripheral", "Mobile", "Networking"];
+const ASSET_CATEGORIES = ["Laptop", "Monitor", "Server", "Peripheral", "Mobile", "Networking"];
 
 type FormValues = {
   assetTag: string;
@@ -257,6 +249,11 @@ function initials(name: string) {
     .join("")
     .slice(0, 2)
     .toUpperCase();
+}
+
+function formatWeekDelta(value: number, noun: string) {
+  if (value === 0) return `No ${noun} this week`;
+  return `${value > 0 ? "+" : ""}${value} ${noun} this week`;
 }
 
 function ShellPage({ children }: { children: ReactNode }) {
@@ -315,9 +312,9 @@ function Dashboard() {
       <div className="page-wrap">
         <div className="status-strip"><span className="pulse-dot" /> Live inventory sync <span className="strip-divider" /> Last refresh just now <button onClick={() => { void summary.refetch(); void activity.refetch(); void maintenance.refetch(); }}><RefreshCw size={13} /> Refresh</button></div>
         <div className="metric-grid fade-up">
-          <MetricCard label="Total assets" value={data.total} detail="Across all locations" tone="teal" icon={Boxes} />
-          <MetricCard label="Assigned" value={data.assigned} detail={`${data.utilization}% utilization`} tone="blue" icon={Users} />
-          <MetricCard label="In repair" value={data.inRepair} detail="Needs attention" tone="orange" icon={Wrench} />
+          <MetricCard label="Total assets" value={data.total} detail={formatWeekDelta(data.changes.total, "added")} tone="teal" icon={Boxes} />
+          <MetricCard label="Assigned" value={data.assigned} detail={`${data.utilization}% utilization · ${formatWeekDelta(data.changes.assigned, "net")}`} tone="blue" icon={Users} />
+          <MetricCard label="In repair" value={data.inRepair} detail={formatWeekDelta(data.changes.inRepair, "service events")} tone="orange" icon={Wrench} />
           <MetricCard label="Available" value={data.available} detail="Ready to deploy" tone="violet" icon={ClipboardCheck} />
         </div>
         <div className="dashboard-grid">
@@ -381,7 +378,11 @@ function Inventory({ openCreate = false }: { openCreate?: boolean }) {
   }, [search, status, category, locationId]);
 
   const items = assets.data?.items ?? [];
-  const categories = useMemo(() => Array.from(new Set(items.map((asset) => asset.category))).sort(), [items]);
+  const liveCategories = useMemo(() => Array.from(new Set(items.map((asset) => asset.category))), [items]);
+  const categoryOptions = useMemo(
+    () => Array.from(new Set([...ASSET_CATEGORIES, ...liveCategories])).sort().map((value) => ({ value, label: value })),
+    [liveCategories],
+  );
   const locationOptions = (locations.data ?? []).map((location) => ({ value: location.id, label: location.name }));
 
   async function handleCreate(values: FormValues) {
@@ -477,9 +478,8 @@ function Inventory({ openCreate = false }: { openCreate?: boolean }) {
         <div className="inventory-toolbar">
           <SearchBox value={search} onChange={setSearch} />
           <SelectField value={status} onChange={setStatus} options={statusOptions} label="Status" testId="select-status" />
-          <SelectField value={category} onChange={setCategory} options={(categories.length ? categories : ["Laptop", "Monitor", "Server", "Peripheral", "Mobile", "Networking"]).map((value) => ({ value, label: value }))} label="Category" testId="select-category" />
+          <SelectField value={category} onChange={setCategory} options={categoryOptions} label="Category" testId="select-category" />
           <SelectField value={locationId} onChange={setLocationId} options={locationOptions} label="Location" testId="select-location" />
-          <button className="filter-button" title="More filters"><SlidersHorizontal size={16} /> <span>Filters</span></button>
         </div>
         <div className="inventory-summary"><div><span className="eyebrow">Asset register</span><strong>{assets.data?.total ?? "—"} records</strong>{selected.length > 0 && <span className="selection-count">{selected.length} selected</span>}</div><div className="inventory-actions">{canManage && <label className="text-button file-button"><FileUp size={14} /> Import CSV<input type="file" accept=".csv,text/csv" onChange={(event) => void importCsv(event)} /></label>}<button className="text-button" onClick={exportCsv}><Download size={14} /> Export CSV</button></div></div>
         {canManage && selected.length > 0 && <div className="bulk-toolbar"><span className="eyebrow">Bulk action</span><span>{selected.length} selected</span><SelectField value={bulkStatus} onChange={(value) => setBulkStatus(value as AssetStatus)} options={statusOptions} label="Set status" testId="select-bulk-status" /><Button className="button-dark" onClick={() => void handleBulkStatus()} disabled={bulkUpdate.isPending}>{bulkUpdate.isPending ? "Updating…" : "Apply status"}</Button><button className="text-button" onClick={() => setSelected([])}>Clear</button></div>}
@@ -523,7 +523,7 @@ function AssetForm({
       <div className="form-grid">
         {!editing && <Field label="Asset tag" value={values.assetTag} onChange={(value) => change("assetTag", value)} placeholder="LT-1001" required />}
         <Field label="Asset name" value={values.name} onChange={(value) => change("name", value)} placeholder="MacBook Pro 14" required />
-        <Field label="Category" value={values.category} onChange={(value) => change("category", value)} options={categories.map((value) => ({ value, label: value }))} />
+        <Field label="Category" value={values.category} onChange={(value) => change("category", value)} options={ASSET_CATEGORIES.map((value) => ({ value, label: value }))} />
         <Field label="Manufacturer" value={values.manufacturer} onChange={(value) => change("manufacturer", value)} placeholder="Apple" required />
         <Field label="Model" value={values.model} onChange={(value) => change("model", value)} placeholder="MacBook Pro M3" required />
         <Field label="Serial number" value={values.serialNumber} onChange={(value) => change("serialNumber", value)} placeholder="Serial / IMEI" required />
@@ -1044,6 +1044,15 @@ function SignUpPage() {
   return <div className="auth-page"><SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} /></div>;
 }
 
+function ClerkApiAuthBridge() {
+  const { getToken } = useAuth();
+  useEffect(() => {
+    setAuthTokenGetter(() => getToken());
+    return () => setAuthTokenGetter(null);
+  }, [getToken]);
+  return null;
+}
+
 function ClerkQueryClientCacheInvalidator() {
   const { addListener } = useClerk();
   const queryClient = useQueryClient();
@@ -1062,7 +1071,7 @@ function ClerkQueryClientCacheInvalidator() {
 
 function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
-  return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={clerkAppearance} signInUrl={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} localization={{ signIn: { start: { title: "Welcome back", subtitle: "Sign in to access your workspace" } }, signUp: { start: { title: "Create your workspace", subtitle: "Get started with AssetControl" } } }} routerPush={(to) => setLocation(stripBase(to))} routerReplace={(to) => setLocation(stripBase(to), { replace: true })}><QueryClientProvider client={queryClient}><ClerkQueryClientCacheInvalidator /><Switch><Route path="/" component={HomeRedirect} /><Route path="/sign-in/*?" component={SignInPage} /><Route path="/sign-up/*?" component={SignUpPage} /><Route path="/workspace" component={UserPortal} /><Route path="/inventory" component={UserPortal} /><Route path="/assets/:assetId" component={UserPortal} /><Route path="/maintenance" component={UserPortal} /><Route path="/directory" component={UserPortal} /><Route path="/team" component={UserPortal} /><Route path="/reports/:reportId" component={UserPortal} /><Route path="/reports" component={UserPortal} /><Route component={UserPortal} /></Switch><Toaster /></QueryClientProvider></ClerkProvider>;
+  return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={clerkAppearance} signInUrl={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} localization={{ signIn: { start: { title: "Welcome back", subtitle: "Sign in to access your workspace" } }, signUp: { start: { title: "Create your workspace", subtitle: "Get started with AssetControl" } } }} routerPush={(to) => setLocation(stripBase(to))} routerReplace={(to) => setLocation(stripBase(to), { replace: true })}><QueryClientProvider client={queryClient}><ClerkApiAuthBridge /><ClerkQueryClientCacheInvalidator /><Switch><Route path="/" component={HomeRedirect} /><Route path="/sign-in/*?" component={SignInPage} /><Route path="/sign-up/*?" component={SignUpPage} /><Route path="/workspace" component={UserPortal} /><Route path="/inventory" component={UserPortal} /><Route path="/assets/:assetId" component={UserPortal} /><Route path="/maintenance" component={UserPortal} /><Route path="/directory" component={UserPortal} /><Route path="/team" component={UserPortal} /><Route path="/reports/:reportId" component={UserPortal} /><Route path="/reports" component={UserPortal} /><Route component={UserPortal} /></Switch><Toaster /></QueryClientProvider></ClerkProvider>;
 }
 
 function App() {

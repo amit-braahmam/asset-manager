@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Request } from "express";
-import { and, asc, desc, eq, ilike, or } from "drizzle-orm";
+import { and, asc, desc, eq, gte, ilike, or } from "drizzle-orm";
 import {
   AssignAssetBody,
   AssignAssetParams,
@@ -176,18 +176,31 @@ function toMaintenanceItem(
 
 router.get("/dashboard/summary", async (_req, res) => {
   await seedReady;
-  const rows = await db.select({ status: assetsTable.status }).from(assetsTable);
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const [rows, recentHistory] = await Promise.all([
+    db.select({ status: assetsTable.status, createdAt: assetsTable.createdAt }).from(assetsTable),
+    db
+      .select({ action: assetHistoryTable.action })
+      .from(assetHistoryTable)
+      .where(gte(assetHistoryTable.createdAt, weekAgo)),
+  ]);
   const total = rows.length;
   const assigned = rows.filter((row) => row.status === "assigned").length;
   const inRepair = rows.filter((row) => row.status === "in_repair" || row.status === "rma").length;
   const available = rows.filter((row) => row.status === "available").length;
+  const assignments = recentHistory.filter((row) => row.action === "assignment").length;
+  const returns = recentHistory.filter((row) => row.action === "return").length;
   const data: ApiDashboardSummary = {
     total,
     assigned,
     inRepair,
     available,
     utilization: total === 0 ? 0 : Math.round((assigned / total) * 100),
-    changes: { total: 2, assigned: 1, inRepair: -1 },
+    changes: {
+      total: rows.filter((row) => row.createdAt >= weekAgo).length,
+      assigned: assignments - returns,
+      inRepair: recentHistory.filter((row) => row.action === "maintenance").length,
+    },
   };
   res.json(data);
 });

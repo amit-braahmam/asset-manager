@@ -12,21 +12,15 @@ import {
   assetsTable,
   maintenanceTable,
   complianceReportsTable,
-  COMPLIANCE_REPORT_STATUSES,
   type ComplianceReport as DbComplianceReport,
   type ComplianceReportStatus,
 } from "@workspace/db";
 import { randomUUID } from "node:crypto";
 import { seedReady } from "../lib/seed";
 import { requireRoles } from "../lib/auth";
+import { reportPatchRejection } from "../lib/report-workflow";
 
 const router: IRouter = Router();
-
-const STAGE_ORDER: Record<ComplianceReportStatus, number> = {
-  in_preparation: 0,
-  ready_for_review: 1,
-  final: 2,
-};
 
 // DB stores period bounds as date-only strings; the API contract uses Dates.
 function toDateValue(value: string | null): Date | null {
@@ -133,23 +127,13 @@ router.patch("/reports/:reportId", requireRoles("admin", "auditor"), async (req,
     return;
   }
   const current = rows[0];
-
-  // A finalized report is immutable.
-  if (current.status === "final") {
-    res.status(409).json({ error: "Finalized reports cannot be modified." });
+  const rejection = reportPatchRejection(
+    current.status as ComplianceReportStatus,
+    body.status,
+  );
+  if (rejection) {
+    res.status(rejection.status).json({ error: rejection.error });
     return;
-  }
-
-  // The workflow only moves forward: in_preparation -> ready_for_review -> final.
-  if (body.status !== undefined && body.status !== current.status) {
-    const from = STAGE_ORDER[current.status as ComplianceReportStatus];
-    const to = STAGE_ORDER[body.status as ComplianceReportStatus];
-    if (!COMPLIANCE_REPORT_STATUSES.includes(body.status) || to < from) {
-      res.status(400).json({
-        error: `Invalid workflow transition from ${current.status} to ${body.status}.`,
-      });
-      return;
-    }
   }
 
   const now = new Date();

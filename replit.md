@@ -7,6 +7,7 @@ An IT asset & inventory "operations console" that gives operations/IT teams one 
 - `pnpm --filter @workspace/api-server run dev` — build + run the API server (Express 5). Requires `DATABASE_URL` and Clerk env.
 - `pnpm --filter @workspace/asset-control run dev` — run the frontend (Vite). Requires `PORT`, `BASE_PATH`, and `VITE_CLERK_PUBLISHABLE_KEY`.
 - `pnpm run typecheck` — full typecheck across all packages
+- `pnpm run test` — API RBAC/lifecycle tests + frontend role-matrix smoke tests
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate React Query hooks and Zod schemas from the OpenAPI spec (run this after editing `lib/api-spec/openapi.yaml`)
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
@@ -73,7 +74,7 @@ User-facing capabilities that exist today:
 - **Run codegen after editing the OpenAPI spec** — `lib/api-zod` and `lib/api-client-react` are generated; hand edits get overwritten.
 - **Apply DB schema with migrations.** `pnpm --filter @workspace/db run migrate` (or `push` in local dev). The initial migration lives in `lib/db/migrations/`.
 - **Seeding is lazy.** `artifacts/api-server/src/lib/seed.ts` populates demo data on first request via `seedReady`. Idempotent.
-- **`/dashboard/summary` returns placeholder trend numbers** (`changes`) — not yet computed from real history (Stage 2).
+- **Dashboard trends are 7-day deltas** computed from asset `createdAt` and `asset_history` (assignments − returns, maintenance events). They are not stored snapshots.
 - Frontend Vite config **requires `PORT` and `BASE_PATH`** env vars or it throws on startup.
 
 ## Pointers

@@ -1,27 +1,19 @@
-import type { Request, Response, NextFunction, RequestHandler } from "express";
+import type { Request, RequestHandler } from "express";
 import { getAuth, clerkClient } from "@clerk/express";
 import { and, eq, like, not } from "drizzle-orm";
-import {
-  db,
-  usersTable,
-  DEFAULT_USER_ROLE,
-  type User as DbUser,
-  type UserRole,
-} from "@workspace/db";
+import { db, usersTable, DEFAULT_USER_ROLE, type UserRole } from "@workspace/db";
+import { PENDING_USER_PREFIX, type AppUser } from "./auth-roles";
 
-export type AppUser = DbUser & { role: UserRole };
-
-/** Synthetic id prefix for users onboarded (by email) before their first sign-in. */
-export const PENDING_USER_PREFIX = "pending:";
-
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace Express {
-    interface Request {
-      appUser?: AppUser;
-    }
-  }
-}
+export type { AppUser } from "./auth-roles";
+export {
+  PENDING_USER_PREFIX,
+  MANAGER_GRANTABLE_ROLES,
+  canOnboardRole,
+  isLastAdminDemotion,
+  requireRoles,
+  hasRole,
+  actorLabel,
+} from "./auth-roles";
 
 function getClerkUserId(req: Request): string | null {
   const auth = getAuth(req);
@@ -144,27 +136,3 @@ export const attachAppUser: RequestHandler = async (req, res, next) => {
     next(err);
   }
 };
-
-/** Route guard: only allow the listed roles. */
-export function requireRoles(...allowed: UserRole[]): RequestHandler {
-  return (req: Request, res: Response, next: NextFunction) => {
-    const role = req.appUser?.role;
-    if (!role || !allowed.includes(role)) {
-      res.status(403).json({ error: "Forbidden: insufficient role" });
-      return;
-    }
-    next();
-  };
-}
-
-export function hasRole(req: Request, ...allowed: UserRole[]): boolean {
-  const role = req.appUser?.role;
-  return !!role && allowed.includes(role);
-}
-
-/** Display label for the acting user, used in audit/history entries. */
-export function actorLabel(req: Request): string {
-  const user = req.appUser;
-  if (!user) return "System";
-  return user.name || user.email || user.id;
-}

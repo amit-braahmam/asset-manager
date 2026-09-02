@@ -9,12 +9,14 @@ import {
 } from "@workspace/api-zod";
 import { db, usersTable, type User as DbUser, type UserRole } from "@workspace/db";
 import { randomUUID } from "node:crypto";
-import { requireRoles, PENDING_USER_PREFIX } from "../lib/auth";
+import {
+  requireRoles,
+  PENDING_USER_PREFIX,
+  canOnboardRole,
+  isLastAdminDemotion,
+} from "../lib/auth";
 
 const router: IRouter = Router();
-
-// Roles a Manager is allowed to grant when onboarding. Admins may grant any.
-const MANAGER_GRANTABLE_ROLES: UserRole[] = ["technician", "viewer"];
 
 function toUser(row: DbUser): ApiUser {
   return {
@@ -52,7 +54,7 @@ router.post("/users", requireRoles("admin", "manager"), async (req, res) => {
   const body = CreateUserBody.parse(req.body);
   const actingRole = req.appUser!.role;
 
-  if (actingRole === "manager" && !MANAGER_GRANTABLE_ROLES.includes(body.role)) {
+  if (!canOnboardRole(actingRole, body.role)) {
     res.status(403).json({
       error: "Managers can only onboard Technician or Viewer users.",
     });
@@ -98,16 +100,13 @@ router.patch("/users/:userId/role", requireRoles("admin"), async (req, res) => {
     return;
   }
 
-  // Never allow the last remaining Admin to be demoted.
-  if (existing[0].role === "admin" && body.role !== "admin") {
-    const otherAdmins = await db
-      .select({ id: usersTable.id })
-      .from(usersTable)
-      .where(and(eq(usersTable.role, "admin"), ne(usersTable.id, userId)));
-    if (otherAdmins.length === 0) {
-      res.status(400).json({ error: "At least one Admin must remain." });
-      return;
-    }
+  const otherAdmins = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .where(and(eq(usersTable.role, "admin"), ne(usersTable.id, userId)));
+  if (isLastAdminDemotion(existing[0].role as UserRole, body.role, otherAdmins.length)) {
+    res.status(400).json({ error: "At least one Admin must remain." });
+    return;
   }
 
   await db
