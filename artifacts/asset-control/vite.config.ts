@@ -7,27 +7,14 @@ const repoRoot = path.resolve(import.meta.dirname, '..', '..');
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, repoRoot, '');
-  const rawPort = env.PORT || process.env.PORT;
-
-  if (!rawPort) {
-    throw new Error(
-      'PORT environment variable is required but was not provided.',
-    );
-  }
-
+  const rawPort = env.PORT || process.env.PORT || "5173";
   const port = Number(rawPort);
 
   if (Number.isNaN(port) || port <= 0) {
     throw new Error(`Invalid PORT value: "${rawPort}"`);
   }
 
-  const basePath = env.BASE_PATH || process.env.BASE_PATH;
-
-  if (!basePath) {
-    throw new Error(
-      'BASE_PATH environment variable is required but was not provided.',
-    );
-  }
+  const basePath = env.BASE_PATH || process.env.BASE_PATH || "/";
 
   const apiPort = Number(env.API_PORT || process.env.API_PORT || 3000);
 

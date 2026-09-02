@@ -50,6 +50,9 @@ Thumbs.db
 .env.*.local
 !.env.example
 
+# Vercel
+.vercel
+
 # Replit
 .cache/
 .local/

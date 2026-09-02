@@ -35,7 +35,32 @@ app.use(
   }),
 );
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
-app.use(cors());
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+      const extra = (process.env.CORS_ORIGIN ?? "")
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean);
+      try {
+        const host = new URL(origin).hostname;
+        const allowed =
+          extra.includes(origin) ||
+          host === "localhost" ||
+          host === "127.0.0.1" ||
+          host.endsWith(".vercel.app");
+        callback(null, allowed);
+      } catch {
+        callback(null, false);
+      }
+    },
+    credentials: true,
+  }),
+);
 app.use(
   clerkMiddleware((req) => ({
     publishableKey: publishableKeyFromHost(

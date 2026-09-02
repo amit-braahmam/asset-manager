@@ -105,8 +105,16 @@ async function seedDatabase() {
   ]).onConflictDoNothing();
 }
 
+function shouldSeedDemo(): boolean {
+  if (process.env.SEED_DEMO === "true") return true;
+  if (process.env.SEED_DEMO === "false") return false;
+  return process.env.NODE_ENV !== "production";
+}
+
 /**
- * Idempotent demo seed. Awaited by data routes so a fresh database is populated
- * on first request. Safe to import from multiple modules — the work runs once.
+ * Idempotent demo seed. Awaited by data routes so a fresh local database is
+ * populated on first request. Disabled in production unless SEED_DEMO=true.
  */
-export const seedReady: Promise<void> = seedDatabase();
+export const seedReady: Promise<void> = shouldSeedDemo()
+  ? seedDatabase()
+  : Promise.resolve();

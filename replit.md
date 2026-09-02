@@ -73,9 +73,10 @@ User-facing capabilities that exist today:
 
 - **Run codegen after editing the OpenAPI spec** — `lib/api-zod` and `lib/api-client-react` are generated; hand edits get overwritten.
 - **Apply DB schema with migrations.** `pnpm --filter @workspace/db run migrate` (or `push` in local dev). The initial migration lives in `lib/db/migrations/`.
-- **Seeding is lazy.** `artifacts/api-server/src/lib/seed.ts` populates demo data on first request via `seedReady`. Idempotent.
+- **Seeding is lazy and local-only.** `artifacts/api-server/src/lib/seed.ts` populates demo data on first request unless `NODE_ENV=production`. Set `SEED_DEMO=true` to force it.
 - **Dashboard trends are 7-day deltas** computed from asset `createdAt` and `asset_history` (assignments − returns, maintenance events). They are not stored snapshots.
-- Frontend Vite config **requires `PORT` and `BASE_PATH`** env vars or it throws on startup.
+- Frontend Vite config defaults to `PORT=5173` and `BASE_PATH=/` (required env on Vercel is Clerk + `DATABASE_URL`).
+- **Vercel** builds the Vite app and serves Express at `/api` (`vercel.json`, `api/index.ts`). Set env vars in the Vercel project; do not commit `.env`.
 
 ## Pointers
 
