@@ -13,6 +13,142 @@ export interface ErrorResponse {
   error: string;
 }
 
+export type CurrentUserRole = typeof CurrentUserRole[keyof typeof CurrentUserRole];
+
+
+export const CurrentUserRole = {
+  admin: 'admin',
+  auditor: 'auditor',
+  manager: 'manager',
+  technician: 'technician',
+  viewer: 'viewer',
+} as const;
+
+export interface CurrentUser {
+  id: string;
+  email: string;
+  name: string;
+  role: CurrentUserRole;
+}
+
+export type UserRole = typeof UserRole[keyof typeof UserRole];
+
+
+export const UserRole = {
+  admin: 'admin',
+  auditor: 'auditor',
+  manager: 'manager',
+  technician: 'technician',
+  viewer: 'viewer',
+} as const;
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  /** @nullable */
+  invitedBy: string | null;
+  createdAt: string;
+  lastSeenAt: string;
+}
+
+export type UserInputRole = typeof UserInputRole[keyof typeof UserInputRole];
+
+
+export const UserInputRole = {
+  admin: 'admin',
+  auditor: 'auditor',
+  manager: 'manager',
+  technician: 'technician',
+  viewer: 'viewer',
+} as const;
+
+export interface UserInput {
+  email: string;
+  name?: string;
+  role: UserInputRole;
+}
+
+export type UserRoleUpdateRole = typeof UserRoleUpdateRole[keyof typeof UserRoleUpdateRole];
+
+
+export const UserRoleUpdateRole = {
+  admin: 'admin',
+  auditor: 'auditor',
+  manager: 'manager',
+  technician: 'technician',
+  viewer: 'viewer',
+} as const;
+
+export interface UserRoleUpdate {
+  role: UserRoleUpdateRole;
+}
+
+export type ComplianceReportStatus = typeof ComplianceReportStatus[keyof typeof ComplianceReportStatus];
+
+
+export const ComplianceReportStatus = {
+  in_preparation: 'in_preparation',
+  ready_for_review: 'ready_for_review',
+  final: 'final',
+} as const;
+
+export type ComplianceReportMetrics = {[key: string]: number};
+
+export interface ComplianceReport {
+  id: string;
+  title: string;
+  status: ComplianceReportStatus;
+  /** @nullable */
+  periodStart: string | null;
+  /** @nullable */
+  periodEnd: string | null;
+  summary: string;
+  findings: string;
+  rootCauseNotes: string;
+  metrics: ComplianceReportMetrics;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  /** @nullable */
+  closedAt: string | null;
+}
+
+export interface ComplianceReportInput {
+  /** @minLength 1 */
+  title: string;
+  /** @nullable */
+  periodStart?: string | null;
+  /** @nullable */
+  periodEnd?: string | null;
+  summary?: string;
+  findings?: string;
+  rootCauseNotes?: string;
+}
+
+export type ComplianceReportUpdateStatus = typeof ComplianceReportUpdateStatus[keyof typeof ComplianceReportUpdateStatus];
+
+
+export const ComplianceReportUpdateStatus = {
+  in_preparation: 'in_preparation',
+  ready_for_review: 'ready_for_review',
+  final: 'final',
+} as const;
+
+export interface ComplianceReportUpdate {
+  /** @minLength 1 */
+  title?: string;
+  status?: ComplianceReportUpdateStatus;
+  /** @nullable */
+  periodStart?: string | null;
+  /** @nullable */
+  periodEnd?: string | null;
+  summary?: string;
+  findings?: string;
+  rootCauseNotes?: string;
+}
+
 export type DashboardSummaryChanges = {
   total: number;
   assigned: number;
@@ -284,6 +420,11 @@ export interface MaintenanceItem {
   technician: string;
   priority: MaintenanceItemPriority;
   status: MaintenanceItemStatus;
+  resolutionNotes: string;
+  /** @nullable */
+  completedAt: string | null;
+  /** @nullable */
+  completedBy: string | null;
 }
 
 export type MaintenanceInputPriority = typeof MaintenanceInputPriority[keyof typeof MaintenanceInputPriority];
@@ -312,6 +453,7 @@ export interface MaintenanceInput {
   technician: string;
   priority?: MaintenanceInputPriority;
   status?: MaintenanceInputStatus;
+  resolutionNotes?: string;
 }
 
 export type MaintenanceUpdatePriority = typeof MaintenanceUpdatePriority[keyof typeof MaintenanceUpdatePriority];
@@ -339,6 +481,7 @@ export interface MaintenanceUpdate {
   technician?: string;
   priority?: MaintenanceUpdatePriority;
   status?: MaintenanceUpdateStatus;
+  resolutionNotes?: string;
 }
 
 export type BulkAssetStatusInputStatus = typeof BulkAssetStatusInputStatus[keyof typeof BulkAssetStatusInputStatus];
@@ -438,6 +581,16 @@ pageSize?: PageSizeParameter;
 };
 
 export type ListMaintenanceParams = {
+/**
+ * @minimum 1
+ * @maximum 50
+ */
+limit?: LimitParameter;
+};
+
+export type GetAuditLogsParams = {
+search?: ActivitySearchParameter;
+action?: ActivityActionParameter;
 /**
  * @minimum 1
  * @maximum 50

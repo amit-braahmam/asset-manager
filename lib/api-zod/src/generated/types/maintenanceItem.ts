@@ -16,4 +16,9 @@ export interface MaintenanceItem {
   technician: string;
   priority: MaintenanceItemPriority;
   status: MaintenanceItemStatus;
+  resolutionNotes: string;
+  /** @nullable */
+  completedAt: Date | null;
+  /** @nullable */
+  completedBy: string | null;
 }

@@ -78,7 +78,10 @@ export const GetDashboardMaintenanceResponseItem = zod.object({
   "scheduledAt": zod.coerce.date(),
   "technician": zod.string(),
   "priority": zod.enum(['high', 'normal', 'low']),
-  "status": zod.enum(['pending', 'scheduled', 'completed', 'overdue'])
+  "status": zod.enum(['pending', 'scheduled', 'completed', 'overdue']),
+  "resolutionNotes": zod.string(),
+  "completedAt": zod.coerce.date().nullable(),
+  "completedBy": zod.string().nullable()
 })
 export const GetDashboardMaintenanceResponse = zod.array(GetDashboardMaintenanceResponseItem)
 
@@ -593,7 +596,10 @@ export const ListMaintenanceResponseItem = zod.object({
   "scheduledAt": zod.coerce.date(),
   "technician": zod.string(),
   "priority": zod.enum(['high', 'normal', 'low']),
-  "status": zod.enum(['pending', 'scheduled', 'completed', 'overdue'])
+  "status": zod.enum(['pending', 'scheduled', 'completed', 'overdue']),
+  "resolutionNotes": zod.string(),
+  "completedAt": zod.coerce.date().nullable(),
+  "completedBy": zod.string().nullable()
 })
 export const ListMaintenanceResponse = zod.array(ListMaintenanceResponseItem)
 
@@ -604,13 +610,15 @@ export const ListMaintenanceResponse = zod.array(ListMaintenanceResponseItem)
 
 export const createMaintenanceBodyPriorityDefault = `normal`;
 export const createMaintenanceBodyStatusDefault = `scheduled`;
+export const createMaintenanceBodyResolutionNotesDefault = ``;
 
 export const CreateMaintenanceBody = zod.object({
   "assetId": zod.string(),
   "scheduledAt": zod.coerce.date(),
   "technician": zod.string().min(1),
   "priority": zod.enum(['high', 'normal', 'low']).default(createMaintenanceBodyPriorityDefault),
-  "status": zod.enum(['pending', 'scheduled', 'completed', 'overdue']).default(createMaintenanceBodyStatusDefault)
+  "status": zod.enum(['pending', 'scheduled', 'completed', 'overdue']).default(createMaintenanceBodyStatusDefault),
+  "resolutionNotes": zod.string().default(createMaintenanceBodyResolutionNotesDefault)
 })
 
 export const CreateMaintenanceResponse = zod.object({
@@ -620,7 +628,10 @@ export const CreateMaintenanceResponse = zod.object({
   "scheduledAt": zod.coerce.date(),
   "technician": zod.string(),
   "priority": zod.enum(['high', 'normal', 'low']),
-  "status": zod.enum(['pending', 'scheduled', 'completed', 'overdue'])
+  "status": zod.enum(['pending', 'scheduled', 'completed', 'overdue']),
+  "resolutionNotes": zod.string(),
+  "completedAt": zod.coerce.date().nullable(),
+  "completedBy": zod.string().nullable()
 })
 
 
@@ -638,7 +649,8 @@ export const UpdateMaintenanceBody = zod.object({
   "scheduledAt": zod.coerce.date().optional(),
   "technician": zod.string().min(1).optional(),
   "priority": zod.enum(['high', 'normal', 'low']).optional(),
-  "status": zod.enum(['pending', 'scheduled', 'completed', 'overdue']).optional()
+  "status": zod.enum(['pending', 'scheduled', 'completed', 'overdue']).optional(),
+  "resolutionNotes": zod.string().optional()
 })
 
 export const UpdateMaintenanceResponse = zod.object({
@@ -648,7 +660,10 @@ export const UpdateMaintenanceResponse = zod.object({
   "scheduledAt": zod.coerce.date(),
   "technician": zod.string(),
   "priority": zod.enum(['high', 'normal', 'low']),
-  "status": zod.enum(['pending', 'scheduled', 'completed', 'overdue'])
+  "status": zod.enum(['pending', 'scheduled', 'completed', 'overdue']),
+  "resolutionNotes": zod.string(),
+  "completedAt": zod.coerce.date().nullable(),
+  "completedBy": zod.string().nullable()
 })
 
 
@@ -702,5 +717,216 @@ export const BulkUpdateAssetStatusResponseItem = zod.object({
   "lastUpdated": zod.coerce.date()
 })
 export const BulkUpdateAssetStatusResponse = zod.array(BulkUpdateAssetStatusResponseItem)
+
+
+/**
+ * @summary Get the current authenticated user and role
+ */
+export const GetCurrentUserResponse = zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "name": zod.string(),
+  "role": zod.enum(['admin', 'auditor', 'manager', 'technician', 'viewer'])
+})
+
+
+/**
+ * @summary List users (Admin and Manager)
+ */
+export const ListUsersResponseItem = zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "name": zod.string(),
+  "role": zod.enum(['admin', 'auditor', 'manager', 'technician', 'viewer']),
+  "invitedBy": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "lastSeenAt": zod.coerce.date()
+})
+export const ListUsersResponse = zod.array(ListUsersResponseItem)
+
+
+/**
+ * @summary Onboard a user (Admin any role; Manager limited to technician/viewer)
+ */
+export const createUserBodyNameDefault = ``;
+
+export const CreateUserBody = zod.object({
+  "email": zod.email(),
+  "name": zod.string().default(createUserBodyNameDefault),
+  "role": zod.enum(['admin', 'auditor', 'manager', 'technician', 'viewer'])
+})
+
+export const CreateUserResponse = zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "name": zod.string(),
+  "role": zod.enum(['admin', 'auditor', 'manager', 'technician', 'viewer']),
+  "invitedBy": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "lastSeenAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Change a user's role (Admin only)
+ */
+export const UpdateUserRoleParams = zod.object({
+  "userId": zod.coerce.string()
+})
+
+export const UpdateUserRoleBody = zod.object({
+  "role": zod.enum(['admin', 'auditor', 'manager', 'technician', 'viewer'])
+})
+
+export const UpdateUserRoleResponse = zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "name": zod.string(),
+  "role": zod.enum(['admin', 'auditor', 'manager', 'technician', 'viewer']),
+  "invitedBy": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "lastSeenAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Consolidated audit / activity log (Admin and Auditor)
+ */
+export const getAuditLogsQueryLimitDefault = 5;
+export const getAuditLogsQueryLimitMax = 50;
+
+
+
+export const GetAuditLogsQueryParams = zod.object({
+  "search": zod.coerce.string().optional(),
+  "action": zod.enum(['assignment', 'return', 'alert', 'import', 'maintenance', 'update']).optional(),
+  "limit": zod.coerce.number().int().min(1).max(getAuditLogsQueryLimitMax).default(getAuditLogsQueryLimitDefault)
+})
+
+export const GetAuditLogsResponseItem = zod.object({
+  "id": zod.string(),
+  "type": zod.enum(['assignment', 'return', 'alert', 'import', 'maintenance', 'update']),
+  "message": zod.string(),
+  "actor": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "assetTag": zod.string().nullable()
+})
+export const GetAuditLogsResponse = zod.array(GetAuditLogsResponseItem)
+
+
+/**
+ * @summary List compliance reports
+ */
+export const ListComplianceReportsResponseItem = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "status": zod.enum(['in_preparation', 'ready_for_review', 'final']),
+  "periodStart": zod.coerce.date().nullable(),
+  "periodEnd": zod.coerce.date().nullable(),
+  "summary": zod.string(),
+  "findings": zod.string(),
+  "rootCauseNotes": zod.string(),
+  "metrics": zod.record(zod.string(), zod.int()),
+  "createdBy": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "closedAt": zod.coerce.date().nullable()
+})
+export const ListComplianceReportsResponse = zod.array(ListComplianceReportsResponseItem)
+
+
+/**
+ * @summary Start a compliance report (Admin and Auditor)
+ */
+
+export const createComplianceReportBodySummaryDefault = ``;
+export const createComplianceReportBodyFindingsDefault = ``;
+export const createComplianceReportBodyRootCauseNotesDefault = ``;
+
+export const CreateComplianceReportBody = zod.object({
+  "title": zod.string().min(1),
+  "periodStart": zod.coerce.date().nullish(),
+  "periodEnd": zod.coerce.date().nullish(),
+  "summary": zod.string().default(createComplianceReportBodySummaryDefault),
+  "findings": zod.string().default(createComplianceReportBodyFindingsDefault),
+  "rootCauseNotes": zod.string().default(createComplianceReportBodyRootCauseNotesDefault)
+})
+
+export const CreateComplianceReportResponse = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "status": zod.enum(['in_preparation', 'ready_for_review', 'final']),
+  "periodStart": zod.coerce.date().nullable(),
+  "periodEnd": zod.coerce.date().nullable(),
+  "summary": zod.string(),
+  "findings": zod.string(),
+  "rootCauseNotes": zod.string(),
+  "metrics": zod.record(zod.string(), zod.int()),
+  "createdBy": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "closedAt": zod.coerce.date().nullable()
+})
+
+
+/**
+ * @summary Get a compliance report
+ */
+export const GetComplianceReportParams = zod.object({
+  "reportId": zod.coerce.string()
+})
+
+export const GetComplianceReportResponse = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "status": zod.enum(['in_preparation', 'ready_for_review', 'final']),
+  "periodStart": zod.coerce.date().nullable(),
+  "periodEnd": zod.coerce.date().nullable(),
+  "summary": zod.string(),
+  "findings": zod.string(),
+  "rootCauseNotes": zod.string(),
+  "metrics": zod.record(zod.string(), zod.int()),
+  "createdBy": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "closedAt": zod.coerce.date().nullable()
+})
+
+
+/**
+ * @summary Update a report or advance its workflow stage (Admin and Auditor)
+ */
+export const UpdateComplianceReportParams = zod.object({
+  "reportId": zod.coerce.string()
+})
+
+
+
+
+export const UpdateComplianceReportBody = zod.object({
+  "title": zod.string().min(1).optional(),
+  "status": zod.enum(['in_preparation', 'ready_for_review', 'final']).optional(),
+  "periodStart": zod.coerce.date().nullish(),
+  "periodEnd": zod.coerce.date().nullish(),
+  "summary": zod.string().optional(),
+  "findings": zod.string().optional(),
+  "rootCauseNotes": zod.string().optional()
+})
+
+export const UpdateComplianceReportResponse = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "status": zod.enum(['in_preparation', 'ready_for_review', 'final']),
+  "periodStart": zod.coerce.date().nullable(),
+  "periodEnd": zod.coerce.date().nullable(),
+  "summary": zod.string(),
+  "findings": zod.string(),
+  "rootCauseNotes": zod.string(),
+  "metrics": zod.record(zod.string(), zod.int()),
+  "createdBy": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "closedAt": zod.coerce.date().nullable()
+})
 
 

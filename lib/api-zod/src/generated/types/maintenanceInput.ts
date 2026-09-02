@@ -15,4 +15,5 @@ export interface MaintenanceInput {
   technician: string;
   priority?: MaintenanceInputPriority;
   status?: MaintenanceInputStatus;
+  resolutionNotes?: string;
 }

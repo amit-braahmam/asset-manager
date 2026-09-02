@@ -18,6 +18,14 @@ tags:
     description: Maintenance schedule data
   - name: locations
     description: Managed asset locations
+  - name: people
+    description: Asset custodians
+  - name: users
+    description: Application users and role-based access
+  - name: audit
+    description: Consolidated audit and activity logs
+  - name: reports
+    description: Compliance report workflow
 paths:
   /healthz:
     get:
@@ -421,6 +429,157 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Asset"
+  /me:
+    get:
+      operationId: getCurrentUser
+      tags: [users]
+      summary: Get the current authenticated user and role
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUser"
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List users (Admin and Manager)
+      responses:
+        "200":
+          description: Users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+    post:
+      operationId: createUser
+      tags: [users]
+      summary: Onboard a user (Admin any role; Manager limited to technician/viewer)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserInput"
+      responses:
+        "201":
+          description: Created user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+  /users/{userId}/role:
+    patch:
+      operationId: updateUserRole
+      tags: [users]
+      summary: Change a user's role (Admin only)
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRoleUpdate"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /audit/logs:
+    get:
+      operationId: getAuditLogs
+      tags: [audit]
+      summary: Consolidated audit / activity log (Admin and Auditor)
+      parameters:
+        - $ref: "#/components/parameters/ActivitySearch"
+        - $ref: "#/components/parameters/ActivityAction"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Audit log entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityEvent"
+  /reports:
+    get:
+      operationId: listComplianceReports
+      tags: [reports]
+      summary: List compliance reports
+      responses:
+        "200":
+          description: Compliance reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ComplianceReport"
+    post:
+      operationId: createComplianceReport
+      tags: [reports]
+      summary: Start a compliance report (Admin and Auditor)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ComplianceReportInput"
+      responses:
+        "201":
+          description: Created report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComplianceReport"
+  /reports/{reportId}:
+    get:
+      operationId: getComplianceReport
+      tags: [reports]
+      summary: Get a compliance report
+      parameters:
+        - $ref: "#/components/parameters/ReportId"
+      responses:
+        "200":
+          description: Report detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComplianceReport"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: updateComplianceReport
+      tags: [reports]
+      summary: Update a report or advance its workflow stage (Admin and Auditor)
+      parameters:
+        - $ref: "#/components/parameters/ReportId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ComplianceReportUpdate"
+      responses:
+        "200":
+          description: Updated report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComplianceReport"
+        "404":
+          $ref: "#/components/responses/NotFound"
 components:
   parameters:
     AssetId:
@@ -464,6 +623,18 @@ components:
         type: string
     MaintenanceId:
       name: maintenanceId
+      in: path
+      required: true
+      schema:
+        type: string
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+    ReportId:
+      name: reportId
       in: path
       required: true
       schema:
@@ -523,6 +694,154 @@ components:
         error:
           type: string
       required: [error]
+    CurrentUser:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          enum: [admin, auditor, manager, technician, viewer]
+      required: [id, email, name, role]
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          enum: [admin, auditor, manager, technician, viewer]
+        invitedBy:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        lastSeenAt:
+          type: string
+          format: date-time
+      required: [id, email, name, role, invitedBy, createdAt, lastSeenAt]
+    UserInput:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+          default: ""
+        role:
+          type: string
+          enum: [admin, auditor, manager, technician, viewer]
+      required: [email, role]
+    UserRoleUpdate:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [admin, auditor, manager, technician, viewer]
+      required: [role]
+    ComplianceReport:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        status:
+          type: string
+          enum: [in_preparation, ready_for_review, final]
+        periodStart:
+          type: ["string", "null"]
+          format: date
+        periodEnd:
+          type: ["string", "null"]
+          format: date
+        summary:
+          type: string
+        findings:
+          type: string
+        rootCauseNotes:
+          type: string
+        metrics:
+          type: object
+          additionalProperties:
+            type: integer
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        closedAt:
+          type: ["string", "null"]
+          format: date-time
+      required:
+        - id
+        - title
+        - status
+        - periodStart
+        - periodEnd
+        - summary
+        - findings
+        - rootCauseNotes
+        - metrics
+        - createdBy
+        - createdAt
+        - updatedAt
+        - closedAt
+    ComplianceReportInput:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+        periodStart:
+          type: ["string", "null"]
+          format: date
+        periodEnd:
+          type: ["string", "null"]
+          format: date
+        summary:
+          type: string
+          default: ""
+        findings:
+          type: string
+          default: ""
+        rootCauseNotes:
+          type: string
+          default: ""
+      required: [title]
+    ComplianceReportUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+        status:
+          type: string
+          enum: [in_preparation, ready_for_review, final]
+        periodStart:
+          type: ["string", "null"]
+          format: date
+        periodEnd:
+          type: ["string", "null"]
+          format: date
+        summary:
+          type: string
+        findings:
+          type: string
+        rootCauseNotes:
+          type: string
     DashboardSummary:
       type: object
       properties:
@@ -844,7 +1163,24 @@ components:
         status:
           type: string
           enum: [pending, scheduled, completed, overdue]
-      required: [id, assetTag, category, scheduledAt, technician, priority, status]
+        resolutionNotes:
+          type: string
+        completedAt:
+          type: ["string", "null"]
+          format: date-time
+        completedBy:
+          type: ["string", "null"]
+      required:
+        - id
+        - assetTag
+        - category
+        - scheduledAt
+        - technician
+        - priority
+        - status
+        - resolutionNotes
+        - completedAt
+        - completedBy
     MaintenanceInput:
       type: object
       properties:
@@ -864,6 +1200,9 @@ components:
           type: string
           enum: [pending, scheduled, completed, overdue]
           default: scheduled
+        resolutionNotes:
+          type: string
+          default: ""
       required: [assetId, scheduledAt, technician]
     MaintenanceUpdate:
       type: object
@@ -880,6 +1219,8 @@ components:
         status:
           type: string
           enum: [pending, scheduled, completed, overdue]
+        resolutionNotes:
+          type: string
     BulkAssetStatusInput:
       type: object
       properties:

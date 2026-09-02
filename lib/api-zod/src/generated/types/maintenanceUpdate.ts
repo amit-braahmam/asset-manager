@@ -14,4 +14,5 @@ export interface MaintenanceUpdate {
   technician?: string;
   priority?: MaintenanceUpdatePriority;
   status?: MaintenanceUpdateStatus;
+  resolutionNotes?: string;
 }

@@ -48,6 +48,8 @@ import {
 } from "@workspace/db";
 import { db } from "@workspace/db";
 import { randomUUID } from "node:crypto";
+import { seedReady } from "../lib/seed";
+import { actorLabel, requireRoles } from "../lib/auth";
 
 const router: IRouter = Router();
 
@@ -56,106 +58,6 @@ type AssetRow = {
   location: DbLocation;
   person: DbPerson | null;
 };
-
-const seedLocations = [
-  { id: "loc-hq", name: "HQ · Bengaluru", city: "Bengaluru" },
-  { id: "loc-nyc", name: "New York Office", city: "New York" },
-  { id: "loc-lon", name: "London Office", city: "London" },
-  { id: "loc-stock", name: "Central Stockroom", city: "Bengaluru" },
-];
-
-const seedPeople = [
-  { id: "person-sarah", name: "Sarah Johnson", department: "Operations", email: "sarah.johnson@example.com" },
-  { id: "person-daniel", name: "Daniel Smith", department: "Finance", email: "daniel.smith@example.com" },
-  { id: "person-priya", name: "Priya Nair", department: "Engineering", email: "priya.nair@example.com" },
-  { id: "person-marcus", name: "Marcus Lee", department: "Sales", email: "marcus.lee@example.com" },
-];
-
-type SeedAsset = [
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-  string,
-  string | null,
-];
-
-const seedAssets: SeedAsset[] = [
-  ["LT-8842", "MacBook Pro 14", "Laptop", "Apple", "MacBook Pro M2", "C02M2A8842", "available", "excellent", "loc-hq", null],
-  ["LT-9102", "ThinkPad T14", "Laptop", "Lenovo", "ThinkPad T14 Gen 4", "PF4T149102", "assigned", "good", "loc-hq", "person-daniel"],
-  ["LT-9217", "MacBook Air 13", "Laptop", "Apple", "MacBook Air M2", "C02A9217", "assigned", "excellent", "loc-lon", "person-priya"],
-  ["LT-8731", "Latitude 7440", "Laptop", "Dell", "Latitude 7440", "DL74408731", "in_repair", "fair", "loc-stock", null],
-  ["LT-9450", "Surface Laptop 5", "Laptop", "Microsoft", "Surface Laptop 5", "MSL59450", "available", "good", "loc-stock", null],
-  ["MON-1740", "UltraSharp 27", "Monitor", "Dell", "U2723QE", "CN0U27231740", "available", "excellent", "loc-stock", null],
-  ["MON-1751", "UltraSharp 27", "Monitor", "Dell", "U2723QE", "CN0U27231751", "assigned", "good", "loc-hq", "person-sarah"],
-  ["MON-1812", "Studio Display", "Monitor", "Apple", "Studio Display", "C02SD1812", "assigned", "excellent", "loc-lon", "person-priya"],
-  ["MON-1899", "ThinkVision 24", "Monitor", "Lenovo", "ThinkVision T24i", "VNT241899", "available", "good", "loc-nyc", null],
-  ["SRV-B-04", "Server Node", "Server", "Dell", "PowerEdge R740", "SVR740B04", "in_repair", "poor", "loc-hq", null],
-  ["SRV-DB-01", "Database Server", "Server", "HPE", "ProLiant DL360", "HPE360DB01", "assigned", "good", "loc-hq", "person-sarah"],
-  ["SRV-APP-02", "Application Server", "Server", "Dell", "PowerEdge R640", "SVR640APP02", "available", "good", "loc-stock", null],
-  ["PRN-FL2-01", "Network Printer", "Peripheral", "Brother", "MFC-L8900", "BRL8900FL2", "available", "good", "loc-hq", null],
-  ["PH-2201", "iPhone 14", "Mobile", "Apple", "iPhone 14", "F17PH2201", "assigned", "excellent", "loc-nyc", "person-marcus"],
-  ["PH-2207", "Pixel 8", "Mobile", "Google", "Pixel 8", "PX8PH2207", "available", "excellent", "loc-stock", null],
-  ["TAB-113", "iPad Air", "Mobile", "Apple", "iPad Air 5", "DMPAD113", "assigned", "good", "loc-lon", "person-priya"],
-  ["DOCK-401", "USB-C Dock", "Peripheral", "CalDigit", "TS4", "CDTS4401", "available", "good", "loc-stock", null],
-  ["SW-CORE-1", "Network Switch", "Networking", "Cisco", "Catalyst 9300", "FCW9300CORE1", "assigned", "good", "loc-hq", "person-sarah"],
-  ["FW-EDGE-01", "Edge Firewall", "Networking", "Fortinet", "FortiGate 60F", "FG60FEDGE01", "assigned", "good", "loc-hq", "person-sarah"],
-  ["CAM-088", "Conference Camera", "Peripheral", "Logitech", "Rally Bar Mini", "LGRALLY088", "available", "good", "loc-nyc", null],
-];
-
-const seedReady = seedDatabase();
-
-async function seedDatabase() {
-  const existing = await db.select({ id: assetsTable.id }).from(assetsTable).limit(1);
-  if (existing.length > 0) return;
-
-  await db.insert(locationsTable).values(seedLocations).onConflictDoNothing();
-  await db.insert(peopleTable).values(seedPeople).onConflictDoNothing();
-
-  const now = new Date();
-  const seededAssets: Array<typeof assetsTable.$inferInsert> = seedAssets.map((asset, index) => ({
-      id: `asset-${String(index + 1).padStart(3, "0")}`,
-      assetTag: asset[0],
-      name: asset[1],
-      category: asset[2],
-      manufacturer: asset[3],
-      model: asset[4],
-      serialNumber: asset[5],
-      status: asset[6],
-      condition: asset[7],
-      locationId: asset[8],
-      assigneeId: asset[9],
-      warrantyEnd: "2026-12-31",
-      purchaseDate: "2024-01-15",
-      purchaseCost: index % 3 === 0 ? "1899.00" : "849.00",
-      notes: "",
-      specifications: (asset[2] === "Laptop"
-        ? { CPU: "Apple M2 / Intel i7", RAM: "16 GB", Storage: "512 GB SSD" }
-        : { Profile: "Standard managed equipment", Coverage: "Business support" }) as Record<string, string>,
-      createdAt: now,
-      updatedAt: now,
-    }));
-  await db.insert(assetsTable).values(seededAssets).onConflictDoNothing();
-
-  await db.insert(maintenanceTable).values([
-    { id: "maint-001", assetId: "asset-010", scheduledAt: new Date("2026-09-04T02:00:00Z"), technician: "J. Doe · Tier 3", priority: "high", status: "pending" },
-    { id: "maint-002", assetId: "asset-013", scheduledAt: new Date("2026-09-06T14:00:00Z"), technician: "External Vendor", priority: "normal", status: "scheduled" },
-    { id: "maint-003", assetId: "asset-004", scheduledAt: new Date("2026-09-08T09:00:00Z"), technician: "IT Support Desk", priority: "normal", status: "scheduled" },
-    { id: "maint-004", assetId: "asset-018", scheduledAt: new Date("2026-09-10T11:30:00Z"), technician: "Network Team", priority: "low", status: "scheduled" },
-  ]).onConflictDoNothing();
-
-  await db.insert(assetHistoryTable).values([
-    { id: "hist-001", assetId: "asset-001", action: "return", detail: "MacBook Pro M2 returned to inventory.", actor: "Sarah Johnson", createdAt: new Date("2026-08-29T05:48:00Z") },
-    { id: "hist-002", assetId: "asset-010", action: "alert", detail: "Server Node reported cooling failure.", actor: "System Alert", createdAt: new Date("2026-08-29T05:15:00Z") },
-    { id: "hist-003", assetId: "asset-006", action: "import", detail: "Batch import completed: 50 Dell UltraSharp monitors added.", actor: "Admin", createdAt: new Date("2026-08-29T03:00:00Z") },
-    { id: "hist-004", assetId: "asset-002", action: "assignment", detail: "ThinkPad T14 assigned to Daniel Smith.", actor: "IT Support", createdAt: new Date("2026-08-29T01:30:00Z") },
-    { id: "hist-005", assetId: "asset-018", action: "update", detail: "Firmware update deployed to Network Switch.", actor: "Automated", createdAt: new Date("2026-08-28T23:30:00Z") },
-  ]).onConflictDoNothing();
-}
 
 function toLocation(row: DbLocation, assetCount = 0): ApiLocation {
   return { ...row, assetCount };
@@ -266,6 +168,9 @@ function toMaintenanceItem(
     technician: maintenance.technician,
     priority: maintenance.priority as ApiMaintenanceItem["priority"],
     status: maintenance.status as ApiMaintenanceItem["status"],
+    resolutionNotes: maintenance.resolutionNotes,
+    completedAt: maintenance.completedAt,
+    completedBy: maintenance.completedBy,
   };
 }
 
@@ -359,7 +264,7 @@ router.get("/assets", async (req, res) => {
   });
 });
 
-router.post("/assets", async (req, res) => {
+router.post("/assets", requireRoles("admin", "manager"), async (req, res) => {
   await seedReady;
   const body = CreateAssetBody.parse(req.body);
   const id = `asset-${randomUUID().slice(0, 8)}`;
@@ -389,14 +294,14 @@ router.post("/assets", async (req, res) => {
       assetId: id,
       action: "update",
       detail: `Asset ${body.assetTag} added to inventory.`,
-      actor: "IT Administrator",
+      actor: actorLabel(req),
     }),
   );
   const detail = await getAssetDetail(id);
   res.status(201).json(detail);
 });
 
-router.post("/assets/bulk/status", async (req, res) => {
+router.post("/assets/bulk/status", requireRoles("admin", "manager"), async (req, res) => {
   await seedReady;
   const body = BulkUpdateAssetStatusBody.parse(req.body);
   const assetIds = Array.from(new Set(body.assetIds));
@@ -420,7 +325,7 @@ router.post("/assets/bulk/status", async (req, res) => {
       assetId,
       action: "update",
       detail: `Bulk status update: ${body.status.replaceAll("_", " ")}.${body.note ? ` ${body.note}` : ""}`,
-      actor: "IT Administrator",
+      actor: actorLabel(req),
     }));
   }
 
@@ -446,7 +351,7 @@ router.get("/assets/:assetId", async (req, res) => {
   res.json(detail);
 });
 
-router.patch("/assets/:assetId", async (req, res) => {
+router.patch("/assets/:assetId", requireRoles("admin", "manager"), async (req, res) => {
   await seedReady;
   const { assetId } = UpdateAssetParams.parse(req.params);
   const body = UpdateAssetBody.parse(req.body);
@@ -476,13 +381,13 @@ router.patch("/assets/:assetId", async (req, res) => {
       assetId,
       action: "update",
       detail: "Asset details updated.",
-      actor: "IT Administrator",
+      actor: actorLabel(req),
     }),
   );
   res.json(await getAssetDetail(assetId));
 });
 
-router.post("/assets/:assetId/assign", async (req, res) => {
+router.post("/assets/:assetId/assign", requireRoles("admin", "manager"), async (req, res) => {
   await seedReady;
   const { assetId } = AssignAssetParams.parse(req.params);
   const body = AssignAssetBody.parse(req.body);
@@ -508,13 +413,13 @@ router.post("/assets/:assetId/assign", async (req, res) => {
       assetId,
       action: "assignment",
       detail: `${current.name} assigned to ${person[0].name}.`,
-      actor: "IT Administrator",
+      actor: actorLabel(req),
     }),
   );
   res.json(await getAssetDetail(assetId));
 });
 
-router.post("/assets/:assetId/return", async (req, res) => {
+router.post("/assets/:assetId/return", requireRoles("admin", "manager"), async (req, res) => {
   await seedReady;
   const { assetId } = ReturnAssetParams.parse(req.params);
   const current = await getAssetDetail(assetId);
@@ -533,13 +438,13 @@ router.post("/assets/:assetId/return", async (req, res) => {
       assetId,
       action: "return",
       detail: `${current.name} returned to available stock.`,
-      actor: "IT Administrator",
+      actor: actorLabel(req),
     }),
   );
   res.json(await getAssetDetail(assetId));
 });
 
-router.post("/assets/:assetId/status", async (req, res) => {
+router.post("/assets/:assetId/status", requireRoles("admin", "manager", "technician"), async (req, res) => {
   await seedReady;
   const { assetId } = UpdateAssetStatusParams.parse(req.params);
   const body = UpdateAssetStatusBody.parse(req.body);
@@ -559,7 +464,7 @@ router.post("/assets/:assetId/status", async (req, res) => {
       assetId,
       action: body.status === "in_repair" || body.status === "rma" ? "maintenance" : "update",
       detail: `${current.name} status changed to ${body.status.replaceAll("_", " ")}.${body.note ? ` ${body.note}` : ""}`,
-      actor: "IT Administrator",
+      actor: actorLabel(req),
     }),
   );
   res.json(await getAssetDetail(assetId));
@@ -592,7 +497,7 @@ router.get("/locations", async (_req, res) => {
   })));
 });
 
-router.post("/locations", async (req, res) => {
+router.post("/locations", requireRoles("admin", "manager"), async (req, res) => {
   await seedReady;
   const body = CreateLocationBody.parse(req.body);
   const location = {
@@ -604,7 +509,7 @@ router.post("/locations", async (req, res) => {
   res.status(201).json({ ...location, assetCount: 0 });
 });
 
-router.patch("/locations/:locationId", async (req, res) => {
+router.patch("/locations/:locationId", requireRoles("admin", "manager"), async (req, res) => {
   await seedReady;
   const { locationId } = UpdateLocationParams.parse(req.params);
   const body = UpdateLocationBody.parse(req.body);
@@ -627,7 +532,7 @@ router.get("/people", async (_req, res) => {
   res.json(await db.select().from(peopleTable).orderBy(asc(peopleTable.name)));
 });
 
-router.post("/people", async (req, res) => {
+router.post("/people", requireRoles("admin", "manager"), async (req, res) => {
   await seedReady;
   const body = CreatePersonBody.parse(req.body);
   const person = {
@@ -640,7 +545,7 @@ router.post("/people", async (req, res) => {
   res.status(201).json(person);
 });
 
-router.patch("/people/:personId", async (req, res) => {
+router.patch("/people/:personId", requireRoles("admin", "manager"), async (req, res) => {
   await seedReady;
   const { personId } = UpdatePersonParams.parse(req.params);
   const body = UpdatePersonBody.parse(req.body);
@@ -663,7 +568,7 @@ router.get("/maintenance", async (req, res) => {
   res.json(await listMaintenanceItems(getLimit(req, ListMaintenanceQueryParams)));
 });
 
-router.post("/maintenance", async (req, res) => {
+router.post("/maintenance", requireRoles("admin", "manager"), async (req, res) => {
   await seedReady;
   const body = CreateMaintenanceBody.parse(req.body);
   const asset = await db.select().from(assetsTable).where(eq(assetsTable.id, body.assetId)).limit(1);
@@ -678,6 +583,9 @@ router.post("/maintenance", async (req, res) => {
     technician: body.technician,
     priority: body.priority,
     status: body.status,
+    resolutionNotes: body.resolutionNotes ?? "",
+    completedAt: null,
+    completedBy: null,
   };
   await db.insert(maintenanceTable).values(maintenance);
   await db.insert(assetHistoryTable).values(insertAssetHistorySchema.parse({
@@ -685,12 +593,12 @@ router.post("/maintenance", async (req, res) => {
     assetId: body.assetId,
     action: "maintenance",
     detail: `Maintenance scheduled with ${body.technician}.`,
-    actor: "IT Administrator",
+    actor: actorLabel(req),
   }));
   res.status(201).json(toMaintenanceItem(maintenance, asset[0]));
 });
 
-router.patch("/maintenance/:maintenanceId", async (req, res) => {
+router.patch("/maintenance/:maintenanceId", requireRoles("admin", "manager", "technician"), async (req, res) => {
   await seedReady;
   const { maintenanceId } = UpdateMaintenanceParams.parse(req.params);
   const body = UpdateMaintenanceBody.parse(req.body);
@@ -703,12 +611,35 @@ router.patch("/maintenance/:maintenanceId", async (req, res) => {
     res.status(404).json({ error: "Maintenance item not found" });
     return;
   }
+  const wasCompleted = current[0].maintenance.status === "completed";
+  const nextStatus = body.status ?? current[0].maintenance.status;
+  const completion =
+    body.status === undefined || nextStatus === current[0].maintenance.status
+      ? {}
+      : nextStatus === "completed"
+        ? { completedAt: new Date(), completedBy: actorLabel(req) }
+        : wasCompleted
+          ? { completedAt: null, completedBy: null }
+          : {};
   await db.update(maintenanceTable).set({
     ...(body.scheduledAt === undefined ? {} : { scheduledAt: body.scheduledAt }),
     ...(body.technician === undefined ? {} : { technician: body.technician }),
     ...(body.priority === undefined ? {} : { priority: body.priority }),
     ...(body.status === undefined ? {} : { status: body.status }),
+    ...(body.resolutionNotes === undefined ? {} : { resolutionNotes: body.resolutionNotes }),
+    ...completion,
   }).where(eq(maintenanceTable.id, maintenanceId));
+
+  if (nextStatus === "completed" && !wasCompleted) {
+    await db.insert(assetHistoryTable).values(insertAssetHistorySchema.parse({
+      id: `hist-${randomUUID().slice(0, 8)}`,
+      assetId: current[0].maintenance.assetId,
+      action: "maintenance",
+      detail: `Maintenance completed on ${current[0].asset.assetTag}.${body.resolutionNotes ? ` ${body.resolutionNotes}` : ""}`,
+      actor: actorLabel(req),
+    }));
+  }
+
   const updated = await db.select({ maintenance: maintenanceTable, asset: assetsTable })
     .from(maintenanceTable)
     .innerJoin(assetsTable, eq(maintenanceTable.assetId, assetsTable.id))
@@ -717,7 +648,7 @@ router.patch("/maintenance/:maintenanceId", async (req, res) => {
   res.json(toMaintenanceItem(updated[0].maintenance, updated[0].asset));
 });
 
-router.delete("/maintenance/:maintenanceId", async (req, res) => {
+router.delete("/maintenance/:maintenanceId", requireRoles("admin", "manager"), async (req, res) => {
   await seedReady;
   const { maintenanceId } = DeleteMaintenanceParams.parse(req.params);
   const existing = await db.select().from(maintenanceTable).where(eq(maintenanceTable.id, maintenanceId)).limit(1);
