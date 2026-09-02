@@ -15,6 +15,23 @@ import { attachAppUser } from "./lib/auth";
 
 const app: Express = express();
 
+if (process.env.VERCEL) {
+  app.use((req, _res, next) => {
+    const url = req.url || "/";
+    if (
+      url === "/healthz" ||
+      url.startsWith("/healthz?") ||
+      url.startsWith("/api/") ||
+      url === "/api"
+    ) {
+      next();
+      return;
+    }
+    req.url = `/api${url.startsWith("/") ? url : `/${url}`}`;
+    next();
+  });
+}
+
 app.use(
   pinoHttp({
     logger,
