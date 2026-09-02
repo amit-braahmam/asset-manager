@@ -76,7 +76,7 @@ User-facing capabilities that exist today:
 - **Seeding is lazy and local-only.** `artifacts/api-server/src/lib/seed.ts` populates demo data on first request unless `NODE_ENV=production`. Set `SEED_DEMO=true` to force it.
 - **Dashboard trends are 7-day deltas** computed from asset `createdAt` and `asset_history` (assignments − returns, maintenance events). They are not stored snapshots.
 - Frontend Vite config defaults to `PORT=5173` and `BASE_PATH=/` (required env on Vercel is Clerk + `DATABASE_URL`).
-- **Vercel** builds the Vite app and serves Express at `/api` (`vercel.json`, `api/index.ts`). Set env vars in the Vercel project; do not commit `.env`.
+- **Vercel** builds the Vite app and serves Express at `/api` (`vercel.json`, `api/index.mjs`). Set env vars in the Vercel project; do not commit `.env`.
 
 ## Pointers
 

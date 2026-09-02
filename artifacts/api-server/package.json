@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "pnpm run build && pnpm run start",
     "build": "node ./build.mjs",
+    "build:vercel": "node ./build.mjs --vercel",
     "start": "node --env-file=../../.env --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "tsx --test src/lib/auth-roles.test.ts src/lib/report-workflow.test.ts src/lib/asset-lifecycle.test.ts"

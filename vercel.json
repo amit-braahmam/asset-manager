@@ -9,7 +9,7 @@
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "functions": {
-    "api/index.ts": {
+    "api/index.mjs": {
       "maxDuration": 10
     }
   }
