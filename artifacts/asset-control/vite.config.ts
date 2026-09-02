@@ -1,22 +1,22 @@
 import path from 'path';
+import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig, loadEnv } from 'vite';
 
-const repoRoot = path.resolve(import.meta.dirname, '..', '..');
+const configDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(configDir, '..', '..');
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, repoRoot, '');
-  const rawPort = env.PORT || process.env.PORT || "5173";
+  const rawPort = env.PORT || process.env.PORT || '5173';
   const port = Number(rawPort);
+  const basePath = env.BASE_PATH || process.env.BASE_PATH || '/';
+  const apiPort = Number(env.API_PORT || process.env.API_PORT || 3000);
 
-  if (Number.isNaN(port) || port <= 0) {
+  if (command === 'serve' && (Number.isNaN(port) || port <= 0)) {
     throw new Error(`Invalid PORT value: "${rawPort}"`);
   }
-
-  const basePath = env.BASE_PATH || process.env.BASE_PATH || "/";
-
-  const apiPort = Number(env.API_PORT || process.env.API_PORT || 3000);
 
   return {
     envDir: repoRoot,
@@ -27,23 +27,18 @@ export default defineConfig(({ mode }) => {
     ],
     resolve: {
       alias: {
-        '@': path.resolve(import.meta.dirname, 'src'),
-        '@assets': path.resolve(
-          import.meta.dirname,
-          '..',
-          '..',
-          'attached_assets',
-        ),
+        '@': path.resolve(configDir, 'src'),
+        '@assets': path.resolve(repoRoot, 'attached_assets'),
       },
       dedupe: ['react', 'react-dom'],
     },
-    root: path.resolve(import.meta.dirname),
+    root: configDir,
     build: {
-      outDir: path.resolve(import.meta.dirname, 'dist/public'),
+      outDir: path.resolve(configDir, 'dist/public'),
       emptyOutDir: true,
     },
     server: {
-      port,
+      port: Number.isFinite(port) && port > 0 ? port : 5173,
       strictPort: true,
       host: '0.0.0.0',
       allowedHosts: true,
@@ -58,7 +53,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     preview: {
-      port,
+      port: Number.isFinite(port) && port > 0 ? port : 5173,
       host: '0.0.0.0',
       allowedHosts: true,
     },
