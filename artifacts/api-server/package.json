@@ -9,7 +9,7 @@
     "build:vercel": "node ./build.mjs --vercel",
     "start": "node --env-file=../../.env --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "tsx --test src/lib/auth-roles.test.ts src/lib/report-workflow.test.ts src/lib/asset-lifecycle.test.ts"
+    "test": "tsx --test src/lib/auth-roles.test.ts src/lib/report-workflow.test.ts src/lib/asset-lifecycle.test.ts src/lib/notify-recipients.test.ts src/lib/notify-safe.test.ts src/lib/email.test.ts src/lib/cron-auth.test.ts"
   },
   "dependencies": {
     "@clerk/express": "^2.1.64",
@@ -22,7 +22,8 @@
     "express": "^5.2.1",
     "http-proxy-middleware": "^4.2.0",
     "pino": "^9.14.0",
-    "pino-http": "^10.5.0"
+    "pino-http": "^10.5.0",
+    "resend": "^6.4.2"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",

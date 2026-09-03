@@ -18,6 +18,7 @@ import {
 import { randomUUID } from "node:crypto";
 import { seedReady } from "../lib/seed";
 import { requireRoles } from "../lib/auth";
+import { notify } from "../lib/notify";
 import { reportPatchRejection } from "../lib/report-workflow";
 
 const router: IRouter = Router();
@@ -158,6 +159,19 @@ router.patch("/reports/:reportId", requireRoles("admin", "auditor"), async (req,
     .from(complianceReportsTable)
     .where(eq(complianceReportsTable.id, reportId))
     .limit(1);
+  if (body.status === "ready_for_review" && current.status !== "ready_for_review") {
+    await notify({
+      type: "report_ready_for_review",
+      reportId,
+      title: updated[0].title,
+    });
+  } else if (movingToFinal) {
+    await notify({
+      type: "report_final",
+      reportId,
+      title: updated[0].title,
+    });
+  }
   res.json(toReport(updated[0]));
 });
 

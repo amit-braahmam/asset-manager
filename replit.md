@@ -77,6 +77,7 @@ User-facing capabilities that exist today:
 - **Dashboard trends are 7-day deltas** computed from asset `createdAt` and `asset_history` (assignments − returns, maintenance events). They are not stored snapshots.
 - Frontend Vite config defaults to `PORT=5173` and `BASE_PATH=/` (required env on Vercel is Clerk + `DATABASE_URL`).
 - **Vercel** builds the Vite app and serves Express at `/api` (`vercel.json`, `api/index.mjs`). Set env vars in the Vercel project; do not commit `.env`.
+- **Product email** uses Resend at API runtime (`RESEND_API_KEY`, `EMAIL_FROM`, `APP_URL`). No key = log and skip. Daily warranty scan: `GET /api/internal/cron/warranty` with `Authorization: Bearer $CRON_SECRET` (Vercel Cron at 08:00 UTC). Apply `0001_email_sends` via `pnpm --filter @workspace/db run migrate`.
 
 ## Pointers
 

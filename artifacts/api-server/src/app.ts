@@ -12,6 +12,7 @@ import { HealthCheckResponse } from "@workspace/api-zod";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { attachAppUser } from "./lib/auth";
+import { warrantyCronHandler } from "./routes/cron";
 
 const app: Express = express();
 
@@ -95,6 +96,8 @@ app.get("/healthz", (_req, res) => {
 app.get("/api/healthz", (_req, res) => {
   res.json(HealthCheckResponse.parse({ status: "ok" }));
 });
+app.get("/api/internal/cron/warranty", warrantyCronHandler);
+app.post("/api/internal/cron/warranty", warrantyCronHandler);
 
 app.use("/api", attachAppUser, router);
 

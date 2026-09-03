@@ -15,6 +15,7 @@ import {
   canOnboardRole,
   isLastAdminDemotion,
 } from "../lib/auth";
+import { notify } from "../lib/notify";
 
 const router: IRouter = Router();
 
@@ -83,6 +84,13 @@ router.post("/users", requireRoles("admin", "manager"), async (req, res) => {
     lastSeenAt: now,
   };
   await db.insert(usersTable).values(row);
+  await notify({
+    type: "team_invite",
+    userId: row.id,
+    email: row.email,
+    name: row.name,
+    role: row.role,
+  });
   res.status(201).json(toUser(row as DbUser));
 });
 

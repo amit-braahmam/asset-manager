@@ -813,7 +813,7 @@ function Team() {
     await createUser.mutateAsync({ data: { email: values.email, name: values.name, role: values.role as UserInput["role"] } });
     setShowInvite(false);
     await client.invalidateQueries();
-    toast({ title: "Invitation created", description: `${values.email} will claim the ${ROLE_LABELS[values.role as Role]} role at first sign-in.` });
+    toast({ title: "Invitation email sent", description: `${values.email} will receive a sign-up link and claim the ${ROLE_LABELS[values.role as Role]} role at first sign-in.` });
   }
 
   async function changeRole(target: User, nextRole: string) {

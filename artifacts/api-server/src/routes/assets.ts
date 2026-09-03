@@ -50,6 +50,7 @@ import { db } from "@workspace/db";
 import { randomUUID } from "node:crypto";
 import { seedReady } from "../lib/seed";
 import { actorLabel, requireRoles } from "../lib/auth";
+import { assigneeEmailFor, notify } from "../lib/notify";
 
 const router: IRouter = Router();
 
@@ -429,6 +430,14 @@ router.post("/assets/:assetId/assign", requireRoles("admin", "manager"), async (
       actor: actorLabel(req),
     }),
   );
+  await notify({
+    type: "asset_assigned",
+    assetId,
+    assetTag: current.assetTag,
+    assetName: current.name,
+    personName: person[0].name,
+    personEmail: person[0].email,
+  });
   res.json(await getAssetDetail(assetId));
 });
 
@@ -440,6 +449,7 @@ router.post("/assets/:assetId/return", requireRoles("admin", "manager"), async (
     res.status(404).json({ error: "Asset not found" });
     return;
   }
+  const previous = current.assignee;
   await db.update(assetsTable).set({
     assigneeId: null,
     status: "available",
@@ -454,6 +464,16 @@ router.post("/assets/:assetId/return", requireRoles("admin", "manager"), async (
       actor: actorLabel(req),
     }),
   );
+  if (previous?.email) {
+    await notify({
+      type: "asset_returned",
+      assetId,
+      assetTag: current.assetTag,
+      assetName: current.name,
+      personName: previous.name,
+      personEmail: previous.email,
+    });
+  }
   res.json(await getAssetDetail(assetId));
 });
 
@@ -608,6 +628,15 @@ router.post("/maintenance", requireRoles("admin", "manager"), async (req, res) =
     detail: `Maintenance scheduled with ${body.technician}.`,
     actor: actorLabel(req),
   }));
+  await notify({
+    type: "maintenance_scheduled",
+    maintenanceId: maintenance.id,
+    assetId: body.assetId,
+    assetTag: asset[0].assetTag,
+    assetName: asset[0].name,
+    technician: body.technician,
+    assigneeEmail: await assigneeEmailFor(asset[0].assigneeId),
+  });
   res.status(201).json(toMaintenanceItem(maintenance, asset[0]));
 });
 
@@ -651,6 +680,16 @@ router.patch("/maintenance/:maintenanceId", requireRoles("admin", "manager", "te
       detail: `Maintenance completed on ${current[0].asset.assetTag}.${body.resolutionNotes ? ` ${body.resolutionNotes}` : ""}`,
       actor: actorLabel(req),
     }));
+    await notify({
+      type: "maintenance_completed",
+      maintenanceId,
+      assetId: current[0].maintenance.assetId,
+      assetTag: current[0].asset.assetTag,
+      assetName: current[0].asset.name,
+      technician: body.technician ?? current[0].maintenance.technician,
+      assigneeEmail: await assigneeEmailFor(current[0].asset.assigneeId),
+      notes: body.resolutionNotes ?? current[0].maintenance.resolutionNotes,
+    });
   }
 
   const updated = await db.select({ maintenance: maintenanceTable, asset: assetsTable })

@@ -6,6 +6,7 @@ import {
   pgTable,
   text,
   timestamp,
+  unique,
   varchar,
 } from "drizzle-orm/pg-core";
 
@@ -146,6 +147,27 @@ export const complianceReportsTable = pgTable("asset_compliance_reports", {
   closedAt: timestamp("closed_at", { withTimezone: true }),
 });
 
+/** Outbound product email log — unique per event/entity/window/recipient so cron and retries do not double-send. */
+export const emailSendsTable = pgTable(
+  "asset_email_sends",
+  {
+    id: varchar("id", { length: 32 }).primaryKey(),
+    event: varchar("event", { length: 48 }).notNull(),
+    entityId: varchar("entity_id", { length: 64 }).notNull(),
+    window: varchar("window", { length: 32 }).notNull().default("default"),
+    recipient: text("recipient").notNull(),
+    sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    unique("asset_email_sends_dedupe").on(
+      table.event,
+      table.entityId,
+      table.window,
+      table.recipient,
+    ),
+  ],
+);
+
 export const insertUserSchema = createInsertSchema(usersTable);
 export const insertLocationSchema = createInsertSchema(locationsTable);
 export const insertPersonSchema = createInsertSchema(peopleTable);
@@ -168,3 +190,4 @@ export type Asset = typeof assetsTable.$inferSelect;
 export type AssetHistory = typeof assetHistoryTable.$inferSelect;
 export type Maintenance = typeof maintenanceTable.$inferSelect;
 export type ComplianceReport = typeof complianceReportsTable.$inferSelect;
+export type EmailSend = typeof emailSendsTable.$inferSelect;
