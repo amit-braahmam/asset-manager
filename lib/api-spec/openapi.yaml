@@ -126,6 +126,24 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Asset"
+  /assets/bulk/import:
+    post:
+      operationId: bulkImportAssets
+      tags: [assets]
+      summary: Import assets after mapping confirmation (Admin and Manager)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BulkAssetImportInput"
+      responses:
+        "200":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkImportResult"
   /assets/{assetId}:
     get:
       operationId: getAsset
@@ -349,6 +367,24 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Person"
+  /people/bulk/import:
+    post:
+      operationId: bulkImportPeople
+      tags: [people]
+      summary: Import people after mapping confirmation (Admin and Manager)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BulkPersonImportInput"
+      responses:
+        "200":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkImportResult"
   /people/{personId}:
     patch:
       operationId: updatePerson
@@ -1627,6 +1663,49 @@ components:
           type: string
           minLength: 1
       required: [fileName, contentType, contentBase64]
+    BulkImportSkippedRow:
+      type: object
+      properties:
+        row:
+          type: integer
+          minimum: 1
+        reason:
+          type: string
+      required: [row, reason]
+    BulkImportResult:
+      type: object
+      properties:
+        created:
+          type: integer
+          minimum: 0
+        skipped:
+          type: integer
+          minimum: 0
+        skippedRows:
+          type: array
+          items:
+            $ref: "#/components/schemas/BulkImportSkippedRow"
+      required: [created, skipped, skippedRows]
+    BulkAssetImportInput:
+      type: object
+      properties:
+        items:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/AssetInput"
+      required: [items]
+    BulkPersonImportInput:
+      type: object
+      properties:
+        items:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/PersonInput"
+      required: [items]
     BulkAssetDeleteInput:
       type: object
       properties:

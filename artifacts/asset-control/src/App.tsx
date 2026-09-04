@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { ClerkProvider, Show, SignIn, SignUp, useAuth, useClerk } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
@@ -150,6 +150,7 @@ import {
 } from "@/components/asset-ui";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
+import { DataImportModal } from "@/components/data-import";
 import "./index.css";
 
 const queryClient = new QueryClient({
@@ -394,6 +395,7 @@ function Inventory({ openCreate = false }: { openCreate?: boolean }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [bulkStatus, setBulkStatus] = useState<AssetStatus>("available");
   const [showCreate, setShowCreate] = useState(openCreate);
+  const [showImport, setShowImport] = useState(false);
   const locations = useListLocations();
   const assets = useListAssets({
     search: search || undefined,
@@ -495,52 +497,9 @@ function Inventory({ openCreate = false }: { openCreate?: boolean }) {
     toast({ title: "Inventory CSV exported" });
   }
 
-  async function importCsv(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-    const lines = (await file.text()).split(/\r?\n/).filter(Boolean);
-    if (lines.length < 2) {
-      toast({ title: "CSV has no asset rows", variant: "destructive" });
-      return;
-    }
-    const headers = lines[0].split(",").map((header) => header.trim().replace(/^"|"$/g, ""));
-    const records = lines.slice(1).map((line) => {
-      const values = line.split(",").map((value) => value.trim().replace(/^"|"$/g, "").replaceAll('""', '"'));
-      return Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ""]));
-    });
-    const fallbackLocation = locations.data?.[0]?.id;
-    if (!fallbackLocation) {
-      toast({ title: "Add a location before importing assets", variant: "destructive" });
-      return;
-    }
-    let imported = 0;
-    for (const record of records) {
-      if (!record.assetTag || !record.name || !record.manufacturer || !record.model || !record.serialNumber) continue;
-      await create.mutateAsync({ data: {
-        assetTag: record.assetTag,
-        name: record.name,
-        category: record.category || "Peripheral",
-        manufacturer: record.manufacturer,
-        model: record.model,
-        serialNumber: record.serialNumber,
-        status: (record.status || "available") as AssetStatus,
-        condition: (record.condition || "good") as AssetCondition,
-        locationId: record.locationId || fallbackLocation,
-        warrantyEnd: record.warrantyEnd || null,
-        purchaseDate: record.purchaseDate || null,
-        purchaseCost: record.purchaseCost ? Number(record.purchaseCost) : null,
-        notes: record.notes || "",
-      } });
-      imported++;
-    }
-    await client.invalidateQueries();
-    toast({ title: `${imported} assets imported` });
-  }
-
   return (
     <ShellPage>
-      <Topbar title="Inventory" description="Every device, peripheral, and system in one working view." action={canManage ? <Button className="button-accent" onClick={() => setShowCreate(true)}><Plus size={16} /> Add asset</Button> : undefined} />
+      <Topbar title="Inventory" description="Every device, peripheral, and system in one working view." action={canManage ? <div className="topbar-button-row"><Button className="button-ghost" onClick={() => setShowImport(true)}><FileUp size={15} /> Import inventory</Button><Button className="button-accent" onClick={() => setShowCreate(true)}><Plus size={16} /> Add asset</Button></div> : undefined} />
       <div className="page-wrap">
         <div className="inventory-toolbar">
           <SearchBox value={search} onChange={setSearch} />
@@ -548,7 +507,7 @@ function Inventory({ openCreate = false }: { openCreate?: boolean }) {
           <SelectField value={category} onChange={setCategory} options={categoryOptions} label="Category" testId="select-category" />
           <SelectField value={locationId} onChange={setLocationId} options={locationOptions} label="Location" testId="select-location" />
         </div>
-        <div className="inventory-summary"><div><span className="eyebrow">Asset register</span><strong>{assets.data?.total ?? "—"} records</strong>{selected.length > 0 && <span className="selection-count">{selected.length} selected</span>}</div><div className="inventory-actions">{canManage && <label className="text-button file-button"><FileUp size={14} /> Import CSV<input type="file" accept=".csv,text/csv" onChange={(event) => void importCsv(event)} /></label>}<button className="text-button" onClick={exportCsv}><Download size={14} /> Export CSV</button></div></div>
+        <div className="inventory-summary"><div><span className="eyebrow">Asset register</span><strong>{assets.data?.total ?? "—"} records</strong>{selected.length > 0 && <span className="selection-count">{selected.length} selected</span>}</div><div className="inventory-actions"><button className="text-button" onClick={exportCsv}><Download size={14} /> Export CSV</button></div></div>
         {canManage && selected.length > 0 && <div className="bulk-toolbar"><span className="eyebrow">Bulk action</span><span>{selected.length} selected</span><SelectField value={bulkStatus} onChange={(value) => setBulkStatus(value as AssetStatus)} options={statusOptions} label="Set status" testId="select-bulk-status" /><Button className="button-dark" onClick={() => void handleBulkStatus()} disabled={bulkUpdate.isPending}>{bulkUpdate.isPending ? "Updating…" : "Apply status"}</Button>{canDelete && <Button className="button-ghost" onClick={() => void handleBulkDelete()} disabled={bulkDelete.isPending}>{bulkDelete.isPending ? "Deleting…" : "Delete selected"}</Button>}<button className="text-button" onClick={() => setSelected([])}>Clear</button></div>}
         <Card className="table-card">
           {assets.isLoading ? <div className="table-loading"><Skeleton className="h-12" /><Skeleton className="h-12" /><Skeleton className="h-12" /><Skeleton className="h-12" /></div> : assets.isError ? <ErrorState onRetry={() => void assets.refetch()} /> : items.length ? <AssetTable items={items} selected={selected} selectable={canManage} onSelect={(id) => setSelected((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])} onDelete={canDelete ? handleDeleteAsset : undefined} /> : <EmptyState title="No matching assets" text="Try a different search or clear one of the filters." />}
@@ -556,6 +515,7 @@ function Inventory({ openCreate = false }: { openCreate?: boolean }) {
         </Card>
       </div>
       {canManage && showCreate && <Modal title="Add asset" onClose={() => setShowCreate(false)}><AssetForm locations={locations.data ?? []} onSubmit={handleCreate} onCancel={() => setShowCreate(false)} submitting={create.isPending} /></Modal>}
+      {canManage && showImport && <DataImportModal initialTab="assets" onClose={() => setShowImport(false)} />}
     </ShellPage>
   );
 }
@@ -814,6 +774,7 @@ function Directory() {
   const client = useQueryClient();
   const { toast } = useToast();
   const [modal, setModal] = useState<DirectoryModal>(null);
+  const [showImport, setShowImport] = useState(false);
 
   async function savePerson(values: { name: string; departmentId: string; email: string }) {
     if (modal?.kind === "person" && modal.id) await updatePerson.mutateAsync({ personId: modal.id, data: values as PersonUpdate });
@@ -857,7 +818,7 @@ function Directory() {
   const editingDepartment = modal?.kind === "department" ? departmentsQuery.data?.find((department) => department.id === modal.id) : undefined;
   const departments = departmentsQuery.data ?? [];
   return <ShellPage>
-    <Topbar title="Directory" description="Keep departments, custodians, and operating locations current for clean assignments." action={canManage ? <div className="topbar-button-row"><Button className="button-ghost" onClick={() => setModal({ kind: "department" })}>Add department</Button><Button className="button-ghost" onClick={() => setModal({ kind: "location" })}><MapPin size={15} /> Add location</Button><Button className="button-accent" onClick={() => setModal({ kind: "person" })}><Plus size={16} /> Add person</Button></div> : undefined} />
+    <Topbar title="Directory" description="Keep departments, custodians, and operating locations current for clean assignments." action={canManage ? <div className="topbar-button-row"><Button className="button-ghost" onClick={() => setShowImport(true)}><FileUp size={15} /> Import people</Button><Button className="button-ghost" onClick={() => setModal({ kind: "department" })}>Add department</Button><Button className="button-ghost" onClick={() => setModal({ kind: "location" })}><MapPin size={15} /> Add location</Button><Button className="button-accent" onClick={() => setModal({ kind: "person" })}><Plus size={16} /> Add person</Button></div> : undefined} />
     <div className="page-wrap">
       <div className="directory-grid">
         <Card><SectionHeading eyebrow="Organization" title="Departments" detail={`${departmentsQuery.data?.length ?? "—"} departments in the lookup.`} /><div className="directory-list">{departmentsQuery.isLoading ? <LoadingBlock /> : departmentsQuery.data?.length ? departmentsQuery.data.map((department) => <div className="directory-row" key={department.id}><div className="avatar department-avatar">{department.name.slice(0, 1)}</div><div><b>{department.name}</b><small>{department.personCount} people</small></div>{canManage && <button className="row-arrow" aria-label={`Edit ${department.name}`} onClick={() => setModal({ kind: "department", id: department.id })}><Pencil size={14} /></button>}{canDelete && <button className="row-arrow danger-action" aria-label={`Delete ${department.name}`} onClick={() => void removeRecord("department", department.id, department.name)}><Trash2 size={14} /></button>}</div>) : <EmptyState title="No departments yet" text="Add a department before assigning people." />}</div></Card>
@@ -868,6 +829,7 @@ function Directory() {
     {modal?.kind === "person" && <Modal title={editingPerson ? "Edit person" : "Add person"} onClose={() => setModal(null)}><PersonForm initial={editingPerson} departments={departments} onSubmit={savePerson} onCancel={() => setModal(null)} submitting={createPerson.isPending || updatePerson.isPending} /></Modal>}
     {modal?.kind === "location" && <Modal title={editingLocation ? "Edit location" : "Add location"} onClose={() => setModal(null)}><LocationForm initial={editingLocation} onSubmit={saveLocation} onCancel={() => setModal(null)} submitting={createLocation.isPending || updateLocation.isPending} /></Modal>}
     {modal?.kind === "department" && <Modal title={editingDepartment ? "Edit department" : "Add department"} onClose={() => setModal(null)}><DepartmentForm initial={editingDepartment} onSubmit={saveDepartment} onCancel={() => setModal(null)} submitting={createDepartment.isPending || updateDepartment.isPending} /></Modal>}
+    {canManage && showImport && <DataImportModal initialTab="people" onClose={() => setShowImport(false)} />}
   </ShellPage>;
 }
 
@@ -1232,7 +1194,7 @@ function Reports() {
         </div>
         {audit.isLoading ? <div className="stack-skeleton"><Skeleton className="h-14" /><Skeleton className="h-14" /><Skeleton className="h-14" /></div> : audit.isError ? <ErrorState onRetry={() => void audit.refetch()} /> : audit.data?.length ? <ActivityList events={audit.data} /> : <EmptyState title="No activity yet" />}
       </Card>
-      <Card className="table-card" style={{ marginTop: 13 }}>
+      <Card className="table-card" style={{ marginTop: 13, padding: 20 }}>
         <SectionHeading eyebrow="Compliance" title="Reports" detail="Draft, review, and finalize compliance reports." />
         {reports.isLoading ? <LoadingBlock /> : reports.isError ? <ErrorState onRetry={() => void reports.refetch()} /> : reports.data?.length ? (
           <div className="table-scroll"><table className="asset-table"><thead><tr><th>Report</th><th>Stage</th><th>Period</th><th>Updated</th><th /></tr></thead><tbody>

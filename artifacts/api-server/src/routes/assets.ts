@@ -4,6 +4,8 @@ import {
   AssignAssetBody,
   AssignAssetParams,
   BulkDeleteAssetsBody,
+  BulkImportAssetsBody,
+  BulkImportPeopleBody,
   BulkUpdateAssetStatusBody,
   CreateAssetAttachmentBody,
   CreateAssetAttachmentParams,
@@ -459,6 +461,77 @@ router.post("/assets", requireRoles("admin", "manager"), async (req, res) => {
   res.status(201).json(detail);
 });
 
+router.post("/assets/bulk/import", requireRoles("admin", "manager"), async (req, res) => {
+  await seedReady;
+  const body = BulkImportAssetsBody.parse(req.body);
+  const existing = await db.select({
+    assetTag: assetsTable.assetTag,
+    serialNumber: assetsTable.serialNumber,
+  }).from(assetsTable);
+  const locations = await db.select({ id: locationsTable.id }).from(locationsTable);
+  const locationIds = new Set(locations.map((location) => location.id));
+  const tags = new Set(existing.map((row) => row.assetTag.trim().toLowerCase()));
+  const serials = new Set(existing.map((row) => row.serialNumber.trim().toLowerCase()));
+  const skippedRows: { row: number; reason: string }[] = [];
+  const actor = actorLabel(req);
+  let created = 0;
+  const now = new Date();
+
+  for (const [index, item] of body.items.entries()) {
+    const row = index + 1;
+    const tagKey = item.assetTag.trim().toLowerCase();
+    const serialKey = item.serialNumber.trim().toLowerCase();
+    if (!locationIds.has(item.locationId)) {
+      skippedRows.push({ row, reason: "Location was not found." });
+      continue;
+    }
+    if (tags.has(tagKey)) {
+      skippedRows.push({ row, reason: "An asset with this tag already exists." });
+      continue;
+    }
+    if (serials.has(serialKey)) {
+      skippedRows.push({ row, reason: "An asset with this serial number already exists." });
+      continue;
+    }
+    const status = item.status === "assigned" ? "available" : item.status;
+    const id = `asset-${randomUUID().slice(0, 8)}`;
+    await db.insert(assetsTable).values({
+      id,
+      assetTag: item.assetTag.trim(),
+      name: item.name.trim(),
+      category: item.category.trim(),
+      manufacturer: item.manufacturer.trim(),
+      model: item.model.trim(),
+      serialNumber: item.serialNumber.trim(),
+      status,
+      condition: item.condition,
+      locationId: item.locationId,
+      warrantyEnd: toDateOnly(item.warrantyEnd) ?? null,
+      purchaseDate: toDateOnly(item.purchaseDate) ?? null,
+      purchaseCost: item.purchaseCost === null || item.purchaseCost === undefined ? null : String(item.purchaseCost),
+      notes: item.notes ?? "",
+      description: item.description ?? "",
+      specifications: {},
+      createdAt: now,
+      updatedAt: now,
+    });
+    await db.insert(assetHistoryTable).values(
+      insertAssetHistorySchema.parse({
+        id: `hist-${randomUUID().slice(0, 8)}`,
+        assetId: id,
+        action: "import",
+        detail: `Asset ${item.assetTag.trim()} imported into inventory.`,
+        actor,
+      }),
+    );
+    tags.add(tagKey);
+    serials.add(serialKey);
+    created += 1;
+  }
+
+  res.json({ created, skipped: skippedRows.length, skippedRows });
+});
+
 router.post("/assets/bulk/status", requireRoles("admin", "manager"), async (req, res) => {
   await seedReady;
   const body = BulkUpdateAssetStatusBody.parse(req.body);
@@ -785,6 +858,47 @@ router.post("/people", requireRoles("admin", "manager"), async (req, res) => {
   };
   await db.insert(peopleTable).values(person);
   res.status(201).json(await toApiPerson(person as DbPerson));
+});
+
+router.post("/people/bulk/import", requireRoles("admin", "manager"), async (req, res) => {
+  await seedReady;
+  const body = BulkImportPeopleBody.parse(req.body);
+  const [people, departments] = await Promise.all([
+    db.select({ email: peopleTable.email }).from(peopleTable),
+    db.select({ id: departmentsTable.id }).from(departmentsTable),
+  ]);
+  const emails = new Set(people.map((row) => row.email.trim().toLowerCase()));
+  const departmentIds = new Set(departments.map((row) => row.id));
+  const skippedRows: { row: number; reason: string }[] = [];
+  let created = 0;
+
+  for (const [index, item] of body.items.entries()) {
+    const row = index + 1;
+    const emailKey = item.email.trim().toLowerCase();
+    if (!item.name.trim() || !emailKey || !item.departmentId.trim()) {
+      skippedRows.push({ row, reason: "Name, email, and department are required." });
+      continue;
+    }
+    if (!departmentIds.has(item.departmentId)) {
+      skippedRows.push({ row, reason: "Department was not found." });
+      continue;
+    }
+    if (emails.has(emailKey)) {
+      skippedRows.push({ row, reason: "A person with this email already exists." });
+      continue;
+    }
+    const person = {
+      id: `person-${randomUUID().slice(0, 8)}`,
+      name: item.name.trim(),
+      departmentId: item.departmentId,
+      email: emailKey,
+    };
+    await db.insert(peopleTable).values(person);
+    emails.add(emailKey);
+    created += 1;
+  }
+
+  res.json({ created, skipped: skippedRows.length, skippedRows });
 });
 
 router.patch("/people/:personId", requireRoles("admin", "manager"), async (req, res) => {

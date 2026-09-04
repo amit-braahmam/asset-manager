@@ -209,6 +209,59 @@ export const CreateAssetResponse = zod.object({
 
 
 /**
+ * @summary Import assets after mapping confirmation (Admin and Manager)
+ */
+
+
+
+
+
+
+export const bulkImportAssetsBodyItemsItemStatusDefault = `available`;
+export const bulkImportAssetsBodyItemsItemConditionDefault = `good`;
+export const bulkImportAssetsBodyItemsItemNotesDefault = ``;
+export const bulkImportAssetsBodyItemsItemDescriptionDefault = ``;
+export const bulkImportAssetsBodyItemsMax = 100;
+
+
+
+export const BulkImportAssetsBody = zod.object({
+  "items": zod.array(zod.object({
+  "assetTag": zod.string().min(1),
+  "name": zod.string().min(1),
+  "category": zod.string().min(1),
+  "manufacturer": zod.string().min(1),
+  "model": zod.string().min(1),
+  "serialNumber": zod.string().min(1),
+  "status": zod.enum(['available', 'assigned', 'in_repair', 'rma', 'retired', 'lost']).default(bulkImportAssetsBodyItemsItemStatusDefault),
+  "condition": zod.enum(['excellent', 'good', 'fair', 'poor']).default(bulkImportAssetsBodyItemsItemConditionDefault),
+  "locationId": zod.string(),
+  "warrantyEnd": zod.coerce.date().nullish(),
+  "purchaseDate": zod.coerce.date().nullish(),
+  "purchaseCost": zod.number().nullish(),
+  "notes": zod.string().default(bulkImportAssetsBodyItemsItemNotesDefault),
+  "description": zod.string().default(bulkImportAssetsBodyItemsItemDescriptionDefault)
+})).min(1).max(bulkImportAssetsBodyItemsMax)
+})
+
+export const bulkImportAssetsResponseCreatedMin = 0;
+
+export const bulkImportAssetsResponseSkippedMin = 0;
+
+
+
+
+export const BulkImportAssetsResponse = zod.object({
+  "created": zod.int().min(bulkImportAssetsResponseCreatedMin),
+  "skipped": zod.int().min(bulkImportAssetsResponseSkippedMin),
+  "skippedRows": zod.array(zod.object({
+  "row": zod.int().min(1),
+  "reason": zod.string()
+}))
+})
+
+
+/**
  * @summary Get an asset
  */
 export const GetAssetParams = zod.object({
@@ -597,6 +650,40 @@ export const CreatePersonResponse = zod.object({
   "departmentId": zod.string(),
   "department": zod.string(),
   "email": zod.string()
+})
+
+
+/**
+ * @summary Import people after mapping confirmation (Admin and Manager)
+ */
+
+
+export const bulkImportPeopleBodyItemsMax = 100;
+
+
+
+export const BulkImportPeopleBody = zod.object({
+  "items": zod.array(zod.object({
+  "name": zod.string().min(1),
+  "departmentId": zod.string().min(1),
+  "email": zod.email()
+})).min(1).max(bulkImportPeopleBodyItemsMax)
+})
+
+export const bulkImportPeopleResponseCreatedMin = 0;
+
+export const bulkImportPeopleResponseSkippedMin = 0;
+
+
+
+
+export const BulkImportPeopleResponse = zod.object({
+  "created": zod.int().min(bulkImportPeopleResponseCreatedMin),
+  "skipped": zod.int().min(bulkImportPeopleResponseSkippedMin),
+  "skippedRows": zod.array(zod.object({
+  "row": zod.int().min(1),
+  "reason": zod.string()
+}))
 })
 
 

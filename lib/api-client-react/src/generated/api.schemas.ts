@@ -634,6 +634,36 @@ export interface AttachmentInput {
   contentBase64: string;
 }
 
+export interface BulkImportSkippedRow {
+  /** @minimum 1 */
+  row: number;
+  reason: string;
+}
+
+export interface BulkImportResult {
+  /** @minimum 0 */
+  created: number;
+  /** @minimum 0 */
+  skipped: number;
+  skippedRows: BulkImportSkippedRow[];
+}
+
+export interface BulkAssetImportInput {
+  /**
+     * @minItems 1
+     * @maxItems 100
+     */
+  items: AssetInput[];
+}
+
+export interface BulkPersonImportInput {
+  /**
+     * @minItems 1
+     * @maxItems 100
+     */
+  items: PersonInput[];
+}
+
 export interface BulkAssetDeleteInput {
   /** @minItems 1 */
   assetIds: string[];

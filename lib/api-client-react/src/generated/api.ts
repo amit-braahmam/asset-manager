@@ -31,7 +31,10 @@ import type {
   Attachment,
   AttachmentInput,
   BulkAssetDeleteInput,
+  BulkAssetImportInput,
   BulkAssetStatusInput,
+  BulkImportResult,
+  BulkPersonImportInput,
   ComplianceReport,
   ComplianceReportInput,
   ComplianceReportUpdate,
@@ -565,6 +568,77 @@ export const useCreateAsset = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreateAssetMutationOptions(options));
+    }
+
+export const getBulkImportAssetsUrl = () => {
+
+
+
+
+  return `/api/assets/bulk/import`
+}
+
+/**
+ * @summary Import assets after mapping confirmation (Admin and Manager)
+ */
+export const bulkImportAssets = async (bulkAssetImportInput: BulkAssetImportInput, options?: Parameters<typeof customFetch>[1]): Promise<BulkImportResult> => {
+
+  return customFetch<BulkImportResult>(getBulkImportAssetsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(bulkAssetImportInput)
+  }
+);}
+
+
+
+
+
+export const getBulkImportAssetsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkImportAssets>>, TError,{data: BodyType<BulkAssetImportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof bulkImportAssets>>, TError,{data: BodyType<BulkAssetImportInput>}, TContext> => {
+
+const mutationKey = ['bulkImportAssets'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bulkImportAssets>>, {data: BodyType<BulkAssetImportInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  bulkImportAssets(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BulkImportAssetsMutationResult = NonNullable<Awaited<ReturnType<typeof bulkImportAssets>>>
+    export type BulkImportAssetsMutationBody = BodyType<BulkAssetImportInput>
+    export type BulkImportAssetsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Import assets after mapping confirmation (Admin and Manager)
+ */
+export const useBulkImportAssets = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkImportAssets>>, TError,{data: BodyType<BulkAssetImportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof bulkImportAssets>>,
+        TError,
+        {data: BodyType<BulkAssetImportInput>},
+        TContext
+      > => {
+      return useMutation(getBulkImportAssetsMutationOptions(options));
     }
 
 export const getGetAssetUrl = (assetId: string,) => {
@@ -1516,6 +1590,77 @@ export const useCreatePerson = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreatePersonMutationOptions(options));
+    }
+
+export const getBulkImportPeopleUrl = () => {
+
+
+
+
+  return `/api/people/bulk/import`
+}
+
+/**
+ * @summary Import people after mapping confirmation (Admin and Manager)
+ */
+export const bulkImportPeople = async (bulkPersonImportInput: BulkPersonImportInput, options?: Parameters<typeof customFetch>[1]): Promise<BulkImportResult> => {
+
+  return customFetch<BulkImportResult>(getBulkImportPeopleUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(bulkPersonImportInput)
+  }
+);}
+
+
+
+
+
+export const getBulkImportPeopleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkImportPeople>>, TError,{data: BodyType<BulkPersonImportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof bulkImportPeople>>, TError,{data: BodyType<BulkPersonImportInput>}, TContext> => {
+
+const mutationKey = ['bulkImportPeople'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bulkImportPeople>>, {data: BodyType<BulkPersonImportInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  bulkImportPeople(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BulkImportPeopleMutationResult = NonNullable<Awaited<ReturnType<typeof bulkImportPeople>>>
+    export type BulkImportPeopleMutationBody = BodyType<BulkPersonImportInput>
+    export type BulkImportPeopleMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Import people after mapping confirmation (Admin and Manager)
+ */
+export const useBulkImportPeople = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkImportPeople>>, TError,{data: BodyType<BulkPersonImportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof bulkImportPeople>>,
+        TError,
+        {data: BodyType<BulkPersonImportInput>},
+        TContext
+      > => {
+      return useMutation(getBulkImportPeopleMutationOptions(options));
     }
 
 export const getUpdatePersonUrl = (personId: string,) => {

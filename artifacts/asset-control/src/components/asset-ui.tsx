@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'wouter';
-import { type ChangeEvent, type ReactNode, useEffect, useState } from 'react';
+import { type ChangeEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 import { useClerk, useUser } from '@clerk/react';
-import { Bell, Boxes, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, ClipboardList, FileText, Home, ImagePlus, Menu, MoreHorizontal, Search, ShieldCheck, UsersRound, Wrench, X, ArrowUpRight, RefreshCw, Pencil, Trash2, Users } from 'lucide-react';
+import { Bell, Boxes, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, ClipboardList, FileText, Home, ImagePlus, LogOut, Menu, MoreHorizontal, Search, ShieldCheck, UsersRound, Wrench, X, ArrowUpRight, RefreshCw, Pencil, Trash2, Users } from 'lucide-react';
 import { customFetch, type Asset, type Attachment, type MaintenanceItem } from '@workspace/api-client-react';
 import { useRole, ROLE_LABELS, canViewTeam, canViewReports } from '@/lib/role';
 
@@ -31,6 +31,8 @@ export function Sidebar() {
   const { user } = useUser();
   const { signOut } = useClerk();
   const { role } = useRole();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const nav = [
     { href: '/workspace', label: 'Overview', icon: Home },
     { href: '/inventory', label: 'Inventory', icon: Boxes },
@@ -41,10 +43,36 @@ export function Sidebar() {
   ];
   const isActive = (href: string) => location === href || location.startsWith(`${href}/`);
   const roleLabel = role ? ROLE_LABELS[role] : 'Signed-in operator';
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onPointerDown(event: PointerEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setMenuOpen(false);
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setMenuOpen(false);
+    }
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [menuOpen]);
   return <aside className="sidebar">
     <Link href="/" className="brand" data-testid="link-brand"><span className="brand-mark"><ShieldCheck size={20} strokeWidth={2.4} /></span><span className="brand-copy"><strong>asset<span>control</span></strong><small>OPERATIONS CONSOLE</small></span></Link>
     <nav className="side-nav"><div className="nav-section">Workspace</div>{nav.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`link-${label.toLowerCase()}`} className={`nav-item ${isActive(href) ? 'active' : ''}`}><Icon size={18} /><span className="nav-label">{label}</span></Link>)}</nav>
-    <div className="sidebar-foot"><div className="health-row"><span className="health-dot" /> All systems operational</div><button className="profile profile-button" onClick={() => void signOut({ redirectUrl: '/' })}><span className="avatar">{(user?.firstName?.[0] ?? user?.emailAddresses[0]?.emailAddress[0] ?? "U").toUpperCase()}</span><span className="profile-copy"><b>{user?.fullName ?? user?.emailAddresses[0]?.emailAddress ?? "Signed-in operator"}</b><small data-testid="text-role">{roleLabel} · Sign out</small></span><MoreHorizontal size={17} /></button></div>
+    <div className="sidebar-foot"><div className="health-row"><span className="health-dot" /> All systems operational</div>
+      <div className="profile-wrap" ref={menuRef}>
+        <button className="profile profile-button" type="button" aria-expanded={menuOpen} aria-haspopup="menu" data-testid="button-profile" onClick={() => setMenuOpen((open) => !open)}>
+          <span className="avatar">{(user?.firstName?.[0] ?? user?.emailAddresses[0]?.emailAddress[0] ?? "U").toUpperCase()}</span>
+          <span className="profile-copy"><b>{user?.fullName ?? user?.emailAddresses[0]?.emailAddress ?? "Signed-in operator"}</b><small data-testid="text-role">{roleLabel}</small></span>
+          <MoreHorizontal size={17} />
+        </button>
+        {menuOpen && <div className="profile-menu" role="menu">
+          <button type="button" role="menuitem" data-testid="button-sign-out" onClick={() => void signOut({ redirectUrl: '/' })}><LogOut size={14} /> Sign out</button>
+        </div>}
+      </div>
+    </div>
   </aside>;
 }
 
@@ -70,7 +98,7 @@ export function MetricCard({ label, value, detail, tone = 'teal', icon: Icon }: 
 
 export function Pagination({ page, pageSize, total, onPage }: { page: number; pageSize: number; total: number; onPage: (page: number) => void }) { const pages = Math.max(1, Math.ceil(total / pageSize)); return <div className="pagination"><span>Showing <b>{total ? (page - 1) * pageSize + 1 : 0}–{Math.min(page * pageSize, total)}</b> of <b>{total}</b></span><div><button data-testid="button-page-prev" disabled={page <= 1} onClick={() => onPage(page - 1)}><ChevronLeft size={16} /></button><span className="page-number">{page} / {pages}</span><button data-testid="button-page-next" disabled={page >= pages} onClick={() => onPage(page + 1)}><ChevronRight size={16} /></button></div></div>; }
 
-export function Modal({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) { return <div className="modal-backdrop" role="presentation" onMouseDown={(e) => e.target === e.currentTarget && onClose()}><div className="modal" role="dialog" aria-modal="true"><div className="modal-head"><div><div className="eyebrow">AssetControl / action</div><h2>{title}</h2></div><button className="icon-button" onClick={onClose} aria-label="Close" data-testid="button-close-modal"><X size={18} /></button></div>{children}</div></div>; }
+export function Modal({ title, children, onClose, className = "" }: { title: string; children: ReactNode; onClose: () => void; className?: string }) { return <div className="modal-backdrop" role="presentation" onMouseDown={(e) => e.target === e.currentTarget && onClose()}><div className={`modal ${className}`.trim()} role="dialog" aria-modal="true"><div className="modal-head"><div><div className="eyebrow">AssetControl / action</div><h2>{title}</h2></div><button className="icon-button" onClick={onClose} aria-label="Close" data-testid="button-close-modal"><X size={18} /></button></div>{children}</div></div>; }
 
 export function formatRelative(value?: string | null) { if (!value) return '—'; const date = new Date(value); if (Number.isNaN(date.getTime())) return value; const mins = Math.max(1, Math.round((Date.now() - date.getTime()) / 60000)); if (mins < 60) return `${mins}m ago`; if (mins < 1440) return `${Math.round(mins / 60)}h ago`; return `${Math.round(mins / 1440)}d ago`; }
 export function formatDate(value?: string | null) { if (!value) return 'Not set'; const date = new Date(value); return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
