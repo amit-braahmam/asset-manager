@@ -10,6 +10,7 @@ export {
   MANAGER_GRANTABLE_ROLES,
   canOnboardRole,
   isLastAdminDemotion,
+  isLastAdminDeletion,
   requireRoles,
   hasRole,
   actorLabel,

@@ -33,6 +33,14 @@ export function isLastAdminDemotion(
   return currentRole === "admin" && nextRole !== "admin" && otherAdminCount === 0;
 }
 
+/** True when deleting this user would leave the tenant with zero Admins. */
+export function isLastAdminDeletion(
+  currentRole: UserRole,
+  otherAdminCount: number,
+): boolean {
+  return currentRole === "admin" && otherAdminCount === 0;
+}
+
 /** Route guard: only allow the listed roles. */
 export function requireRoles(...allowed: UserRole[]): RequestHandler {
   return (req: Request, res: Response, next: NextFunction) => {

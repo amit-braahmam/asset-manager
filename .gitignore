@@ -53,6 +53,12 @@ Thumbs.db
 # Vercel
 .vercel
 
+# Local photo uploads (preview)
+uploads/
+
+# Local build / codegen logs
+*.log
+
 # Replit
 .cache/
 .local/

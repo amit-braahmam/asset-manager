@@ -171,9 +171,26 @@ export interface Location {
   assetCount: number;
 }
 
+export interface Department {
+  id: string;
+  name: string;
+  personCount: number;
+}
+
+export interface DepartmentInput {
+  /** @minLength 1 */
+  name: string;
+}
+
+export interface DepartmentUpdate {
+  /** @minLength 1 */
+  name?: string;
+}
+
 export interface Person {
   id: string;
   name: string;
+  departmentId: string;
   department: string;
   email: string;
 }
@@ -182,7 +199,7 @@ export interface PersonInput {
   /** @minLength 1 */
   name: string;
   /** @minLength 1 */
-  department: string;
+  departmentId: string;
   email: string;
 }
 
@@ -190,7 +207,7 @@ export interface PersonUpdate {
   /** @minLength 1 */
   name?: string;
   /** @minLength 1 */
-  department?: string;
+  departmentId?: string;
   email?: string;
 }
 
@@ -243,6 +260,8 @@ export interface Asset {
   location: Location;
   assignee: Person | null;
   /** @nullable */
+  assignedAt: string | null;
+  /** @nullable */
   warrantyEnd: string | null;
   /** @nullable */
   purchaseDate: string | null;
@@ -263,6 +282,7 @@ export interface HistoryEvent {
 
 export type AssetDetail = Asset & {
   notes: string;
+  description: string;
   specifications: AssetDetailSpecifications;
   history: HistoryEvent[];
 };
@@ -312,6 +332,7 @@ export interface AssetInput {
   /** @nullable */
   purchaseCost?: number | null;
   notes?: string;
+  description?: string;
 }
 
 export type AssetUpdateCondition = typeof AssetUpdateCondition[keyof typeof AssetUpdateCondition];
@@ -340,6 +361,7 @@ export interface AssetUpdate {
   /** @nullable */
   purchaseCost?: number | null;
   notes?: string;
+  description?: string;
 }
 
 export interface AssetAssignmentInput {
@@ -393,6 +415,33 @@ export interface ActivityEvent {
   assetTag: string | null;
 }
 
+export type MaintenanceItemScope = typeof MaintenanceItemScope[keyof typeof MaintenanceItemScope];
+
+
+export const MaintenanceItemScope = {
+  asset: 'asset',
+  estate: 'estate',
+} as const;
+
+export type MaintenanceItemMode = typeof MaintenanceItemMode[keyof typeof MaintenanceItemMode];
+
+
+export const MaintenanceItemMode = {
+  scheduled: 'scheduled',
+  emergency: 'emergency',
+} as const;
+
+export type MaintenanceItemActivityType = typeof MaintenanceItemActivityType[keyof typeof MaintenanceItemActivityType];
+
+
+export const MaintenanceItemActivityType = {
+  os_patch: 'os_patch',
+  application_patch: 'application_patch',
+  lan: 'lan',
+  firewall: 'firewall',
+  other: 'other',
+} as const;
+
 export type MaintenanceItemPriority = typeof MaintenanceItemPriority[keyof typeof MaintenanceItemPriority];
 
 
@@ -414,7 +463,14 @@ export const MaintenanceItemStatus = {
 
 export interface MaintenanceItem {
   id: string;
-  assetTag: string;
+  title: string;
+  scope: MaintenanceItemScope;
+  mode: MaintenanceItemMode;
+  activityType: MaintenanceItemActivityType;
+  /** @nullable */
+  assetId: string | null;
+  /** @nullable */
+  assetTag: string | null;
   category: string;
   scheduledAt: string;
   technician: string;
@@ -426,6 +482,33 @@ export interface MaintenanceItem {
   /** @nullable */
   completedBy: string | null;
 }
+
+export type MaintenanceInputScope = typeof MaintenanceInputScope[keyof typeof MaintenanceInputScope];
+
+
+export const MaintenanceInputScope = {
+  asset: 'asset',
+  estate: 'estate',
+} as const;
+
+export type MaintenanceInputMode = typeof MaintenanceInputMode[keyof typeof MaintenanceInputMode];
+
+
+export const MaintenanceInputMode = {
+  scheduled: 'scheduled',
+  emergency: 'emergency',
+} as const;
+
+export type MaintenanceInputActivityType = typeof MaintenanceInputActivityType[keyof typeof MaintenanceInputActivityType];
+
+
+export const MaintenanceInputActivityType = {
+  os_patch: 'os_patch',
+  application_patch: 'application_patch',
+  lan: 'lan',
+  firewall: 'firewall',
+  other: 'other',
+} as const;
 
 export type MaintenanceInputPriority = typeof MaintenanceInputPriority[keyof typeof MaintenanceInputPriority];
 
@@ -447,7 +530,13 @@ export const MaintenanceInputStatus = {
 } as const;
 
 export interface MaintenanceInput {
-  assetId: string;
+  /** @minLength 1 */
+  title: string;
+  /** @nullable */
+  assetId?: string | null;
+  scope?: MaintenanceInputScope;
+  mode?: MaintenanceInputMode;
+  activityType?: MaintenanceInputActivityType;
   scheduledAt: string;
   /** @minLength 1 */
   technician: string;
@@ -455,6 +544,33 @@ export interface MaintenanceInput {
   status?: MaintenanceInputStatus;
   resolutionNotes?: string;
 }
+
+export type MaintenanceUpdateScope = typeof MaintenanceUpdateScope[keyof typeof MaintenanceUpdateScope];
+
+
+export const MaintenanceUpdateScope = {
+  asset: 'asset',
+  estate: 'estate',
+} as const;
+
+export type MaintenanceUpdateMode = typeof MaintenanceUpdateMode[keyof typeof MaintenanceUpdateMode];
+
+
+export const MaintenanceUpdateMode = {
+  scheduled: 'scheduled',
+  emergency: 'emergency',
+} as const;
+
+export type MaintenanceUpdateActivityType = typeof MaintenanceUpdateActivityType[keyof typeof MaintenanceUpdateActivityType];
+
+
+export const MaintenanceUpdateActivityType = {
+  os_patch: 'os_patch',
+  application_patch: 'application_patch',
+  lan: 'lan',
+  firewall: 'firewall',
+  other: 'other',
+} as const;
 
 export type MaintenanceUpdatePriority = typeof MaintenanceUpdatePriority[keyof typeof MaintenanceUpdatePriority];
 
@@ -476,12 +592,51 @@ export const MaintenanceUpdateStatus = {
 } as const;
 
 export interface MaintenanceUpdate {
+  /** @minLength 1 */
+  title?: string;
+  /** @nullable */
+  assetId?: string | null;
+  scope?: MaintenanceUpdateScope;
+  mode?: MaintenanceUpdateMode;
+  activityType?: MaintenanceUpdateActivityType;
   scheduledAt?: string;
   /** @minLength 1 */
   technician?: string;
   priority?: MaintenanceUpdatePriority;
   status?: MaintenanceUpdateStatus;
   resolutionNotes?: string;
+}
+
+export type AttachmentEntityType = typeof AttachmentEntityType[keyof typeof AttachmentEntityType];
+
+
+export const AttachmentEntityType = {
+  asset: 'asset',
+  maintenance: 'maintenance',
+} as const;
+
+export interface Attachment {
+  id: string;
+  entityType: AttachmentEntityType;
+  entityId: string;
+  fileName: string;
+  contentType: string;
+  url: string;
+  createdAt: string;
+}
+
+export interface AttachmentInput {
+  /** @minLength 1 */
+  fileName: string;
+  /** @minLength 1 */
+  contentType: string;
+  /** @minLength 1 */
+  contentBase64: string;
+}
+
+export interface BulkAssetDeleteInput {
+  /** @minItems 1 */
+  assetIds: string[];
 }
 
 export type BulkAssetStatusInputStatus = typeof BulkAssetStatusInputStatus[keyof typeof BulkAssetStatusInputStatus];
@@ -546,6 +701,54 @@ export type PageSizeParameter = number;
 
 export type LimitParameter = number;
 
+export type MaintenanceLimitParameter = number;
+
+export type MaintenanceStatusParameter = typeof MaintenanceStatusParameter[keyof typeof MaintenanceStatusParameter];
+
+
+export const MaintenanceStatusParameter = {
+  pending: 'pending',
+  scheduled: 'scheduled',
+  completed: 'completed',
+  overdue: 'overdue',
+} as const;
+
+export type MaintenanceModeParameter = typeof MaintenanceModeParameter[keyof typeof MaintenanceModeParameter];
+
+
+export const MaintenanceModeParameter = {
+  scheduled: 'scheduled',
+  emergency: 'emergency',
+} as const;
+
+export type MaintenanceScopeParameter = typeof MaintenanceScopeParameter[keyof typeof MaintenanceScopeParameter];
+
+
+export const MaintenanceScopeParameter = {
+  asset: 'asset',
+  estate: 'estate',
+} as const;
+
+export type MaintenanceActivityTypeParameter = typeof MaintenanceActivityTypeParameter[keyof typeof MaintenanceActivityTypeParameter];
+
+
+export const MaintenanceActivityTypeParameter = {
+  os_patch: 'os_patch',
+  application_patch: 'application_patch',
+  lan: 'lan',
+  firewall: 'firewall',
+  other: 'other',
+} as const;
+
+export type MaintenancePriorityParameter = typeof MaintenancePriorityParameter[keyof typeof MaintenancePriorityParameter];
+
+
+export const MaintenancePriorityParameter = {
+  high: 'high',
+  normal: 'normal',
+  low: 'low',
+} as const;
+
 export type GetDashboardActivityParams = {
 /**
  * @minimum 1
@@ -583,9 +786,15 @@ pageSize?: PageSizeParameter;
 export type ListMaintenanceParams = {
 /**
  * @minimum 1
- * @maximum 50
+ * @maximum 100
  */
-limit?: LimitParameter;
+limit?: MaintenanceLimitParameter;
+search?: SearchParameter;
+status?: MaintenanceStatusParameter;
+mode?: MaintenanceModeParameter;
+scope?: MaintenanceScopeParameter;
+activityType?: MaintenanceActivityTypeParameter;
+priority?: MaintenancePriorityParameter;
 };
 
 export type GetAuditLogsParams = {

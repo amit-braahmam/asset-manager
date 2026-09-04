@@ -23,4 +23,5 @@ export interface AssetUpdate {
   /** @nullable */
   purchaseCost?: number | null;
   notes?: string;
+  description?: string;
 }

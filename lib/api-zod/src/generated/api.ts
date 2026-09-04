@@ -73,7 +73,12 @@ export const GetDashboardMaintenanceQueryParams = zod.object({
 
 export const GetDashboardMaintenanceResponseItem = zod.object({
   "id": zod.string(),
-  "assetTag": zod.string(),
+  "title": zod.string(),
+  "scope": zod.enum(['asset', 'estate']),
+  "mode": zod.enum(['scheduled', 'emergency']),
+  "activityType": zod.enum(['os_patch', 'application_patch', 'lan', 'firewall', 'other']),
+  "assetId": zod.string().nullable(),
+  "assetTag": zod.string().nullable(),
   "category": zod.string(),
   "scheduledAt": zod.coerce.date(),
   "technician": zod.string(),
@@ -125,9 +130,11 @@ export const ListAssetsResponse = zod.object({
   "assignee": zod.union([zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "departmentId": zod.string(),
   "department": zod.string(),
   "email": zod.string()
 }),zod.null()]),
+  "assignedAt": zod.coerce.date().nullable(),
   "warrantyEnd": zod.coerce.date().nullable(),
   "purchaseDate": zod.coerce.date().nullable(),
   "purchaseCost": zod.number().nullable(),
@@ -151,6 +158,7 @@ export const ListAssetsResponse = zod.object({
 export const createAssetBodyStatusDefault = `available`;
 export const createAssetBodyConditionDefault = `good`;
 export const createAssetBodyNotesDefault = ``;
+export const createAssetBodyDescriptionDefault = ``;
 
 export const CreateAssetBody = zod.object({
   "assetTag": zod.string().min(1),
@@ -165,7 +173,8 @@ export const CreateAssetBody = zod.object({
   "warrantyEnd": zod.coerce.date().nullish(),
   "purchaseDate": zod.coerce.date().nullish(),
   "purchaseCost": zod.number().nullish(),
-  "notes": zod.string().default(createAssetBodyNotesDefault)
+  "notes": zod.string().default(createAssetBodyNotesDefault),
+  "description": zod.string().default(createAssetBodyDescriptionDefault)
 })
 
 export const CreateAssetResponse = zod.object({
@@ -187,9 +196,11 @@ export const CreateAssetResponse = zod.object({
   "assignee": zod.union([zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "departmentId": zod.string(),
   "department": zod.string(),
   "email": zod.string()
 }),zod.null()]),
+  "assignedAt": zod.coerce.date().nullable(),
   "warrantyEnd": zod.coerce.date().nullable(),
   "purchaseDate": zod.coerce.date().nullable(),
   "purchaseCost": zod.number().nullable(),
@@ -223,15 +234,18 @@ export const GetAssetResponse = zod.object({
   "assignee": zod.union([zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "departmentId": zod.string(),
   "department": zod.string(),
   "email": zod.string()
 }),zod.null()]),
+  "assignedAt": zod.coerce.date().nullable(),
   "warrantyEnd": zod.coerce.date().nullable(),
   "purchaseDate": zod.coerce.date().nullable(),
   "purchaseCost": zod.number().nullable(),
   "lastUpdated": zod.coerce.date()
 }).and(zod.object({
   "notes": zod.string(),
+  "description": zod.string(),
   "specifications": zod.record(zod.string(), zod.string()),
   "history": zod.array(zod.object({
   "id": zod.string(),
@@ -264,7 +278,8 @@ export const UpdateAssetBody = zod.object({
   "warrantyEnd": zod.coerce.date().nullish(),
   "purchaseDate": zod.coerce.date().nullish(),
   "purchaseCost": zod.number().nullish(),
-  "notes": zod.string().optional()
+  "notes": zod.string().optional(),
+  "description": zod.string().optional()
 })
 
 export const UpdateAssetResponse = zod.object({
@@ -286,14 +301,26 @@ export const UpdateAssetResponse = zod.object({
   "assignee": zod.union([zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "departmentId": zod.string(),
   "department": zod.string(),
   "email": zod.string()
 }),zod.null()]),
+  "assignedAt": zod.coerce.date().nullable(),
   "warrantyEnd": zod.coerce.date().nullable(),
   "purchaseDate": zod.coerce.date().nullable(),
   "purchaseCost": zod.number().nullable(),
   "lastUpdated": zod.coerce.date()
 })
+
+
+/**
+ * @summary Delete an asset (Admin and Manager)
+ */
+export const DeleteAssetParams = zod.object({
+  "assetId": zod.coerce.string()
+})
+
+export const DeleteAssetResponse = zod.void()
 
 
 /**
@@ -327,15 +354,18 @@ export const AssignAssetResponse = zod.object({
   "assignee": zod.union([zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "departmentId": zod.string(),
   "department": zod.string(),
   "email": zod.string()
 }),zod.null()]),
+  "assignedAt": zod.coerce.date().nullable(),
   "warrantyEnd": zod.coerce.date().nullable(),
   "purchaseDate": zod.coerce.date().nullable(),
   "purchaseCost": zod.number().nullable(),
   "lastUpdated": zod.coerce.date()
 }).and(zod.object({
   "notes": zod.string(),
+  "description": zod.string(),
   "specifications": zod.record(zod.string(), zod.string()),
   "history": zod.array(zod.object({
   "id": zod.string(),
@@ -373,15 +403,18 @@ export const ReturnAssetResponse = zod.object({
   "assignee": zod.union([zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "departmentId": zod.string(),
   "department": zod.string(),
   "email": zod.string()
 }),zod.null()]),
+  "assignedAt": zod.coerce.date().nullable(),
   "warrantyEnd": zod.coerce.date().nullable(),
   "purchaseDate": zod.coerce.date().nullable(),
   "purchaseCost": zod.number().nullable(),
   "lastUpdated": zod.coerce.date()
 }).and(zod.object({
   "notes": zod.string(),
+  "description": zod.string(),
   "specifications": zod.record(zod.string(), zod.string()),
   "history": zod.array(zod.object({
   "id": zod.string(),
@@ -426,15 +459,18 @@ export const UpdateAssetStatusResponse = zod.object({
   "assignee": zod.union([zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "departmentId": zod.string(),
   "department": zod.string(),
   "email": zod.string()
 }),zod.null()]),
+  "assignedAt": zod.coerce.date().nullable(),
   "warrantyEnd": zod.coerce.date().nullable(),
   "purchaseDate": zod.coerce.date().nullable(),
   "purchaseCost": zod.number().nullable(),
   "lastUpdated": zod.coerce.date()
 }).and(zod.object({
   "notes": zod.string(),
+  "description": zod.string(),
   "specifications": zod.record(zod.string(), zod.string()),
   "history": zod.array(zod.object({
   "id": zod.string(),
@@ -520,11 +556,22 @@ export const UpdateLocationResponse = zod.object({
 
 
 /**
+ * @summary Delete a location (Admin and Manager)
+ */
+export const DeleteLocationParams = zod.object({
+  "locationId": zod.coerce.string()
+})
+
+export const DeleteLocationResponse = zod.void()
+
+
+/**
  * @summary List asset custodians
  */
 export const ListPeopleResponseItem = zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "departmentId": zod.string(),
   "department": zod.string(),
   "email": zod.string()
 })
@@ -540,13 +587,14 @@ export const ListPeopleResponse = zod.array(ListPeopleResponseItem)
 
 export const CreatePersonBody = zod.object({
   "name": zod.string().min(1),
-  "department": zod.string().min(1),
+  "departmentId": zod.string().min(1),
   "email": zod.email()
 })
 
 export const CreatePersonResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "departmentId": zod.string(),
   "department": zod.string(),
   "email": zod.string()
 })
@@ -565,33 +613,114 @@ export const UpdatePersonParams = zod.object({
 
 export const UpdatePersonBody = zod.object({
   "name": zod.string().min(1).optional(),
-  "department": zod.string().min(1).optional(),
+  "departmentId": zod.string().min(1).optional(),
   "email": zod.email().optional()
 })
 
 export const UpdatePersonResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "departmentId": zod.string(),
   "department": zod.string(),
   "email": zod.string()
 })
 
 
 /**
+ * @summary Delete a person (Admin and Manager)
+ */
+export const DeletePersonParams = zod.object({
+  "personId": zod.coerce.string()
+})
+
+export const DeletePersonResponse = zod.void()
+
+
+/**
+ * @summary List departments
+ */
+export const ListDepartmentsResponseItem = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "personCount": zod.int()
+})
+export const ListDepartmentsResponse = zod.array(ListDepartmentsResponseItem)
+
+
+/**
+ * @summary Create a department
+ */
+
+
+
+export const CreateDepartmentBody = zod.object({
+  "name": zod.string().min(1)
+})
+
+export const CreateDepartmentResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "personCount": zod.int()
+})
+
+
+/**
+ * @summary Update a department
+ */
+export const UpdateDepartmentParams = zod.object({
+  "departmentId": zod.coerce.string()
+})
+
+
+
+
+export const UpdateDepartmentBody = zod.object({
+  "name": zod.string().min(1).optional()
+})
+
+export const UpdateDepartmentResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "personCount": zod.int()
+})
+
+
+/**
+ * @summary Delete a department (Admin and Manager)
+ */
+export const DeleteDepartmentParams = zod.object({
+  "departmentId": zod.coerce.string()
+})
+
+export const DeleteDepartmentResponse = zod.void()
+
+
+/**
  * @summary List upcoming maintenance
  */
-export const listMaintenanceQueryLimitDefault = 5;
-export const listMaintenanceQueryLimitMax = 50;
+export const listMaintenanceQueryLimitDefault = 50;
+export const listMaintenanceQueryLimitMax = 100;
 
 
 
 export const ListMaintenanceQueryParams = zod.object({
-  "limit": zod.coerce.number().int().min(1).max(listMaintenanceQueryLimitMax).default(listMaintenanceQueryLimitDefault)
+  "limit": zod.coerce.number().int().min(1).max(listMaintenanceQueryLimitMax).default(listMaintenanceQueryLimitDefault),
+  "search": zod.coerce.string().optional(),
+  "status": zod.enum(['pending', 'scheduled', 'completed', 'overdue']).optional(),
+  "mode": zod.enum(['scheduled', 'emergency']).optional(),
+  "scope": zod.enum(['asset', 'estate']).optional(),
+  "activityType": zod.enum(['os_patch', 'application_patch', 'lan', 'firewall', 'other']).optional(),
+  "priority": zod.enum(['high', 'normal', 'low']).optional()
 })
 
 export const ListMaintenanceResponseItem = zod.object({
   "id": zod.string(),
-  "assetTag": zod.string(),
+  "title": zod.string(),
+  "scope": zod.enum(['asset', 'estate']),
+  "mode": zod.enum(['scheduled', 'emergency']),
+  "activityType": zod.enum(['os_patch', 'application_patch', 'lan', 'firewall', 'other']),
+  "assetId": zod.string().nullable(),
+  "assetTag": zod.string().nullable(),
   "category": zod.string(),
   "scheduledAt": zod.coerce.date(),
   "technician": zod.string(),
@@ -608,12 +737,19 @@ export const ListMaintenanceResponse = zod.array(ListMaintenanceResponseItem)
  * @summary Schedule maintenance
  */
 
+export const createMaintenanceBodyScopeDefault = `asset`;
+export const createMaintenanceBodyModeDefault = `scheduled`;
+export const createMaintenanceBodyActivityTypeDefault = `other`;
 export const createMaintenanceBodyPriorityDefault = `normal`;
 export const createMaintenanceBodyStatusDefault = `scheduled`;
 export const createMaintenanceBodyResolutionNotesDefault = ``;
 
 export const CreateMaintenanceBody = zod.object({
-  "assetId": zod.string(),
+  "title": zod.string().min(1),
+  "assetId": zod.string().nullish(),
+  "scope": zod.enum(['asset', 'estate']).default(createMaintenanceBodyScopeDefault),
+  "mode": zod.enum(['scheduled', 'emergency']).default(createMaintenanceBodyModeDefault),
+  "activityType": zod.enum(['os_patch', 'application_patch', 'lan', 'firewall', 'other']).default(createMaintenanceBodyActivityTypeDefault),
   "scheduledAt": zod.coerce.date(),
   "technician": zod.string().min(1),
   "priority": zod.enum(['high', 'normal', 'low']).default(createMaintenanceBodyPriorityDefault),
@@ -623,7 +759,12 @@ export const CreateMaintenanceBody = zod.object({
 
 export const CreateMaintenanceResponse = zod.object({
   "id": zod.string(),
-  "assetTag": zod.string(),
+  "title": zod.string(),
+  "scope": zod.enum(['asset', 'estate']),
+  "mode": zod.enum(['scheduled', 'emergency']),
+  "activityType": zod.enum(['os_patch', 'application_patch', 'lan', 'firewall', 'other']),
+  "assetId": zod.string().nullable(),
+  "assetTag": zod.string().nullable(),
   "category": zod.string(),
   "scheduledAt": zod.coerce.date(),
   "technician": zod.string(),
@@ -645,7 +786,13 @@ export const UpdateMaintenanceParams = zod.object({
 
 
 
+
 export const UpdateMaintenanceBody = zod.object({
+  "title": zod.string().min(1).optional(),
+  "assetId": zod.string().nullish(),
+  "scope": zod.enum(['asset', 'estate']).optional(),
+  "mode": zod.enum(['scheduled', 'emergency']).optional(),
+  "activityType": zod.enum(['os_patch', 'application_patch', 'lan', 'firewall', 'other']).optional(),
   "scheduledAt": zod.coerce.date().optional(),
   "technician": zod.string().min(1).optional(),
   "priority": zod.enum(['high', 'normal', 'low']).optional(),
@@ -655,7 +802,12 @@ export const UpdateMaintenanceBody = zod.object({
 
 export const UpdateMaintenanceResponse = zod.object({
   "id": zod.string(),
-  "assetTag": zod.string(),
+  "title": zod.string(),
+  "scope": zod.enum(['asset', 'estate']),
+  "mode": zod.enum(['scheduled', 'emergency']),
+  "activityType": zod.enum(['os_patch', 'application_patch', 'lan', 'firewall', 'other']),
+  "assetId": zod.string().nullable(),
+  "assetTag": zod.string().nullable(),
   "category": zod.string(),
   "scheduledAt": zod.coerce.date(),
   "technician": zod.string(),
@@ -675,6 +827,112 @@ export const DeleteMaintenanceParams = zod.object({
 })
 
 export const DeleteMaintenanceResponse = zod.void()
+
+
+/**
+ * @summary List photos on an asset
+ */
+export const ListAssetAttachmentsParams = zod.object({
+  "assetId": zod.coerce.string()
+})
+
+export const ListAssetAttachmentsResponseItem = zod.object({
+  "id": zod.string(),
+  "entityType": zod.enum(['asset', 'maintenance']),
+  "entityId": zod.string(),
+  "fileName": zod.string(),
+  "contentType": zod.string(),
+  "url": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+export const ListAssetAttachmentsResponse = zod.array(ListAssetAttachmentsResponseItem)
+
+
+/**
+ * @summary Upload a photo to an asset
+ */
+export const CreateAssetAttachmentParams = zod.object({
+  "assetId": zod.coerce.string()
+})
+
+
+
+
+
+
+export const CreateAssetAttachmentBody = zod.object({
+  "fileName": zod.string().min(1),
+  "contentType": zod.string().min(1),
+  "contentBase64": zod.string().min(1)
+})
+
+export const CreateAssetAttachmentResponse = zod.object({
+  "id": zod.string(),
+  "entityType": zod.enum(['asset', 'maintenance']),
+  "entityId": zod.string(),
+  "fileName": zod.string(),
+  "contentType": zod.string(),
+  "url": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary List photos on a maintenance item
+ */
+export const ListMaintenanceAttachmentsParams = zod.object({
+  "maintenanceId": zod.coerce.string()
+})
+
+export const ListMaintenanceAttachmentsResponseItem = zod.object({
+  "id": zod.string(),
+  "entityType": zod.enum(['asset', 'maintenance']),
+  "entityId": zod.string(),
+  "fileName": zod.string(),
+  "contentType": zod.string(),
+  "url": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+export const ListMaintenanceAttachmentsResponse = zod.array(ListMaintenanceAttachmentsResponseItem)
+
+
+/**
+ * @summary Upload a photo to a maintenance item
+ */
+export const CreateMaintenanceAttachmentParams = zod.object({
+  "maintenanceId": zod.coerce.string()
+})
+
+
+
+
+
+
+export const CreateMaintenanceAttachmentBody = zod.object({
+  "fileName": zod.string().min(1),
+  "contentType": zod.string().min(1),
+  "contentBase64": zod.string().min(1)
+})
+
+export const CreateMaintenanceAttachmentResponse = zod.object({
+  "id": zod.string(),
+  "entityType": zod.enum(['asset', 'maintenance']),
+  "entityId": zod.string(),
+  "fileName": zod.string(),
+  "contentType": zod.string(),
+  "url": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Remove a photo
+ */
+export const DeleteAttachmentParams = zod.object({
+  "attachmentId": zod.coerce.string()
+})
+
+export const DeleteAttachmentResponse = zod.void()
 
 
 /**
@@ -708,15 +966,30 @@ export const BulkUpdateAssetStatusResponseItem = zod.object({
   "assignee": zod.union([zod.object({
   "id": zod.string(),
   "name": zod.string(),
+  "departmentId": zod.string(),
   "department": zod.string(),
   "email": zod.string()
 }),zod.null()]),
+  "assignedAt": zod.coerce.date().nullable(),
   "warrantyEnd": zod.coerce.date().nullable(),
   "purchaseDate": zod.coerce.date().nullable(),
   "purchaseCost": zod.number().nullable(),
   "lastUpdated": zod.coerce.date()
 })
 export const BulkUpdateAssetStatusResponse = zod.array(BulkUpdateAssetStatusResponseItem)
+
+
+/**
+ * @summary Delete several assets (Admin and Manager)
+ */
+
+
+
+export const BulkDeleteAssetsBody = zod.object({
+  "assetIds": zod.array(zod.string()).min(1)
+})
+
+export const BulkDeleteAssetsResponse = zod.void()
 
 
 /**
@@ -765,6 +1038,16 @@ export const CreateUserResponse = zod.object({
   "createdAt": zod.coerce.date(),
   "lastSeenAt": zod.coerce.date()
 })
+
+
+/**
+ * @summary Delete a team member (Admin only)
+ */
+export const DeleteUserParams = zod.object({
+  "userId": zod.coerce.string()
+})
+
+export const DeleteUserResponse = zod.void()
 
 
 /**
@@ -928,5 +1211,15 @@ export const UpdateComplianceReportResponse = zod.object({
   "updatedAt": zod.coerce.date(),
   "closedAt": zod.coerce.date().nullable()
 })
+
+
+/**
+ * @summary Delete a compliance report (Admin only)
+ */
+export const DeleteComplianceReportParams = zod.object({
+  "reportId": zod.coerce.string()
+})
+
+export const DeleteComplianceReportResponse = zod.void()
 
 

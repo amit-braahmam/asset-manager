@@ -20,6 +20,10 @@ tags:
     description: Managed asset locations
   - name: people
     description: Asset custodians
+  - name: departments
+    description: Organisation departments
+  - name: attachments
+    description: Photos attached to assets and maintenance
   - name: users
     description: Application users and role-based access
   - name: audit
@@ -159,6 +163,17 @@ paths:
                 $ref: "#/components/schemas/Asset"
         "404":
           $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteAsset
+      tags: [assets]
+      summary: Delete an asset (Admin and Manager)
+      parameters:
+        - $ref: "#/components/parameters/AssetId"
+      responses:
+        "204":
+          description: Asset removed
+        "404":
+          $ref: "#/components/responses/NotFound"
   /assets/{assetId}/assign:
     post:
       operationId: assignAsset
@@ -290,6 +305,19 @@ paths:
                 $ref: "#/components/schemas/Location"
         "404":
           $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteLocation
+      tags: [locations]
+      summary: Delete a location (Admin and Manager)
+      parameters:
+        - $ref: "#/components/parameters/LocationPathId"
+      responses:
+        "204":
+          description: Location removed
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Location still has assets
   /people:
     get:
       operationId: listPeople
@@ -343,13 +371,98 @@ paths:
                 $ref: "#/components/schemas/Person"
         "404":
           $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deletePerson
+      tags: [people]
+      summary: Delete a person (Admin and Manager)
+      parameters:
+        - $ref: "#/components/parameters/PersonId"
+      responses:
+        "204":
+          description: Person removed
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Person still has assigned assets
+  /departments:
+    get:
+      operationId: listDepartments
+      tags: [departments]
+      summary: List departments
+      responses:
+        "200":
+          description: Departments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Department"
+    post:
+      operationId: createDepartment
+      tags: [departments]
+      summary: Create a department
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DepartmentInput"
+      responses:
+        "201":
+          description: Created department
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Department"
+  /departments/{departmentId}:
+    patch:
+      operationId: updateDepartment
+      tags: [departments]
+      summary: Update a department
+      parameters:
+        - $ref: "#/components/parameters/DepartmentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DepartmentUpdate"
+      responses:
+        "200":
+          description: Updated department
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Department"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteDepartment
+      tags: [departments]
+      summary: Delete a department (Admin and Manager)
+      parameters:
+        - $ref: "#/components/parameters/DepartmentId"
+      responses:
+        "204":
+          description: Department removed
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Department still has people
   /maintenance:
     get:
       operationId: listMaintenance
       tags: [maintenance]
       summary: List upcoming maintenance
       parameters:
-        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/MaintenanceLimit"
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/MaintenanceStatus"
+        - $ref: "#/components/parameters/MaintenanceMode"
+        - $ref: "#/components/parameters/MaintenanceScope"
+        - $ref: "#/components/parameters/MaintenanceActivityType"
+        - $ref: "#/components/parameters/MaintenancePriority"
       responses:
         "200":
           description: Maintenance items
@@ -409,6 +522,92 @@ paths:
           description: Maintenance item removed
         "404":
           $ref: "#/components/responses/NotFound"
+  /assets/{assetId}/attachments:
+    get:
+      operationId: listAssetAttachments
+      tags: [attachments]
+      summary: List photos on an asset
+      parameters:
+        - $ref: "#/components/parameters/AssetId"
+      responses:
+        "200":
+          description: Attachments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Attachment"
+    post:
+      operationId: createAssetAttachment
+      tags: [attachments]
+      summary: Upload a photo to an asset
+      parameters:
+        - $ref: "#/components/parameters/AssetId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttachmentInput"
+      responses:
+        "201":
+          description: Created attachment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Attachment"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /maintenance/{maintenanceId}/attachments:
+    get:
+      operationId: listMaintenanceAttachments
+      tags: [attachments]
+      summary: List photos on a maintenance item
+      parameters:
+        - $ref: "#/components/parameters/MaintenanceId"
+      responses:
+        "200":
+          description: Attachments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Attachment"
+    post:
+      operationId: createMaintenanceAttachment
+      tags: [attachments]
+      summary: Upload a photo to a maintenance item
+      parameters:
+        - $ref: "#/components/parameters/MaintenanceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttachmentInput"
+      responses:
+        "201":
+          description: Created attachment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Attachment"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /attachments/{attachmentId}:
+    delete:
+      operationId: deleteAttachment
+      tags: [attachments]
+      summary: Remove a photo
+      parameters:
+        - $ref: "#/components/parameters/AttachmentId"
+      responses:
+        "204":
+          description: Attachment removed
+        "404":
+          $ref: "#/components/responses/NotFound"
   /assets/bulk/status:
     post:
       operationId: bulkUpdateAssetStatus
@@ -429,6 +628,22 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Asset"
+  /assets/bulk/delete:
+    post:
+      operationId: bulkDeleteAssets
+      tags: [assets]
+      summary: Delete several assets (Admin and Manager)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BulkAssetDeleteInput"
+      responses:
+        "204":
+          description: Assets removed
+        "404":
+          $ref: "#/components/responses/NotFound"
   /me:
     get:
       operationId: getCurrentUser
@@ -472,6 +687,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/User"
+  /users/{userId}:
+    delete:
+      operationId: deleteUser
+      tags: [users]
+      summary: Delete a team member (Admin only)
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "204":
+          description: User removed
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Cannot delete the last Admin or yourself
   /users/{userId}/role:
     patch:
       operationId: updateUserRole
@@ -580,6 +809,17 @@ paths:
                 $ref: "#/components/schemas/ComplianceReport"
         "404":
           $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteComplianceReport
+      tags: [reports]
+      summary: Delete a compliance report (Admin only)
+      parameters:
+        - $ref: "#/components/parameters/ReportId"
+      responses:
+        "204":
+          description: Report removed
+        "404":
+          $ref: "#/components/responses/NotFound"
 components:
   parameters:
     AssetId:
@@ -617,6 +857,18 @@ components:
         type: string
     PersonId:
       name: personId
+      in: path
+      required: true
+      schema:
+        type: string
+    DepartmentId:
+      name: departmentId
+      in: path
+      required: true
+      schema:
+        type: string
+    AttachmentId:
+      name: attachmentId
       in: path
       required: true
       schema:
@@ -673,6 +925,44 @@ components:
         minimum: 1
         maximum: 50
         default: 5
+    MaintenanceLimit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+    MaintenanceStatus:
+      name: status
+      in: query
+      schema:
+        type: string
+        enum: [pending, scheduled, completed, overdue]
+    MaintenanceMode:
+      name: mode
+      in: query
+      schema:
+        type: string
+        enum: [scheduled, emergency]
+    MaintenanceScope:
+      name: scope
+      in: query
+      schema:
+        type: string
+        enum: [asset, estate]
+    MaintenanceActivityType:
+      name: activityType
+      in: query
+      schema:
+        type: string
+        enum: [os_patch, application_patch, lan, firewall, other]
+    MaintenancePriority:
+      name: priority
+      in: query
+      schema:
+        type: string
+        enum: [high, normal, low]
   responses:
     NotFound:
       description: Resource not found
@@ -878,6 +1168,29 @@ components:
         assetCount:
           type: integer
       required: [id, name, city, assetCount]
+    Department:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        personCount:
+          type: integer
+      required: [id, name, personCount]
+    DepartmentInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+      required: [name]
+    DepartmentUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
     Person:
       type: object
       properties:
@@ -885,31 +1198,33 @@ components:
           type: string
         name:
           type: string
+        departmentId:
+          type: string
         department:
           type: string
         email:
           type: string
-      required: [id, name, department, email]
+      required: [id, name, departmentId, department, email]
     PersonInput:
       type: object
       properties:
         name:
           type: string
           minLength: 1
-        department:
+        departmentId:
           type: string
           minLength: 1
         email:
           type: string
           format: email
-      required: [name, department, email]
+      required: [name, departmentId, email]
     PersonUpdate:
       type: object
       properties:
         name:
           type: string
           minLength: 1
-        department:
+        departmentId:
           type: string
           minLength: 1
         email:
@@ -963,6 +1278,9 @@ components:
           anyOf:
             - $ref: "#/components/schemas/Person"
             - type: "null"
+        assignedAt:
+          type: ["string", "null"]
+          format: date-time
         warrantyEnd:
           type: ["string", "null"]
           format: date
@@ -986,6 +1304,7 @@ components:
         - condition
         - location
         - assignee
+        - assignedAt
         - warrantyEnd
         - purchaseDate
         - purchaseCost
@@ -997,6 +1316,8 @@ components:
           properties:
             notes:
               type: string
+            description:
+              type: string
             specifications:
               type: object
               additionalProperties:
@@ -1005,7 +1326,7 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/HistoryEvent"
-          required: [notes, specifications, history]
+          required: [notes, description, specifications, history]
     AssetInput:
       type: object
       properties:
@@ -1048,6 +1369,9 @@ components:
         notes:
           type: string
           default: ""
+        description:
+          type: string
+          default: ""
       required: [assetTag, name, category, manufacturer, model, serialNumber, locationId]
     AssetUpdate:
       type: object
@@ -1077,6 +1401,8 @@ components:
         purchaseCost:
           type: ["number", "null"]
         notes:
+          type: string
+        description:
           type: string
     AssetAssignmentInput:
       type: object
@@ -1148,8 +1474,21 @@ components:
       properties:
         id:
           type: string
-        assetTag:
+        title:
           type: string
+        scope:
+          type: string
+          enum: [asset, estate]
+        mode:
+          type: string
+          enum: [scheduled, emergency]
+        activityType:
+          type: string
+          enum: [os_patch, application_patch, lan, firewall, other]
+        assetId:
+          type: ["string", "null"]
+        assetTag:
+          type: ["string", "null"]
         category:
           type: string
         scheduledAt:
@@ -1172,6 +1511,11 @@ components:
           type: ["string", "null"]
       required:
         - id
+        - title
+        - scope
+        - mode
+        - activityType
+        - assetId
         - assetTag
         - category
         - scheduledAt
@@ -1184,8 +1528,23 @@ components:
     MaintenanceInput:
       type: object
       properties:
-        assetId:
+        title:
           type: string
+          minLength: 1
+        assetId:
+          type: ["string", "null"]
+        scope:
+          type: string
+          enum: [asset, estate]
+          default: asset
+        mode:
+          type: string
+          enum: [scheduled, emergency]
+          default: scheduled
+        activityType:
+          type: string
+          enum: [os_patch, application_patch, lan, firewall, other]
+          default: other
         scheduledAt:
           type: string
           format: date-time
@@ -1203,10 +1562,24 @@ components:
         resolutionNotes:
           type: string
           default: ""
-      required: [assetId, scheduledAt, technician]
+      required: [title, scheduledAt, technician]
     MaintenanceUpdate:
       type: object
       properties:
+        title:
+          type: string
+          minLength: 1
+        assetId:
+          type: ["string", "null"]
+        scope:
+          type: string
+          enum: [asset, estate]
+        mode:
+          type: string
+          enum: [scheduled, emergency]
+        activityType:
+          type: string
+          enum: [os_patch, application_patch, lan, firewall, other]
         scheduledAt:
           type: string
           format: date-time
@@ -1221,6 +1594,48 @@ components:
           enum: [pending, scheduled, completed, overdue]
         resolutionNotes:
           type: string
+    Attachment:
+      type: object
+      properties:
+        id:
+          type: string
+        entityType:
+          type: string
+          enum: [asset, maintenance]
+        entityId:
+          type: string
+        fileName:
+          type: string
+        contentType:
+          type: string
+        url:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, entityType, entityId, fileName, contentType, url, createdAt]
+    AttachmentInput:
+      type: object
+      properties:
+        fileName:
+          type: string
+          minLength: 1
+        contentType:
+          type: string
+          minLength: 1
+        contentBase64:
+          type: string
+          minLength: 1
+      required: [fileName, contentType, contentBase64]
+    BulkAssetDeleteInput:
+      type: object
+      properties:
+        assetIds:
+          type: array
+          minItems: 1
+          items:
+            type: string
+      required: [assetIds]
     BulkAssetStatusInput:
       type: object
       properties:

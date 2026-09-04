@@ -28,12 +28,18 @@ import type {
   AssetListResponse,
   AssetStatusInput,
   AssetUpdate,
+  Attachment,
+  AttachmentInput,
+  BulkAssetDeleteInput,
   BulkAssetStatusInput,
   ComplianceReport,
   ComplianceReportInput,
   ComplianceReportUpdate,
   CurrentUser,
   DashboardSummary,
+  Department,
+  DepartmentInput,
+  DepartmentUpdate,
   GetAuditLogsParams,
   GetDashboardActivityParams,
   GetDashboardMaintenanceParams,
@@ -710,6 +716,77 @@ export const useUpdateAsset = <TError = ErrorType<NotFoundResponse>,
       return useMutation(getUpdateAssetMutationOptions(options));
     }
 
+export const getDeleteAssetUrl = (assetId: string,) => {
+
+
+
+
+  return `/api/assets/${assetId}`
+}
+
+/**
+ * @summary Delete an asset (Admin and Manager)
+ */
+export const deleteAsset = async (assetId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteAssetUrl(assetId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteAssetMutationOptions = <TError = ErrorType<NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAsset>>, TError,{assetId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteAsset>>, TError,{assetId: string}, TContext> => {
+
+const mutationKey = ['deleteAsset'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAsset>>, {assetId: string}> = (props) => {
+          const {assetId} = props ?? {};
+
+          return  deleteAsset(assetId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteAssetMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAsset>>>
+
+    export type DeleteAssetMutationError = ErrorType<NotFoundResponse>
+
+    /**
+ * @summary Delete an asset (Admin and Manager)
+ */
+export const useDeleteAsset = <TError = ErrorType<NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAsset>>, TError,{assetId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteAsset>>,
+        TError,
+        {assetId: string},
+        TContext
+      > => {
+      return useMutation(getDeleteAssetMutationOptions(options));
+    }
+
 export const getAssignAssetUrl = (assetId: string,) => {
 
 
@@ -1222,6 +1299,77 @@ export const useUpdateLocation = <TError = ErrorType<NotFoundResponse>,
       return useMutation(getUpdateLocationMutationOptions(options));
     }
 
+export const getDeleteLocationUrl = (locationId: string,) => {
+
+
+
+
+  return `/api/locations/${locationId}`
+}
+
+/**
+ * @summary Delete a location (Admin and Manager)
+ */
+export const deleteLocation = async (locationId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteLocationUrl(locationId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteLocationMutationOptions = <TError = ErrorType<NotFoundResponse | void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLocation>>, TError,{locationId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteLocation>>, TError,{locationId: string}, TContext> => {
+
+const mutationKey = ['deleteLocation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteLocation>>, {locationId: string}> = (props) => {
+          const {locationId} = props ?? {};
+
+          return  deleteLocation(locationId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteLocationMutationResult = NonNullable<Awaited<ReturnType<typeof deleteLocation>>>
+
+    export type DeleteLocationMutationError = ErrorType<NotFoundResponse | void>
+
+    /**
+ * @summary Delete a location (Admin and Manager)
+ */
+export const useDeleteLocation = <TError = ErrorType<NotFoundResponse | void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLocation>>, TError,{locationId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteLocation>>,
+        TError,
+        {locationId: string},
+        TContext
+      > => {
+      return useMutation(getDeleteLocationMutationOptions(options));
+    }
+
 export const getListPeopleUrl = () => {
 
 
@@ -1440,6 +1588,368 @@ export const useUpdatePerson = <TError = ErrorType<NotFoundResponse>,
         TContext
       > => {
       return useMutation(getUpdatePersonMutationOptions(options));
+    }
+
+export const getDeletePersonUrl = (personId: string,) => {
+
+
+
+
+  return `/api/people/${personId}`
+}
+
+/**
+ * @summary Delete a person (Admin and Manager)
+ */
+export const deletePerson = async (personId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeletePersonUrl(personId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeletePersonMutationOptions = <TError = ErrorType<NotFoundResponse | void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePerson>>, TError,{personId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deletePerson>>, TError,{personId: string}, TContext> => {
+
+const mutationKey = ['deletePerson'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deletePerson>>, {personId: string}> = (props) => {
+          const {personId} = props ?? {};
+
+          return  deletePerson(personId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeletePersonMutationResult = NonNullable<Awaited<ReturnType<typeof deletePerson>>>
+
+    export type DeletePersonMutationError = ErrorType<NotFoundResponse | void>
+
+    /**
+ * @summary Delete a person (Admin and Manager)
+ */
+export const useDeletePerson = <TError = ErrorType<NotFoundResponse | void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePerson>>, TError,{personId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deletePerson>>,
+        TError,
+        {personId: string},
+        TContext
+      > => {
+      return useMutation(getDeletePersonMutationOptions(options));
+    }
+
+export const getListDepartmentsUrl = () => {
+
+
+
+
+  return `/api/departments`
+}
+
+/**
+ * @summary List departments
+ */
+export const listDepartments = async ( options?: Parameters<typeof customFetch>[1]): Promise<Department[]> => {
+
+  return customFetch<Department[]>(getListDepartmentsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListDepartmentsQueryKey = () => {
+    return [
+    `/api/departments`
+    ] as const;
+    }
+
+
+export const getListDepartmentsQueryOptions = <TData = Awaited<ReturnType<typeof listDepartments>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDepartments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListDepartmentsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listDepartments>>> = ({ signal }) => listDepartments({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listDepartments>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListDepartmentsQueryResult = NonNullable<Awaited<ReturnType<typeof listDepartments>>>
+export type ListDepartmentsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List departments
+ */
+
+export function useListDepartments<TData = Awaited<ReturnType<typeof listDepartments>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDepartments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListDepartmentsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateDepartmentUrl = () => {
+
+
+
+
+  return `/api/departments`
+}
+
+/**
+ * @summary Create a department
+ */
+export const createDepartment = async (departmentInput: DepartmentInput, options?: Parameters<typeof customFetch>[1]): Promise<Department> => {
+
+  return customFetch<Department>(getCreateDepartmentUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(departmentInput)
+  }
+);}
+
+
+
+
+
+export const getCreateDepartmentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDepartment>>, TError,{data: BodyType<DepartmentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createDepartment>>, TError,{data: BodyType<DepartmentInput>}, TContext> => {
+
+const mutationKey = ['createDepartment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createDepartment>>, {data: BodyType<DepartmentInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createDepartment(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateDepartmentMutationResult = NonNullable<Awaited<ReturnType<typeof createDepartment>>>
+    export type CreateDepartmentMutationBody = BodyType<DepartmentInput>
+    export type CreateDepartmentMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a department
+ */
+export const useCreateDepartment = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createDepartment>>, TError,{data: BodyType<DepartmentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createDepartment>>,
+        TError,
+        {data: BodyType<DepartmentInput>},
+        TContext
+      > => {
+      return useMutation(getCreateDepartmentMutationOptions(options));
+    }
+
+export const getUpdateDepartmentUrl = (departmentId: string,) => {
+
+
+
+
+  return `/api/departments/${departmentId}`
+}
+
+/**
+ * @summary Update a department
+ */
+export const updateDepartment = async (departmentId: string,
+    departmentUpdate: DepartmentUpdate, options?: Parameters<typeof customFetch>[1]): Promise<Department> => {
+
+  return customFetch<Department>(getUpdateDepartmentUrl(departmentId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(departmentUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateDepartmentMutationOptions = <TError = ErrorType<NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDepartment>>, TError,{departmentId: string;data: BodyType<DepartmentUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateDepartment>>, TError,{departmentId: string;data: BodyType<DepartmentUpdate>}, TContext> => {
+
+const mutationKey = ['updateDepartment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateDepartment>>, {departmentId: string;data: BodyType<DepartmentUpdate>}> = (props) => {
+          const {departmentId,data} = props ?? {};
+
+          return  updateDepartment(departmentId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateDepartmentMutationResult = NonNullable<Awaited<ReturnType<typeof updateDepartment>>>
+    export type UpdateDepartmentMutationBody = BodyType<DepartmentUpdate>
+    export type UpdateDepartmentMutationError = ErrorType<NotFoundResponse>
+
+    /**
+ * @summary Update a department
+ */
+export const useUpdateDepartment = <TError = ErrorType<NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDepartment>>, TError,{departmentId: string;data: BodyType<DepartmentUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateDepartment>>,
+        TError,
+        {departmentId: string;data: BodyType<DepartmentUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateDepartmentMutationOptions(options));
+    }
+
+export const getDeleteDepartmentUrl = (departmentId: string,) => {
+
+
+
+
+  return `/api/departments/${departmentId}`
+}
+
+/**
+ * @summary Delete a department (Admin and Manager)
+ */
+export const deleteDepartment = async (departmentId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteDepartmentUrl(departmentId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteDepartmentMutationOptions = <TError = ErrorType<NotFoundResponse | void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteDepartment>>, TError,{departmentId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteDepartment>>, TError,{departmentId: string}, TContext> => {
+
+const mutationKey = ['deleteDepartment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteDepartment>>, {departmentId: string}> = (props) => {
+          const {departmentId} = props ?? {};
+
+          return  deleteDepartment(departmentId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteDepartmentMutationResult = NonNullable<Awaited<ReturnType<typeof deleteDepartment>>>
+
+    export type DeleteDepartmentMutationError = ErrorType<NotFoundResponse | void>
+
+    /**
+ * @summary Delete a department (Admin and Manager)
+ */
+export const useDeleteDepartment = <TError = ErrorType<NotFoundResponse | void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteDepartment>>, TError,{departmentId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteDepartment>>,
+        TError,
+        {departmentId: string},
+        TContext
+      > => {
+      return useMutation(getDeleteDepartmentMutationOptions(options));
     }
 
 export const getListMaintenanceUrl = (params?: ListMaintenanceParams,) => {
@@ -1740,6 +2250,375 @@ export const useDeleteMaintenance = <TError = ErrorType<NotFoundResponse>,
       return useMutation(getDeleteMaintenanceMutationOptions(options));
     }
 
+export const getListAssetAttachmentsUrl = (assetId: string,) => {
+
+
+
+
+  return `/api/assets/${assetId}/attachments`
+}
+
+/**
+ * @summary List photos on an asset
+ */
+export const listAssetAttachments = async (assetId: string, options?: Parameters<typeof customFetch>[1]): Promise<Attachment[]> => {
+
+  return customFetch<Attachment[]>(getListAssetAttachmentsUrl(assetId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAssetAttachmentsQueryKey = (assetId: string,) => {
+    return [
+    `/api/assets/${assetId}/attachments`
+    ] as const;
+    }
+
+
+export const getListAssetAttachmentsQueryOptions = <TData = Awaited<ReturnType<typeof listAssetAttachments>>, TError = ErrorType<unknown>>(assetId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAssetAttachments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAssetAttachmentsQueryKey(assetId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAssetAttachments>>> = ({ signal }) => listAssetAttachments(assetId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: assetId !== null && assetId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAssetAttachments>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAssetAttachmentsQueryResult = NonNullable<Awaited<ReturnType<typeof listAssetAttachments>>>
+export type ListAssetAttachmentsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List photos on an asset
+ */
+
+export function useListAssetAttachments<TData = Awaited<ReturnType<typeof listAssetAttachments>>, TError = ErrorType<unknown>>(
+ assetId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAssetAttachments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAssetAttachmentsQueryOptions(assetId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateAssetAttachmentUrl = (assetId: string,) => {
+
+
+
+
+  return `/api/assets/${assetId}/attachments`
+}
+
+/**
+ * @summary Upload a photo to an asset
+ */
+export const createAssetAttachment = async (assetId: string,
+    attachmentInput: AttachmentInput, options?: Parameters<typeof customFetch>[1]): Promise<Attachment> => {
+
+  return customFetch<Attachment>(getCreateAssetAttachmentUrl(assetId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(attachmentInput)
+  }
+);}
+
+
+
+
+
+export const getCreateAssetAttachmentMutationOptions = <TError = ErrorType<NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAssetAttachment>>, TError,{assetId: string;data: BodyType<AttachmentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAssetAttachment>>, TError,{assetId: string;data: BodyType<AttachmentInput>}, TContext> => {
+
+const mutationKey = ['createAssetAttachment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAssetAttachment>>, {assetId: string;data: BodyType<AttachmentInput>}> = (props) => {
+          const {assetId,data} = props ?? {};
+
+          return  createAssetAttachment(assetId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAssetAttachmentMutationResult = NonNullable<Awaited<ReturnType<typeof createAssetAttachment>>>
+    export type CreateAssetAttachmentMutationBody = BodyType<AttachmentInput>
+    export type CreateAssetAttachmentMutationError = ErrorType<NotFoundResponse>
+
+    /**
+ * @summary Upload a photo to an asset
+ */
+export const useCreateAssetAttachment = <TError = ErrorType<NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAssetAttachment>>, TError,{assetId: string;data: BodyType<AttachmentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAssetAttachment>>,
+        TError,
+        {assetId: string;data: BodyType<AttachmentInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAssetAttachmentMutationOptions(options));
+    }
+
+export const getListMaintenanceAttachmentsUrl = (maintenanceId: string,) => {
+
+
+
+
+  return `/api/maintenance/${maintenanceId}/attachments`
+}
+
+/**
+ * @summary List photos on a maintenance item
+ */
+export const listMaintenanceAttachments = async (maintenanceId: string, options?: Parameters<typeof customFetch>[1]): Promise<Attachment[]> => {
+
+  return customFetch<Attachment[]>(getListMaintenanceAttachmentsUrl(maintenanceId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListMaintenanceAttachmentsQueryKey = (maintenanceId: string,) => {
+    return [
+    `/api/maintenance/${maintenanceId}/attachments`
+    ] as const;
+    }
+
+
+export const getListMaintenanceAttachmentsQueryOptions = <TData = Awaited<ReturnType<typeof listMaintenanceAttachments>>, TError = ErrorType<unknown>>(maintenanceId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMaintenanceAttachments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListMaintenanceAttachmentsQueryKey(maintenanceId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMaintenanceAttachments>>> = ({ signal }) => listMaintenanceAttachments(maintenanceId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: maintenanceId !== null && maintenanceId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listMaintenanceAttachments>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListMaintenanceAttachmentsQueryResult = NonNullable<Awaited<ReturnType<typeof listMaintenanceAttachments>>>
+export type ListMaintenanceAttachmentsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List photos on a maintenance item
+ */
+
+export function useListMaintenanceAttachments<TData = Awaited<ReturnType<typeof listMaintenanceAttachments>>, TError = ErrorType<unknown>>(
+ maintenanceId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMaintenanceAttachments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListMaintenanceAttachmentsQueryOptions(maintenanceId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateMaintenanceAttachmentUrl = (maintenanceId: string,) => {
+
+
+
+
+  return `/api/maintenance/${maintenanceId}/attachments`
+}
+
+/**
+ * @summary Upload a photo to a maintenance item
+ */
+export const createMaintenanceAttachment = async (maintenanceId: string,
+    attachmentInput: AttachmentInput, options?: Parameters<typeof customFetch>[1]): Promise<Attachment> => {
+
+  return customFetch<Attachment>(getCreateMaintenanceAttachmentUrl(maintenanceId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(attachmentInput)
+  }
+);}
+
+
+
+
+
+export const getCreateMaintenanceAttachmentMutationOptions = <TError = ErrorType<NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMaintenanceAttachment>>, TError,{maintenanceId: string;data: BodyType<AttachmentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createMaintenanceAttachment>>, TError,{maintenanceId: string;data: BodyType<AttachmentInput>}, TContext> => {
+
+const mutationKey = ['createMaintenanceAttachment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createMaintenanceAttachment>>, {maintenanceId: string;data: BodyType<AttachmentInput>}> = (props) => {
+          const {maintenanceId,data} = props ?? {};
+
+          return  createMaintenanceAttachment(maintenanceId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateMaintenanceAttachmentMutationResult = NonNullable<Awaited<ReturnType<typeof createMaintenanceAttachment>>>
+    export type CreateMaintenanceAttachmentMutationBody = BodyType<AttachmentInput>
+    export type CreateMaintenanceAttachmentMutationError = ErrorType<NotFoundResponse>
+
+    /**
+ * @summary Upload a photo to a maintenance item
+ */
+export const useCreateMaintenanceAttachment = <TError = ErrorType<NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMaintenanceAttachment>>, TError,{maintenanceId: string;data: BodyType<AttachmentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createMaintenanceAttachment>>,
+        TError,
+        {maintenanceId: string;data: BodyType<AttachmentInput>},
+        TContext
+      > => {
+      return useMutation(getCreateMaintenanceAttachmentMutationOptions(options));
+    }
+
+export const getDeleteAttachmentUrl = (attachmentId: string,) => {
+
+
+
+
+  return `/api/attachments/${attachmentId}`
+}
+
+/**
+ * @summary Remove a photo
+ */
+export const deleteAttachment = async (attachmentId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteAttachmentUrl(attachmentId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteAttachmentMutationOptions = <TError = ErrorType<NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAttachment>>, TError,{attachmentId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteAttachment>>, TError,{attachmentId: string}, TContext> => {
+
+const mutationKey = ['deleteAttachment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAttachment>>, {attachmentId: string}> = (props) => {
+          const {attachmentId} = props ?? {};
+
+          return  deleteAttachment(attachmentId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteAttachmentMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAttachment>>>
+
+    export type DeleteAttachmentMutationError = ErrorType<NotFoundResponse>
+
+    /**
+ * @summary Remove a photo
+ */
+export const useDeleteAttachment = <TError = ErrorType<NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAttachment>>, TError,{attachmentId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteAttachment>>,
+        TError,
+        {attachmentId: string},
+        TContext
+      > => {
+      return useMutation(getDeleteAttachmentMutationOptions(options));
+    }
+
 export const getBulkUpdateAssetStatusUrl = () => {
 
 
@@ -1809,6 +2688,77 @@ export const useBulkUpdateAssetStatus = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getBulkUpdateAssetStatusMutationOptions(options));
+    }
+
+export const getBulkDeleteAssetsUrl = () => {
+
+
+
+
+  return `/api/assets/bulk/delete`
+}
+
+/**
+ * @summary Delete several assets (Admin and Manager)
+ */
+export const bulkDeleteAssets = async (bulkAssetDeleteInput: BulkAssetDeleteInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getBulkDeleteAssetsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(bulkAssetDeleteInput)
+  }
+);}
+
+
+
+
+
+export const getBulkDeleteAssetsMutationOptions = <TError = ErrorType<NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkDeleteAssets>>, TError,{data: BodyType<BulkAssetDeleteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof bulkDeleteAssets>>, TError,{data: BodyType<BulkAssetDeleteInput>}, TContext> => {
+
+const mutationKey = ['bulkDeleteAssets'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bulkDeleteAssets>>, {data: BodyType<BulkAssetDeleteInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  bulkDeleteAssets(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BulkDeleteAssetsMutationResult = NonNullable<Awaited<ReturnType<typeof bulkDeleteAssets>>>
+    export type BulkDeleteAssetsMutationBody = BodyType<BulkAssetDeleteInput>
+    export type BulkDeleteAssetsMutationError = ErrorType<NotFoundResponse>
+
+    /**
+ * @summary Delete several assets (Admin and Manager)
+ */
+export const useBulkDeleteAssets = <TError = ErrorType<NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkDeleteAssets>>, TError,{data: BodyType<BulkAssetDeleteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof bulkDeleteAssets>>,
+        TError,
+        {data: BodyType<BulkAssetDeleteInput>},
+        TContext
+      > => {
+      return useMutation(getBulkDeleteAssetsMutationOptions(options));
     }
 
 export const getGetCurrentUserUrl = () => {
@@ -2034,6 +2984,77 @@ export const useCreateUser = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreateUserMutationOptions(options));
+    }
+
+export const getDeleteUserUrl = (userId: string,) => {
+
+
+
+
+  return `/api/users/${userId}`
+}
+
+/**
+ * @summary Delete a team member (Admin only)
+ */
+export const deleteUser = async (userId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteUserUrl(userId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteUserMutationOptions = <TError = ErrorType<NotFoundResponse | void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteUser>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteUser>>, TError,{userId: string}, TContext> => {
+
+const mutationKey = ['deleteUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteUser>>, {userId: string}> = (props) => {
+          const {userId} = props ?? {};
+
+          return  deleteUser(userId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteUserMutationResult = NonNullable<Awaited<ReturnType<typeof deleteUser>>>
+
+    export type DeleteUserMutationError = ErrorType<NotFoundResponse | void>
+
+    /**
+ * @summary Delete a team member (Admin only)
+ */
+export const useDeleteUser = <TError = ErrorType<NotFoundResponse | void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteUser>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteUser>>,
+        TError,
+        {userId: string},
+        TContext
+      > => {
+      return useMutation(getDeleteUserMutationOptions(options));
     }
 
 export const getUpdateUserRoleUrl = (userId: string,) => {
@@ -2487,5 +3508,76 @@ export const useUpdateComplianceReport = <TError = ErrorType<NotFoundResponse>,
         TContext
       > => {
       return useMutation(getUpdateComplianceReportMutationOptions(options));
+    }
+
+export const getDeleteComplianceReportUrl = (reportId: string,) => {
+
+
+
+
+  return `/api/reports/${reportId}`
+}
+
+/**
+ * @summary Delete a compliance report (Admin only)
+ */
+export const deleteComplianceReport = async (reportId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteComplianceReportUrl(reportId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteComplianceReportMutationOptions = <TError = ErrorType<NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteComplianceReport>>, TError,{reportId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteComplianceReport>>, TError,{reportId: string}, TContext> => {
+
+const mutationKey = ['deleteComplianceReport'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteComplianceReport>>, {reportId: string}> = (props) => {
+          const {reportId} = props ?? {};
+
+          return  deleteComplianceReport(reportId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteComplianceReportMutationResult = NonNullable<Awaited<ReturnType<typeof deleteComplianceReport>>>
+
+    export type DeleteComplianceReportMutationError = ErrorType<NotFoundResponse>
+
+    /**
+ * @summary Delete a compliance report (Admin only)
+ */
+export const useDeleteComplianceReport = <TError = ErrorType<NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteComplianceReport>>, TError,{reportId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteComplianceReport>>,
+        TError,
+        {reportId: string},
+        TContext
+      > => {
+      return useMutation(getDeleteComplianceReportMutationOptions(options));
     }
 

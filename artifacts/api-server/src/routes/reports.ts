@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { asc, desc, eq } from "drizzle-orm";
 import {
   CreateComplianceReportBody,
+  DeleteComplianceReportParams,
   GetComplianceReportParams,
   UpdateComplianceReportBody,
   UpdateComplianceReportParams,
@@ -173,6 +174,22 @@ router.patch("/reports/:reportId", requireRoles("admin", "auditor"), async (req,
     });
   }
   res.json(toReport(updated[0]));
+});
+
+router.delete("/reports/:reportId", requireRoles("admin"), async (req, res) => {
+  await seedReady;
+  const { reportId } = DeleteComplianceReportParams.parse(req.params);
+  const rows = await db
+    .select({ id: complianceReportsTable.id })
+    .from(complianceReportsTable)
+    .where(eq(complianceReportsTable.id, reportId))
+    .limit(1);
+  if (rows.length === 0) {
+    res.status(404).json({ error: "Report not found" });
+    return;
+  }
+  await db.delete(complianceReportsTable).where(eq(complianceReportsTable.id, reportId));
+  res.status(204).send();
 });
 
 export default router;

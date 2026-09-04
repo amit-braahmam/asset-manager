@@ -2,6 +2,7 @@ import { Router, type IRouter, type Request } from "express";
 import { asc, eq, ne, and } from "drizzle-orm";
 import {
   CreateUserBody,
+  DeleteUserParams,
   UpdateUserRoleBody,
   UpdateUserRoleParams,
   type User as ApiUser,
@@ -14,6 +15,7 @@ import {
   PENDING_USER_PREFIX,
   canOnboardRole,
   isLastAdminDemotion,
+  isLastAdminDeletion,
 } from "../lib/auth";
 import { notify } from "../lib/notify";
 
@@ -127,6 +129,29 @@ router.patch("/users/:userId/role", requireRoles("admin"), async (req, res) => {
     .where(eq(usersTable.id, userId))
     .limit(1);
   res.json(toUser(updated[0]));
+});
+
+router.delete("/users/:userId", requireRoles("admin"), async (req, res) => {
+  const { userId } = DeleteUserParams.parse(req.params);
+  if (req.appUser!.id === userId) {
+    res.status(409).json({ error: "You cannot delete your own account while signed in." });
+    return;
+  }
+  const existing = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+  if (existing.length === 0) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+  const otherAdmins = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .where(and(eq(usersTable.role, "admin"), ne(usersTable.id, userId)));
+  if (isLastAdminDeletion(existing[0].role as UserRole, otherAdmins.length)) {
+    res.status(409).json({ error: "At least one Admin must remain." });
+    return;
+  }
+  await db.delete(usersTable).where(eq(usersTable.id, userId));
+  res.status(204).send();
 });
 
 export default router;

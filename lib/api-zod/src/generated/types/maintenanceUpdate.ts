@@ -5,10 +5,20 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { MaintenanceUpdateActivityType } from './maintenanceUpdateActivityType';
+import type { MaintenanceUpdateMode } from './maintenanceUpdateMode';
 import type { MaintenanceUpdatePriority } from './maintenanceUpdatePriority';
+import type { MaintenanceUpdateScope } from './maintenanceUpdateScope';
 import type { MaintenanceUpdateStatus } from './maintenanceUpdateStatus';
 
 export interface MaintenanceUpdate {
+  /** @minLength 1 */
+  title?: string;
+  /** @nullable */
+  assetId?: string | null;
+  scope?: MaintenanceUpdateScope;
+  mode?: MaintenanceUpdateMode;
+  activityType?: MaintenanceUpdateActivityType;
   scheduledAt?: Date;
   /** @minLength 1 */
   technician?: string;

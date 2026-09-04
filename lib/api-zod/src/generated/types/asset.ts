@@ -23,6 +23,8 @@ export interface Asset {
   location: Location;
   assignee: Person | null;
   /** @nullable */
+  assignedAt: Date | null;
+  /** @nullable */
   warrantyEnd: Date | null;
   /** @nullable */
   purchaseDate: Date | null;

@@ -2,6 +2,7 @@ import {
   db,
   assetHistoryTable,
   assetsTable,
+  departmentsTable,
   locationsTable,
   maintenanceTable,
   peopleTable,
@@ -14,11 +15,18 @@ const seedLocations = [
   { id: "loc-stock", name: "Central Stockroom", city: "Bengaluru" },
 ];
 
+const seedDepartments = [
+  { id: "dpt-ops", name: "Operations" },
+  { id: "dpt-fin", name: "Finance" },
+  { id: "dpt-eng", name: "Engineering" },
+  { id: "dpt-sales", name: "Sales" },
+];
+
 const seedPeople = [
-  { id: "person-sarah", name: "Sarah Johnson", department: "Operations", email: "sarah.johnson@example.com" },
-  { id: "person-daniel", name: "Daniel Smith", department: "Finance", email: "daniel.smith@example.com" },
-  { id: "person-priya", name: "Priya Nair", department: "Engineering", email: "priya.nair@example.com" },
-  { id: "person-marcus", name: "Marcus Lee", department: "Sales", email: "marcus.lee@example.com" },
+  { id: "person-sarah", name: "Sarah Johnson", departmentId: "dpt-ops", email: "sarah.johnson@example.com" },
+  { id: "person-daniel", name: "Daniel Smith", departmentId: "dpt-fin", email: "daniel.smith@example.com" },
+  { id: "person-priya", name: "Priya Nair", departmentId: "dpt-eng", email: "priya.nair@example.com" },
+  { id: "person-marcus", name: "Marcus Lee", departmentId: "dpt-sales", email: "marcus.lee@example.com" },
 ];
 
 type SeedAsset = [
@@ -62,6 +70,7 @@ async function seedDatabase() {
   if (existing.length > 0) return;
 
   await db.insert(locationsTable).values(seedLocations).onConflictDoNothing();
+  await db.insert(departmentsTable).values(seedDepartments).onConflictDoNothing();
   await db.insert(peopleTable).values(seedPeople).onConflictDoNothing();
 
   const now = new Date();
@@ -77,9 +86,11 @@ async function seedDatabase() {
     condition: asset[7],
     locationId: asset[8],
     assigneeId: asset[9],
+    assignedAt: asset[9] ? now : null,
     warrantyEnd: "2026-12-31",
     purchaseDate: "2024-01-15",
     purchaseCost: index % 3 === 0 ? "1899.00" : "849.00",
+    description: "",
     notes: "",
     specifications: (asset[2] === "Laptop"
       ? { CPU: "Apple M2 / Intel i7", RAM: "16 GB", Storage: "512 GB SSD" }
@@ -90,10 +101,11 @@ async function seedDatabase() {
   await db.insert(assetsTable).values(seededAssets).onConflictDoNothing();
 
   await db.insert(maintenanceTable).values([
-    { id: "maint-001", assetId: "asset-010", scheduledAt: new Date("2026-09-04T02:00:00Z"), technician: "J. Doe · Tier 3", priority: "high", status: "pending" },
-    { id: "maint-002", assetId: "asset-013", scheduledAt: new Date("2026-09-06T14:00:00Z"), technician: "External Vendor", priority: "normal", status: "scheduled" },
-    { id: "maint-003", assetId: "asset-004", scheduledAt: new Date("2026-09-08T09:00:00Z"), technician: "IT Support Desk", priority: "normal", status: "scheduled" },
-    { id: "maint-004", assetId: "asset-018", scheduledAt: new Date("2026-09-10T11:30:00Z"), technician: "Network Team", priority: "low", status: "scheduled" },
+    { id: "maint-001", assetId: "asset-010", title: "Cooling inspection", scope: "asset", mode: "emergency", activityType: "other", scheduledAt: new Date("2026-09-04T02:00:00Z"), technician: "J. Doe · Tier 3", priority: "high", status: "pending" },
+    { id: "maint-002", assetId: "asset-013", title: "Printer service", scope: "asset", mode: "scheduled", activityType: "other", scheduledAt: new Date("2026-09-06T14:00:00Z"), technician: "External Vendor", priority: "normal", status: "scheduled" },
+    { id: "maint-003", assetId: "asset-004", title: "Laptop diagnostics", scope: "asset", mode: "scheduled", activityType: "other", scheduledAt: new Date("2026-09-08T09:00:00Z"), technician: "IT Support Desk", priority: "normal", status: "scheduled" },
+    { id: "maint-004", assetId: "asset-018", title: "Switch firmware check", scope: "asset", mode: "scheduled", activityType: "lan", scheduledAt: new Date("2026-09-10T11:30:00Z"), technician: "Network Team", priority: "low", status: "scheduled" },
+    { id: "maint-005", assetId: null, title: "Monthly OS patch window", scope: "estate", mode: "scheduled", activityType: "os_patch", scheduledAt: new Date("2026-09-12T02:00:00Z"), technician: "IT Support Desk", priority: "normal", status: "scheduled" },
   ]).onConflictDoNothing();
 
   await db.insert(assetHistoryTable).values([

@@ -7,6 +7,7 @@ import {
   canOnboardRole,
   hasRole,
   isLastAdminDemotion,
+  isLastAdminDeletion,
   requireRoles,
   type AppUser,
 } from "./auth-roles";
@@ -81,8 +82,12 @@ describe("isLastAdminDemotion", () => {
     assert.equal(isLastAdminDemotion("admin", "manager", 1), false);
   });
 
-  it("ignores non-admin users", () => {
-    assert.equal(isLastAdminDemotion("manager", "viewer", 0), false);
+  it("blocks deleting the only Admin", () => {
+    assert.equal(isLastAdminDeletion("admin", 0), true);
+  });
+
+  it("allows deleting an Admin when another remains", () => {
+    assert.equal(isLastAdminDeletion("admin", 1), false);
   });
 });
 
@@ -92,6 +97,7 @@ describe("requireRoles", () => {
     { allowed: ["admin", "manager", "technician"], path: "update asset status" },
     { allowed: ["admin", "auditor"], path: "reports and audit logs" },
     { allowed: ["admin"], path: "change user role" },
+    { allowed: ["admin"], path: "delete team member or compliance report" },
   ];
 
   for (const { allowed, path } of matrix) {

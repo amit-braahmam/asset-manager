@@ -5,12 +5,22 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { MaintenanceItemActivityType } from './maintenanceItemActivityType';
+import type { MaintenanceItemMode } from './maintenanceItemMode';
 import type { MaintenanceItemPriority } from './maintenanceItemPriority';
+import type { MaintenanceItemScope } from './maintenanceItemScope';
 import type { MaintenanceItemStatus } from './maintenanceItemStatus';
 
 export interface MaintenanceItem {
   id: string;
-  assetTag: string;
+  title: string;
+  scope: MaintenanceItemScope;
+  mode: MaintenanceItemMode;
+  activityType: MaintenanceItemActivityType;
+  /** @nullable */
+  assetId: string | null;
+  /** @nullable */
+  assetTag: string | null;
   category: string;
   scheduledAt: Date;
   technician: string;

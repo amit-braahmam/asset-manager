@@ -11,6 +11,7 @@ import type { HistoryEvent } from './historyEvent';
 
 export type AssetDetail = Asset & {
   notes: string;
+  description: string;
   specifications: AssetDetailSpecifications;
   history: HistoryEvent[];
 };

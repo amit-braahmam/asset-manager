@@ -6,10 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface PersonUpdate {
+export interface AttachmentInput {
   /** @minLength 1 */
-  name?: string;
+  fileName: string;
   /** @minLength 1 */
-  departmentId?: string;
-  email?: string;
+  contentType: string;
+  /** @minLength 1 */
+  contentBase64: string;
 }

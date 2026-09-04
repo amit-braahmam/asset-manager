@@ -1,8 +1,8 @@
 import { Link, useLocation } from 'wouter';
-import { type ReactNode } from 'react';
+import { type ChangeEvent, type ReactNode, useEffect, useState } from 'react';
 import { useClerk, useUser } from '@clerk/react';
-import { Bell, Boxes, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, ClipboardList, FileText, Home, Menu, MoreHorizontal, Search, ShieldCheck, UsersRound, Wrench, X, ArrowUpRight, RefreshCw, Pencil, Trash2, Users } from 'lucide-react';
-import type { Asset, MaintenanceItem } from '@workspace/api-client-react';
+import { Bell, Boxes, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, ClipboardList, FileText, Home, ImagePlus, Menu, MoreHorizontal, Search, ShieldCheck, UsersRound, Wrench, X, ArrowUpRight, RefreshCw, Pencil, Trash2, Users } from 'lucide-react';
+import { customFetch, type Asset, type Attachment, type MaintenanceItem } from '@workspace/api-client-react';
 import { useRole, ROLE_LABELS, canViewTeam, canViewReports } from '@/lib/role';
 
 export const statusLabels: Record<string, string> = { available: 'Available', assigned: 'Assigned', in_repair: 'In repair', rma: 'RMA', retired: 'Retired', lost: 'Lost' };
@@ -56,10 +56,10 @@ export function AppShell({ children }: { children: ReactNode }) { return <div cl
 
 export function Card({ children, className = '', ...props }: { children: ReactNode; className?: string; [key: string]: unknown }) { return <section className={`panel ${className}`} {...props}>{children}</section>; }
 
-export function AssetTable({ items, selected, onSelect, compact = false, selectable = true }: { items: Asset[]; selected: string[]; onSelect: (id: string) => void; compact?: boolean; selectable?: boolean }) {
+export function AssetTable({ items, selected, onSelect, compact = false, selectable = true, onDelete }: { items: Asset[]; selected: string[]; onSelect: (id: string) => void; compact?: boolean; selectable?: boolean; onDelete?: (asset: Asset) => void }) {
   const [, setLocation] = useLocation();
   const showSelect = selectable && !compact;
-  return <div className="table-scroll"><table className={`asset-table ${compact ? 'compact' : ''}`}><thead><tr>{showSelect && <th className="check-col"><span className="fake-check" /></th>}<th>Asset</th><th>Category</th><th>Status</th><th>Assigned to</th><th>Location</th><th>Updated</th><th /></tr></thead><tbody>{items.map((asset) => <tr key={asset.id} data-testid={`row-asset-${asset.id}`} onClick={() => setLocation(`/assets/${asset.id}`)}>{showSelect && <td onClick={(e) => e.stopPropagation()}><button className={`fake-check ${selected.includes(asset.id) ? 'checked' : ''}`} aria-label={`Select ${asset.assetTag}`} data-testid={`checkbox-asset-${asset.id}`} onClick={() => onSelect(asset.id)}>{selected.includes(asset.id) ? '✓' : ''}</button></td>}<td><div className="asset-name"><span className="asset-glyph">{asset.category?.slice(0, 1) ?? 'A'}</span><span><b>{asset.name}</b><small className="mono">{asset.assetTag}</small></span></div></td><td>{asset.category}</td><td><StatusPill status={asset.status} /></td><td>{asset.assignee ? <div className="person-cell"><span className="avatar small">{asset.assignee.name.split(' ').map(x => x[0]).join('').slice(0,2)}</span>{asset.assignee.name}</div> : <span className="muted">Unassigned</span>}</td><td>{asset.location?.name ?? '—'}</td><td className="muted">{formatRelative(asset.lastUpdated)}</td><td><button className="row-arrow" aria-label={`Open ${asset.assetTag}`} data-testid={`button-open-${asset.id}`} onClick={(e) => { e.stopPropagation(); setLocation(`/assets/${asset.id}`); }}><ArrowUpRight size={16} /></button></td></tr>)}</tbody></table></div>;
+  return <div className="table-scroll"><table className={`asset-table ${compact ? 'compact' : ''}`}><thead><tr>{showSelect && <th className="check-col"><span className="fake-check" /></th>}<th>Asset</th><th>Category</th><th>Status</th><th>Assigned to</th><th>Department</th><th>Date of allocation</th><th>Warranty</th><th>Location</th><th>Updated</th><th /></tr></thead><tbody>{items.map((asset) => <tr key={asset.id} data-testid={`row-asset-${asset.id}`} onClick={() => setLocation(`/assets/${asset.id}`)}>{showSelect && <td onClick={(e) => e.stopPropagation()}><button className={`fake-check ${selected.includes(asset.id) ? 'checked' : ''}`} aria-label={`Select ${asset.assetTag}`} data-testid={`checkbox-asset-${asset.id}`} onClick={() => onSelect(asset.id)}>{selected.includes(asset.id) ? '✓' : ''}</button></td>}<td><div className="asset-name"><span className="asset-glyph">{asset.category?.slice(0, 1) ?? 'A'}</span><span><b>{asset.name}</b><small className="mono">{asset.assetTag}</small></span></div></td><td>{asset.category}</td><td><StatusPill status={asset.status} /></td><td>{asset.assignee ? <div className="person-cell"><span className="avatar small">{asset.assignee.name.split(' ').map(x => x[0]).join('').slice(0,2)}</span>{asset.assignee.name}</div> : <span className="muted">Unassigned</span>}</td><td>{asset.assignee?.department || '—'}</td><td className="muted">{asset.assignedAt ? formatDate(asset.assignedAt) : '—'}</td><td className={asset.warrantyEnd && new Date(asset.warrantyEnd) < new Date() ? 'warranty-expired' : 'muted'}>{formatDate(asset.warrantyEnd)}</td><td>{asset.location?.name ?? '—'}</td><td className="muted">{formatRelative(asset.lastUpdated)}</td><td><div className="row-actions">{onDelete && <button className="row-arrow danger-action" aria-label={`Delete ${asset.assetTag}`} data-testid={`button-delete-${asset.id}`} onClick={(e) => { e.stopPropagation(); onDelete(asset); }}><Trash2 size={14} /></button>}<button className="row-arrow" aria-label={`Open ${asset.assetTag}`} data-testid={`button-open-${asset.id}`} onClick={(e) => { e.stopPropagation(); setLocation(`/assets/${asset.id}`); }}><ArrowUpRight size={16} /></button></div></td></tr>)}</tbody></table></div>;
 }
 
 export function SearchBox({ value, onChange, placeholder = 'Search assets, tags, serials...' }: { value: string; onChange: (value: string) => void; placeholder?: string }) { return <label className="search-box"><Search size={17} /><input data-testid="input-search" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} /><kbd>⌘ K</kbd></label>; }
@@ -77,4 +77,104 @@ export function formatDate(value?: string | null) { if (!value) return 'Not set'
 export function formatMoney(value?: number | null) { return value == null ? '—' : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value); }
 
 export function ActivityList({ events }: { events: { id: string; type: string; message: string; actor: string; createdAt: string; assetTag: string | null }[] }) { return <div className="activity-list">{events.map((event) => <div className="activity-item" key={event.id} data-testid={`activity-${event.id}`}><div className={`activity-mark activity-${event.type}`}><ClipboardList size={14} /></div><div><p>{event.message}</p><span>{event.actor} <i /> {formatRelative(event.createdAt)} {event.assetTag && <><i /> <b className="mono">{event.assetTag}</b></>}</span></div></div>)}</div>; }
-export function MaintenanceList({ items, limit, onEdit, onDelete }: { items: MaintenanceItem[]; limit?: number; onEdit?: (item: MaintenanceItem) => void; onDelete?: (item: MaintenanceItem) => void }) { const shown = limit ? items.slice(0, limit) : items; return <div className="maintenance-list">{shown.map((item) => <div className="maintenance-item" key={item.id} data-testid={`maintenance-${item.id}`}><div className="date-block"><b>{new Date(item.scheduledAt).toLocaleDateString('en-US', { day: '2-digit' })}</b><span>{new Date(item.scheduledAt).toLocaleDateString('en-US', { month: 'short' })}</span></div><div className="maintenance-main"><div><b className="mono">{item.assetTag}</b><span className="item-category">{item.category}</span></div><p>{item.technician}</p>{item.resolutionNotes && <p className="maintenance-outcome" data-testid={`maintenance-outcome-${item.id}`}><ClipboardList size={12} /> {item.resolutionNotes}{item.completedBy ? ` — ${item.completedBy}` : ''}</p>}</div><span className={`priority priority-${item.priority}`}>{item.priority}</span><StatusPill status={item.status} />{(onEdit || onDelete) && <div className="maintenance-controls">{onEdit && <button className="row-arrow" aria-label={`Edit ${item.assetTag}`} onClick={() => onEdit(item)}><Pencil size={14} /></button>}{onDelete && <button className="row-arrow danger-action" aria-label={`Delete ${item.assetTag}`} onClick={() => onDelete(item)}><Trash2 size={14} /></button>}</div>}</div>)}</div>; }
+export function MaintenanceList({ items, limit, onEdit, onDelete }: { items: MaintenanceItem[]; limit?: number; onEdit?: (item: MaintenanceItem) => void; onDelete?: (item: MaintenanceItem) => void }) {
+  const shown = limit ? items.slice(0, limit) : items;
+  return <div className="maintenance-list">{shown.map((item) => <div className="maintenance-item" key={item.id} data-testid={`maintenance-${item.id}`}><div className="date-block"><b>{new Date(item.scheduledAt).toLocaleDateString('en-US', { day: '2-digit' })}</b><span>{new Date(item.scheduledAt).toLocaleDateString('en-US', { month: 'short' })}</span></div><div className="maintenance-main"><div><b>{item.title}</b><span className="item-category">{item.scope === 'estate' ? activityTypeLabel(item.activityType) : item.assetTag}<span className="mode-chip">{item.mode === 'emergency' ? 'Emergency' : 'Scheduled'}</span></span></div><p>{item.technician}</p>{item.resolutionNotes && <p className="maintenance-outcome" data-testid={`maintenance-outcome-${item.id}`}><ClipboardList size={12} /> {item.resolutionNotes}{item.completedBy ? ` — ${item.completedBy}` : ''}</p>}</div><span className={`priority priority-${item.priority}`}>{item.priority}</span><StatusPill status={item.status} />{(onEdit || onDelete) && <div className="maintenance-controls">{onEdit && <button className="row-arrow" aria-label={`Edit ${item.title}`} onClick={() => onEdit(item)}><Pencil size={14} /></button>}{onDelete && <button className="row-arrow danger-action" aria-label={`Delete ${item.title}`} onClick={() => onDelete(item)}><Trash2 size={14} /></button>}</div>}</div>)}</div>;
+}
+
+export const ACTIVITY_TYPE_OPTIONS = [
+  { value: 'os_patch', label: 'OS patch' },
+  { value: 'application_patch', label: 'Application patch' },
+  { value: 'lan', label: 'LAN update' },
+  { value: 'firewall', label: 'Firewall update' },
+  { value: 'other', label: 'Other' },
+];
+
+export function activityTypeLabel(value?: string | null) {
+  return ACTIVITY_TYPE_OPTIONS.find((option) => option.value === value)?.label ?? 'Estate activity';
+}
+
+export async function fileToAttachmentPayload(file: File) {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ''));
+    reader.onerror = () => reject(new Error('Could not read this file.'));
+    reader.readAsDataURL(file);
+  });
+  const contentBase64 = dataUrl.includes(',') ? dataUrl.slice(dataUrl.indexOf(',') + 1) : dataUrl;
+  return {
+    fileName: file.name,
+    contentType: file.type || 'image/jpeg',
+    contentBase64,
+  };
+}
+
+const PHOTO_LIMIT = 5;
+const PHOTO_MAX_BYTES = 5 * 1024 * 1024;
+
+export function PhotoPicker({ files, onChange, remaining = PHOTO_LIMIT }: { files: File[]; onChange: (files: File[]) => void; remaining?: number }) {
+  function add(event: ChangeEvent<HTMLInputElement>) {
+    const incoming = Array.from(event.target.files ?? []).filter((file) => file.type.startsWith('image/') && file.size <= PHOTO_MAX_BYTES);
+    event.target.value = '';
+    onChange([...files, ...incoming].slice(0, Math.max(0, remaining)));
+  }
+  if (remaining <= 0 && files.length === 0) return null;
+  return (
+    <div className="photo-picker">
+      <span>Photos <small>JPEG, PNG, WebP, or GIF · up to {PHOTO_LIMIT} · 5 MB each</small></span>
+      {remaining > 0 && <label className="text-button file-button photo-add"><ImagePlus size={14} /> Add photos<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple onChange={add} /></label>}
+      {files.length > 0 && <ul className="photo-pending">{files.map((file, index) => <li key={`${file.name}-${index}`}><b>{file.name}</b><button type="button" className="row-arrow danger-action" aria-label={`Remove ${file.name}`} onClick={() => onChange(files.filter((_, itemIndex) => itemIndex !== index))}><X size={14} /></button></li>)}</ul>}
+    </div>
+  );
+}
+
+export function PhotoGallery({ attachments, onRemove, onAdd, remaining = 0, adding = false }: { attachments: Attachment[]; onRemove?: (attachment: Attachment) => void; onAdd?: (files: File[]) => void; remaining?: number; adding?: boolean }) {
+  const [urls, setUrls] = useState<Record<string, string>>({});
+  const signature = attachments.map((attachment) => `${attachment.id}:${attachment.url}`).join("|");
+  useEffect(() => {
+    let cancelled = false;
+    const created: string[] = [];
+    void (async () => {
+      const next: Record<string, string> = {};
+      for (const attachment of attachments) {
+        if (attachment.url.startsWith("http")) {
+          next[attachment.id] = attachment.url;
+          continue;
+        }
+        try {
+          const blob = await customFetch<Blob>(attachment.url, { method: "GET", responseType: "blob" });
+          const objectUrl = URL.createObjectURL(blob);
+          created.push(objectUrl);
+          next[attachment.id] = objectUrl;
+        } catch {
+          next[attachment.id] = "";
+        }
+      }
+      if (!cancelled) setUrls(next);
+    })();
+    return () => {
+      cancelled = true;
+      created.forEach((url) => URL.revokeObjectURL(url));
+    };
+    // attachments is represented by signature so an inline `[]` from the caller does not retrigger this effect.
+  }, [signature]);
+  function pick(event: ChangeEvent<HTMLInputElement>) {
+    const incoming = Array.from(event.target.files ?? []).filter((file) => file.type.startsWith('image/') && file.size <= PHOTO_MAX_BYTES);
+    event.target.value = '';
+    if (incoming.length) onAdd?.(incoming.slice(0, remaining));
+  }
+  if (!attachments.length && !onAdd) return <p className="muted photo-empty">No photos yet.</p>;
+  return (
+    <div className="photo-gallery">
+      <div className="photo-grid">
+        {attachments.map((attachment) => (
+          <figure key={attachment.id} className="photo-tile">
+            {urls[attachment.id] ? <img src={urls[attachment.id]} alt={attachment.fileName} /> : <span className="photo-fallback">{attachment.fileName}</span>}
+            {onRemove && <button type="button" className="photo-remove" aria-label={`Remove ${attachment.fileName}`} onClick={() => onRemove(attachment)}><Trash2 size={13} /></button>}
+          </figure>
+        ))}
+        {onAdd && remaining > 0 && <label className="photo-tile photo-upload">{adding ? 'Uploading…' : <><ImagePlus size={18} /><span>Add photo</span></>}<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple disabled={adding} onChange={pick} /></label>}
+      </div>
+    </div>
+  );
+}

@@ -61,6 +61,12 @@ export const canCompleteMaintenance = (role: Role | null) =>
   role === "admin" || role === "manager" || role === "technician";
 export const canManageDirectory = (role: Role | null) =>
   role === "admin" || role === "manager";
+export const canDeleteAssets = (role: Role | null) =>
+  role === "admin" || role === "manager";
+export const canDeleteDirectory = (role: Role | null) =>
+  role === "admin" || role === "manager";
+export const canDeleteTeamMembers = (role: Role | null) => role === "admin";
+export const canDeleteReports = (role: Role | null) => role === "admin";
 export const canViewTeam = (role: Role | null) =>
   role === "admin" || role === "manager";
 export const canOnboardUsers = (role: Role | null) =>

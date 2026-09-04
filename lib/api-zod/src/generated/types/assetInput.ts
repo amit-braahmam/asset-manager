@@ -31,4 +31,5 @@ export interface AssetInput {
   /** @nullable */
   purchaseCost?: number | null;
   notes?: string;
+  description?: string;
 }

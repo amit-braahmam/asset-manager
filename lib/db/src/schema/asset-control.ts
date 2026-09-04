@@ -44,10 +44,17 @@ export const locationsTable = pgTable("asset_locations", {
   city: text("city").notNull(),
 });
 
+export const departmentsTable = pgTable("asset_departments", {
+  id: varchar("id", { length: 32 }).primaryKey(),
+  name: text("name").notNull().unique(),
+});
+
 export const peopleTable = pgTable("asset_people", {
   id: varchar("id", { length: 32 }).primaryKey(),
   name: text("name").notNull(),
-  department: text("department").notNull(),
+  departmentId: varchar("department_id", { length: 32 })
+    .notNull()
+    .references(() => departmentsTable.id),
   email: text("email").notNull(),
 });
 
@@ -67,9 +74,11 @@ export const assetsTable = pgTable("assets", {
   assigneeId: varchar("assignee_id", { length: 32 }).references(
     () => peopleTable.id,
   ),
+  assignedAt: timestamp("assigned_at", { withTimezone: true }),
   warrantyEnd: date("warranty_end"),
   purchaseDate: date("purchase_date"),
   purchaseCost: numeric("purchase_cost", { precision: 12, scale: 2 }),
+  description: text("description").notNull().default(""),
   notes: text("notes").notNull().default(""),
   specifications: jsonb("specifications")
     .$type<Record<string, string>>()
@@ -96,11 +105,28 @@ export const assetHistoryTable = pgTable("asset_history", {
     .defaultNow(),
 });
 
+export const MAINTENANCE_SCOPES = ["asset", "estate"] as const;
+export type MaintenanceScope = (typeof MAINTENANCE_SCOPES)[number];
+
+export const MAINTENANCE_MODES = ["scheduled", "emergency"] as const;
+export type MaintenanceMode = (typeof MAINTENANCE_MODES)[number];
+
+export const MAINTENANCE_ACTIVITY_TYPES = [
+  "os_patch",
+  "application_patch",
+  "lan",
+  "firewall",
+  "other",
+] as const;
+export type MaintenanceActivityType = (typeof MAINTENANCE_ACTIVITY_TYPES)[number];
+
 export const maintenanceTable = pgTable("asset_maintenance", {
   id: varchar("id", { length: 32 }).primaryKey(),
-  assetId: varchar("asset_id", { length: 32 })
-    .notNull()
-    .references(() => assetsTable.id),
+  assetId: varchar("asset_id", { length: 32 }).references(() => assetsTable.id),
+  title: text("title").notNull().default(""),
+  scope: varchar("scope", { length: 16 }).notNull().default("asset"),
+  mode: varchar("mode", { length: 16 }).notNull().default("scheduled"),
+  activityType: varchar("activity_type", { length: 32 }).notNull().default("other"),
   scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
   technician: text("technician").notNull(),
   priority: varchar("priority", { length: 16 }).notNull().default("normal"),
@@ -109,6 +135,23 @@ export const maintenanceTable = pgTable("asset_maintenance", {
   resolutionNotes: text("resolution_notes").notNull().default(""),
   completedAt: timestamp("completed_at", { withTimezone: true }),
   completedBy: text("completed_by"),
+});
+
+export const ATTACHMENT_ENTITY_TYPES = ["asset", "maintenance"] as const;
+export type AttachmentEntityType = (typeof ATTACHMENT_ENTITY_TYPES)[number];
+
+export const attachmentsTable = pgTable("asset_attachments", {
+  id: varchar("id", { length: 32 }).primaryKey(),
+  entityType: varchar("entity_type", { length: 16 }).notNull(),
+  entityId: varchar("entity_id", { length: 32 }).notNull(),
+  fileName: text("file_name").notNull(),
+  contentType: text("content_type").notNull(),
+  url: text("url").notNull(),
+  storageKey: text("storage_key").notNull(),
+  uploadedBy: text("uploaded_by").notNull().default(""),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 // Compliance reports follow a 3-stage workflow:
@@ -170,6 +213,7 @@ export const emailSendsTable = pgTable(
 
 export const insertUserSchema = createInsertSchema(usersTable);
 export const insertLocationSchema = createInsertSchema(locationsTable);
+export const insertDepartmentSchema = createInsertSchema(departmentsTable);
 export const insertPersonSchema = createInsertSchema(peopleTable);
 export const insertAssetSchema = createInsertSchema(assetsTable).omit({
   createdAt: true,
@@ -179,15 +223,20 @@ export const insertAssetHistorySchema = createInsertSchema(
   assetHistoryTable,
 ).omit({ createdAt: true });
 export const insertMaintenanceSchema = createInsertSchema(maintenanceTable);
+export const insertAttachmentSchema = createInsertSchema(attachmentsTable).omit({
+  createdAt: true,
+});
 export const insertComplianceReportSchema = createInsertSchema(
   complianceReportsTable,
 ).omit({ createdAt: true, updatedAt: true });
 
 export type User = typeof usersTable.$inferSelect;
 export type Location = typeof locationsTable.$inferSelect;
+export type Department = typeof departmentsTable.$inferSelect;
 export type Person = typeof peopleTable.$inferSelect;
 export type Asset = typeof assetsTable.$inferSelect;
 export type AssetHistory = typeof assetHistoryTable.$inferSelect;
 export type Maintenance = typeof maintenanceTable.$inferSelect;
+export type Attachment = typeof attachmentsTable.$inferSelect;
 export type ComplianceReport = typeof complianceReportsTable.$inferSelect;
 export type EmailSend = typeof emailSendsTable.$inferSelect;

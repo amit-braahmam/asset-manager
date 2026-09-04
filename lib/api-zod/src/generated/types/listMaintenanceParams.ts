@@ -5,12 +5,24 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { LimitParameter } from './limitParameter';
+import type { MaintenanceActivityTypeParameter } from './maintenanceActivityTypeParameter';
+import type { MaintenanceLimitParameter } from './maintenanceLimitParameter';
+import type { MaintenanceModeParameter } from './maintenanceModeParameter';
+import type { MaintenancePriorityParameter } from './maintenancePriorityParameter';
+import type { MaintenanceScopeParameter } from './maintenanceScopeParameter';
+import type { MaintenanceStatusParameter } from './maintenanceStatusParameter';
+import type { SearchParameter } from './searchParameter';
 
 export type ListMaintenanceParams = {
 /**
  * @minimum 1
- * @maximum 50
+ * @maximum 100
  */
-limit?: LimitParameter;
+limit?: MaintenanceLimitParameter;
+search?: SearchParameter;
+status?: MaintenanceStatusParameter;
+mode?: MaintenanceModeParameter;
+scope?: MaintenanceScopeParameter;
+activityType?: MaintenanceActivityTypeParameter;
+priority?: MaintenancePriorityParameter;
 };

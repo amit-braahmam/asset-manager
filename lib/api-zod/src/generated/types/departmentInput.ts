@@ -6,10 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface PersonUpdate {
+export interface DepartmentInput {
   /** @minLength 1 */
-  name?: string;
-  /** @minLength 1 */
-  departmentId?: string;
-  email?: string;
+  name: string;
 }

@@ -24,6 +24,7 @@ import {
   Search,
   ShieldCheck,
   SlidersHorizontal,
+  Trash2,
   UserRound,
   Users,
   Wrench,
@@ -38,6 +39,7 @@ import type {
   ActivityEvent,
   ComplianceReport,
   ComplianceReportUpdate,
+  Department,
   Location,
   LocationInput,
   LocationUpdate,
@@ -53,28 +55,43 @@ import type {
 import {
   setAuthTokenGetter,
   useAssignAsset,
+  useBulkDeleteAssets,
   useBulkUpdateAssetStatus,
   useCreateAsset,
+  useCreateAssetAttachment,
   useCreateComplianceReport,
+  useCreateDepartment,
   useCreateLocation,
   useCreateMaintenance,
+  useCreateMaintenanceAttachment,
   useCreatePerson,
   useCreateUser,
+  useDeleteAsset,
+  useDeleteAttachment,
+  useDeleteComplianceReport,
+  useDeleteDepartment,
+  useDeleteLocation,
   useDeleteMaintenance,
+  useDeletePerson,
+  useDeleteUser,
   useGetAsset,
   useGetAuditLogs,
   useGetComplianceReport,
   useGetDashboardActivity,
   useGetDashboardMaintenance,
   useGetDashboardSummary,
+  useListAssetAttachments,
   useListAssets,
   useListComplianceReports,
+  useListDepartments,
   useListLocations,
   useListMaintenance,
+  useListMaintenanceAttachments,
   useListPeople,
   useListUsers,
   useReturnAsset,
   useUpdateComplianceReport,
+  useUpdateDepartment,
   useUpdateLocation,
   useUpdateMaintenance,
   useUpdatePerson,
@@ -91,6 +108,10 @@ import {
   canManageMaintenance,
   canCompleteMaintenance,
   canManageDirectory,
+  canDeleteAssets,
+  canDeleteDirectory,
+  canDeleteTeamMembers,
+  canDeleteReports,
   canViewTeam,
   canOnboardUsers,
   canManageRoles,
@@ -102,12 +123,14 @@ import {
 } from "@/lib/role";
 import {
   ActivityList,
+  ACTIVITY_TYPE_OPTIONS,
   AppShell,
   AssetTable,
   Button,
   Card,
   EmptyState,
   ErrorState,
+  fileToAttachmentPayload,
   formatDate,
   formatMoney,
   formatRelative,
@@ -116,6 +139,8 @@ import {
   MetricCard,
   Modal,
   Pagination,
+  PhotoGallery,
+  PhotoPicker,
   SearchBox,
   SelectField,
   Sidebar,
@@ -224,6 +249,7 @@ type FormValues = {
   purchaseDate: string;
   purchaseCost: string;
   notes: string;
+  description: string;
 };
 
 const blankForm: FormValues = {
@@ -240,6 +266,7 @@ const blankForm: FormValues = {
   purchaseDate: "",
   purchaseCost: "",
   notes: "",
+  description: "",
 };
 
 function initials(name: string) {
@@ -254,6 +281,14 @@ function initials(name: string) {
 function formatWeekDelta(value: number, noun: string) {
   if (value === 0) return `No ${noun} this week`;
   return `${value > 0 ? "+" : ""}${value} ${noun} this week`;
+}
+
+function apiErrorMessage(err: unknown, fallback: string) {
+  if (err && typeof err === "object" && "data" in err) {
+    const data = (err as { data?: { error?: string } }).data;
+    if (data?.error) return data.error;
+  }
+  return err instanceof Error ? err.message : fallback;
 }
 
 function ShellPage({ children }: { children: ReactNode }) {
@@ -350,7 +385,7 @@ function Dashboard() {
 function Inventory({ openCreate = false }: { openCreate?: boolean }) {
   const { role } = useRole();
   const canManage = canManageAssets(role);
-  const [, setLocation] = useLocation();
+  const canDelete = canDeleteAssets(role);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [category, setCategory] = useState("");
@@ -369,6 +404,9 @@ function Inventory({ openCreate = false }: { openCreate?: boolean }) {
     pageSize: 8,
   });
   const create = useCreateAsset();
+  const createPhoto = useCreateAssetAttachment();
+  const removeAsset = useDeleteAsset();
+  const bulkDelete = useBulkDeleteAssets();
   const bulkUpdate = useBulkUpdateAssetStatus();
   const client = useQueryClient();
   const { toast } = useToast();
@@ -385,7 +423,7 @@ function Inventory({ openCreate = false }: { openCreate?: boolean }) {
   );
   const locationOptions = (locations.data ?? []).map((location) => ({ value: location.id, label: location.name }));
 
-  async function handleCreate(values: FormValues) {
+  async function handleCreate(values: FormValues, photos: File[]) {
     const body: AssetInput = {
       assetTag: values.assetTag,
       name: values.name,
@@ -400,8 +438,12 @@ function Inventory({ openCreate = false }: { openCreate?: boolean }) {
       purchaseDate: values.purchaseDate || null,
       purchaseCost: values.purchaseCost ? Number(values.purchaseCost) : null,
       notes: values.notes,
+      description: values.description,
     };
-    await create.mutateAsync({ data: body });
+    const created = await create.mutateAsync({ data: body });
+    for (const file of photos.slice(0, 5)) {
+      await createPhoto.mutateAsync({ assetId: created.id, data: await fileToAttachmentPayload(file) });
+    }
     await client.invalidateQueries();
     setShowCreate(false);
     toast({ title: "Asset added to inventory" });
@@ -413,6 +455,31 @@ function Inventory({ openCreate = false }: { openCreate?: boolean }) {
     setSelected([]);
     await client.invalidateQueries();
     toast({ title: `${selected.length} assets updated` });
+  }
+
+  async function handleDeleteAsset(asset: Asset) {
+    if (!window.confirm(`Delete ${asset.assetTag} (${asset.name})? This also removes its maintenance history and photos.`)) return;
+    try {
+      await removeAsset.mutateAsync({ assetId: asset.id });
+      setSelected((current) => current.filter((id) => id !== asset.id));
+      await client.invalidateQueries();
+      toast({ title: "Asset deleted" });
+    } catch (err) {
+      toast({ title: "Could not delete asset", description: apiErrorMessage(err, "Unable to delete this asset."), variant: "destructive" });
+    }
+  }
+
+  async function handleBulkDelete() {
+    if (!selected.length) return;
+    if (!window.confirm(`Delete ${selected.length} selected assets? This also removes their maintenance history and photos.`)) return;
+    try {
+      await bulkDelete.mutateAsync({ data: { assetIds: selected } });
+      setSelected([]);
+      await client.invalidateQueries();
+      toast({ title: "Selected assets deleted" });
+    } catch (err) {
+      toast({ title: "Could not delete assets", description: apiErrorMessage(err, "Unable to delete the selected assets."), variant: "destructive" });
+    }
   }
 
   function exportCsv() {
@@ -482,9 +549,9 @@ function Inventory({ openCreate = false }: { openCreate?: boolean }) {
           <SelectField value={locationId} onChange={setLocationId} options={locationOptions} label="Location" testId="select-location" />
         </div>
         <div className="inventory-summary"><div><span className="eyebrow">Asset register</span><strong>{assets.data?.total ?? "—"} records</strong>{selected.length > 0 && <span className="selection-count">{selected.length} selected</span>}</div><div className="inventory-actions">{canManage && <label className="text-button file-button"><FileUp size={14} /> Import CSV<input type="file" accept=".csv,text/csv" onChange={(event) => void importCsv(event)} /></label>}<button className="text-button" onClick={exportCsv}><Download size={14} /> Export CSV</button></div></div>
-        {canManage && selected.length > 0 && <div className="bulk-toolbar"><span className="eyebrow">Bulk action</span><span>{selected.length} selected</span><SelectField value={bulkStatus} onChange={(value) => setBulkStatus(value as AssetStatus)} options={statusOptions} label="Set status" testId="select-bulk-status" /><Button className="button-dark" onClick={() => void handleBulkStatus()} disabled={bulkUpdate.isPending}>{bulkUpdate.isPending ? "Updating…" : "Apply status"}</Button><button className="text-button" onClick={() => setSelected([])}>Clear</button></div>}
+        {canManage && selected.length > 0 && <div className="bulk-toolbar"><span className="eyebrow">Bulk action</span><span>{selected.length} selected</span><SelectField value={bulkStatus} onChange={(value) => setBulkStatus(value as AssetStatus)} options={statusOptions} label="Set status" testId="select-bulk-status" /><Button className="button-dark" onClick={() => void handleBulkStatus()} disabled={bulkUpdate.isPending}>{bulkUpdate.isPending ? "Updating…" : "Apply status"}</Button>{canDelete && <Button className="button-ghost" onClick={() => void handleBulkDelete()} disabled={bulkDelete.isPending}>{bulkDelete.isPending ? "Deleting…" : "Delete selected"}</Button>}<button className="text-button" onClick={() => setSelected([])}>Clear</button></div>}
         <Card className="table-card">
-          {assets.isLoading ? <div className="table-loading"><Skeleton className="h-12" /><Skeleton className="h-12" /><Skeleton className="h-12" /><Skeleton className="h-12" /></div> : assets.isError ? <ErrorState onRetry={() => void assets.refetch()} /> : items.length ? <AssetTable items={items} selected={selected} selectable={canManage} onSelect={(id) => setSelected((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])} /> : <EmptyState title="No matching assets" text="Try a different search or clear one of the filters." />}
+          {assets.isLoading ? <div className="table-loading"><Skeleton className="h-12" /><Skeleton className="h-12" /><Skeleton className="h-12" /><Skeleton className="h-12" /></div> : assets.isError ? <ErrorState onRetry={() => void assets.refetch()} /> : items.length ? <AssetTable items={items} selected={selected} selectable={canManage} onSelect={(id) => setSelected((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])} onDelete={canDelete ? handleDeleteAsset : undefined} /> : <EmptyState title="No matching assets" text="Try a different search or clear one of the filters." />}
           {assets.data && <Pagination page={assets.data.page} pageSize={assets.data.pageSize} total={assets.data.total} onPage={(next) => { setPage(next); setSelected([]); }} />}
         </Card>
       </div>
@@ -504,11 +571,12 @@ function AssetForm({
   locations: Location[];
   initial?: Partial<FormValues>;
   editing?: boolean;
-  onSubmit: (values: FormValues) => Promise<void>;
+  onSubmit: (values: FormValues, photos: File[]) => Promise<void>;
   onCancel: () => void;
   submitting: boolean;
 }) {
   const [values, setValues] = useState<FormValues>({ ...blankForm, locationId: locations[0]?.id ?? "", ...initial });
+  const [photos, setPhotos] = useState<File[]>([]);
   const [error, setError] = useState("");
   function change(key: keyof FormValues, value: string) {
     setValues((current) => ({ ...current, [key]: value }));
@@ -516,7 +584,7 @@ function AssetForm({
   async function submit(event: FormEvent) {
     event.preventDefault();
     setError("");
-    try { await onSubmit(values); } catch (err) { setError(err instanceof Error ? err.message : "Unable to save this asset."); }
+    try { await onSubmit(values, photos); } catch (err) { setError(apiErrorMessage(err, "Unable to save this asset.")); }
   }
   return (
     <form className="asset-form" onSubmit={submit}>
@@ -529,12 +597,14 @@ function AssetForm({
         <Field label="Serial number" value={values.serialNumber} onChange={(value) => change("serialNumber", value)} placeholder="Serial / IMEI" required />
         <Field label="Condition" value={values.condition} onChange={(value) => change("condition", value)} options={conditionOptions} />
         <Field label="Location" value={values.locationId} onChange={(value) => change("locationId", value)} options={locations.map((location) => ({ value: location.id, label: location.name }))} />
-        {!editing && <Field label="Status" value={values.status} onChange={(value) => change("status", value)} options={statusOptions} />}
+        {!editing && <Field label="Status" value={values.status} onChange={(value) => change("status", value)} options={statusOptions} /> }
         <Field label="Purchase cost" value={values.purchaseCost} onChange={(value) => change("purchaseCost", value)} placeholder="0.00" type="number" />
         <Field label="Purchase date" value={values.purchaseDate} onChange={(value) => change("purchaseDate", value)} type="date" />
         <Field label="Warranty end" value={values.warrantyEnd} onChange={(value) => change("warrantyEnd", value)} type="date" />
       </div>
+      <label className="field field-full"><span>Description</span><textarea value={values.description} onChange={(event) => change("description", event.target.value)} placeholder="What this asset is and how it is used. This is not the asset name." rows={3} /></label>
       <label className="field field-full"><span>Notes</span><textarea value={values.notes} onChange={(event) => change("notes", event.target.value)} placeholder="Add useful context for the next operator…" rows={3} /></label>
+      {!editing && <PhotoPicker files={photos} onChange={setPhotos} remaining={5 - photos.length} />}
       {error && <p className="form-error">{error}</p>}
       <div className="modal-actions"><Button type="button" className="button-ghost" onClick={onCancel}>Cancel</Button><Button className="button-dark" disabled={submitting}>{submitting ? "Saving…" : editing ? "Save changes" : "Add asset"}</Button></div>
     </form>
@@ -549,16 +619,21 @@ function AssetDetailPage() {
   const { role } = useRole();
   const canManage = canManageAssets(role);
   const canStatus = canUpdateAssetStatus(role);
+  const canDelete = canDeleteAssets(role);
   const [, params] = useRoute("/assets/:assetId");
   const [, setLocation] = useLocation();
   const assetId = params?.assetId ?? "";
   const asset = useGetAsset(assetId);
   const locations = useListLocations();
   const peopleQuery = useListPeople();
+  const photos = useListAssetAttachments(assetId);
   const update = useUpdateAsset();
   const assign = useAssignAsset();
   const returnMutation = useReturnAsset();
   const statusMutation = useUpdateAssetStatus();
+  const createPhoto = useCreateAssetAttachment();
+  const removePhoto = useDeleteAttachment();
+  const removeAsset = useDeleteAsset();
   const client = useQueryClient();
   const { toast } = useToast();
   const [modal, setModal] = useState<"edit" | "assign" | "status" | null>(null);
@@ -583,6 +658,7 @@ function AssetDetailPage() {
       purchaseDate: values.purchaseDate || null,
       purchaseCost: values.purchaseCost ? Number(values.purchaseCost) : null,
       notes: values.notes,
+      description: values.description,
     };
     await update.mutateAsync({ assetId, data: body });
     setModal(null);
@@ -602,6 +678,35 @@ function AssetDetailPage() {
     setModal(null);
     await refresh("Asset status updated");
   }
+  async function uploadPhotos(files: File[]) {
+    try {
+      for (const file of files) {
+        await createPhoto.mutateAsync({ assetId, data: await fileToAttachmentPayload(file) });
+      }
+      await refresh("Photo added");
+    } catch (err) {
+      toast({ title: "Could not add photo", description: apiErrorMessage(err, "Unable to save this photo."), variant: "destructive" });
+    }
+  }
+  async function deletePhoto(attachmentId: string) {
+    if (!window.confirm("Remove this photo?")) return;
+    try {
+      await removePhoto.mutateAsync({ attachmentId });
+      await refresh("Photo removed");
+    } catch (err) {
+      toast({ title: "Could not remove photo", description: apiErrorMessage(err, "Unable to remove this photo."), variant: "destructive" });
+    }
+  }
+  async function deleteThisAsset() {
+    if (!window.confirm(`Delete ${data.assetTag} (${data.name})? This also removes its maintenance history and photos.`)) return;
+    try {
+      await removeAsset.mutateAsync({ assetId });
+      toast({ title: "Asset deleted" });
+      setLocation("/inventory");
+    } catch (err) {
+      toast({ title: "Could not delete asset", description: apiErrorMessage(err, "Unable to delete this asset."), variant: "destructive" });
+    }
+  }
   const initial: Partial<FormValues> = {
     assetTag: data.assetTag,
     name: data.name,
@@ -615,10 +720,11 @@ function AssetDetailPage() {
     purchaseDate: data.purchaseDate ?? "",
     purchaseCost: data.purchaseCost?.toString() ?? "",
     notes: data.notes,
+    description: data.description,
   };
   return (
     <ShellPage>
-      <Topbar title={data.name} description={`${data.assetTag} · ${data.category}`} action={canManage ? <Button className="button-ghost" onClick={() => setModal("edit")}><Pencil size={15} /> Edit asset</Button> : undefined} />
+      <Topbar title={data.name} description={`${data.assetTag} · ${data.category}`} action={canManage ? <div className="topbar-button-row">{canDelete && <Button className="button-ghost" onClick={() => void deleteThisAsset()}><Trash2 size={15} /> Delete</Button>}<Button className="button-ghost" onClick={() => setModal("edit")}><Pencil size={15} /> Edit asset</Button></div> : undefined} />
       <div className="page-wrap">
         <button className="back-link" onClick={() => setLocation("/inventory")}><ArrowLeft size={15} /> Back to inventory</button>
         <div className="detail-hero">
@@ -631,13 +737,28 @@ function AssetDetailPage() {
           {canStatus && <Button className="button-ghost" onClick={() => setModal("status")}><SlidersHorizontal size={15} /> Change status</Button>}
         </div>}
         <div className="detail-grid">
-          <Card><SectionHeading eyebrow="At a glance" title="Ownership & location" /><div className="detail-list"><InfoRow icon={UserRound} label="Assigned to" value={data.assignee?.name ?? "Available in inventory"} secondary={data.assignee?.department} /><InfoRow icon={MapPin} label="Current location" value={data.location.name} secondary={data.location.city} /><InfoRow icon={ClipboardCheck} label="Condition" value={data.condition[0].toUpperCase() + data.condition.slice(1)} /><InfoRow icon={Clock3} label="Warranty end" value={formatDate(data.warrantyEnd)} /></div></Card>
+          <Card><SectionHeading eyebrow="At a glance" title="Ownership & location" /><div className="detail-list"><InfoRow icon={UserRound} label="Assigned to" value={data.assignee?.name ?? "Available in inventory"} secondary={data.assignee?.department} /><InfoRow icon={Clock3} label="Date of allocation" value={data.assignedAt ? formatDate(data.assignedAt) : "Not allocated"} /><InfoRow icon={MapPin} label="Current location" value={data.location.name} secondary={data.location.city} /><InfoRow icon={ClipboardCheck} label="Condition" value={data.condition[0].toUpperCase() + data.condition.slice(1)} /><InfoRow icon={Clock3} label="Warranty end" value={formatDate(data.warrantyEnd)} /></div></Card>
           <Card><SectionHeading eyebrow="Purchase record" title="Financial details" /><div className="detail-list"><InfoRow icon={PackagePlus} label="Purchase cost" value={formatMoney(data.purchaseCost)} /><InfoRow icon={Clock3} label="Purchase date" value={formatDate(data.purchaseDate)} /><InfoRow icon={ShieldCheck} label="Serial number" value={data.serialNumber} mono /><InfoRow icon={Boxes} label="Asset category" value={data.category} /></div></Card>
         </div>
         <div className="detail-grid lower">
-          <Card><SectionHeading eyebrow="Technical profile" title="Specifications" />{Object.keys(data.specifications).length ? <div className="spec-grid">{Object.entries(data.specifications).map(([key, value]) => <div key={key}><span>{key}</span><b>{value}</b></div>)}</div> : <EmptyState title="No specifications" text="Add technical context when editing this asset." />}{data.notes && <div className="notes-box"><span className="eyebrow">Operator notes</span><p>{data.notes}</p></div>}</Card>
+          <Card>
+            <SectionHeading eyebrow="Record" title="Description & notes" />
+            {data.description ? <div className="description-box"><span className="eyebrow">Description</span><p>{data.description}</p></div> : <EmptyState title="No description" text="Add a description to explain what this asset is, separately from its name." />}
+            {data.notes && <div className="notes-box"><span className="eyebrow">Operator notes</span><p>{data.notes}</p></div>}
+            {Object.keys(data.specifications).length ? <div className="spec-grid" style={{ marginTop: 15 }}>{Object.entries(data.specifications).map(([key, value]) => <div key={key}><span>{key}</span><b>{value}</b></div>)}</div> : null}
+          </Card>
           <Card><SectionHeading eyebrow="Audit trail" title="Recent history" />{data.history.length ? <div className="history-list">{data.history.map((event) => <div className="history-row" key={event.id}><span className="history-dot" /><div><b>{event.detail}</b><small>{event.actor} · {formatRelative(event.createdAt)}</small></div></div>)}</div> : <EmptyState title="No activity yet" />}</Card>
         </div>
+        <Card className="table-card" style={{ marginTop: 13, padding: 20 }}>
+          <SectionHeading eyebrow="Photos" title="Asset photos" detail="Up to five images, 5 MB each." />
+          <PhotoGallery
+            attachments={photos.data ?? []}
+            remaining={5 - (photos.data?.length ?? 0)}
+            adding={createPhoto.isPending}
+            onAdd={canManage ? (files) => void uploadPhotos(files) : undefined}
+            onRemove={canManage ? (attachment) => void deletePhoto(attachment.id) : undefined}
+          />
+        </Card>
       </div>
       {modal === "edit" && <Modal title="Edit asset" onClose={() => setModal(null)}><AssetForm locations={locations.data ?? []} initial={initial} editing onSubmit={saveEdit} onCancel={() => setModal(null)} submitting={update.isPending} /></Modal>}
       {modal === "assign" && <AssignModal people={peopleQuery.data ?? []} locations={locations.data ?? []} currentLocation={data.location.id} onClose={() => setModal(null)} onSubmit={assignAsset} submitting={assign.isPending} />}
@@ -672,22 +793,29 @@ function StatusModal({ current, onClose, onSubmit, submitting }: { current: Asse
   return <Modal title="Change status" onClose={onClose}><form className="asset-form" onSubmit={submit}><p className="modal-intro">Status changes are added to the asset’s audit trail.</p><Field label="New status" value={status} onChange={(value) => setStatus(value as AssetStatus)} options={statusOptions} /><label className="field field-full"><span>Reason or note</span><textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Why is this status changing?" rows={3} /></label>{error && <p className="form-error">{error}</p>}<div className="modal-actions"><Button type="button" className="button-ghost" onClick={onClose}>Cancel</Button><Button className="button-dark" disabled={submitting}>{submitting ? "Updating…" : "Update status"}</Button></div></form></Modal>;
 }
 
-type DirectoryModal = { kind: "person" | "location"; id?: string } | null;
+type DirectoryModal = { kind: "person" | "location" | "department"; id?: string } | null;
 
 function Directory() {
   const { role } = useRole();
   const canManage = canManageDirectory(role);
+  const canDelete = canDeleteDirectory(role);
   const peopleQuery = useListPeople();
   const locationsQuery = useListLocations();
+  const departmentsQuery = useListDepartments();
   const createPerson = useCreatePerson();
   const updatePerson = useUpdatePerson();
+  const deletePerson = useDeletePerson();
   const createLocation = useCreateLocation();
   const updateLocation = useUpdateLocation();
+  const deleteLocation = useDeleteLocation();
+  const createDepartment = useCreateDepartment();
+  const updateDepartment = useUpdateDepartment();
+  const deleteDepartment = useDeleteDepartment();
   const client = useQueryClient();
   const { toast } = useToast();
   const [modal, setModal] = useState<DirectoryModal>(null);
 
-  async function savePerson(values: { name: string; department: string; email: string }) {
+  async function savePerson(values: { name: string; departmentId: string; email: string }) {
     if (modal?.kind === "person" && modal.id) await updatePerson.mutateAsync({ personId: modal.id, data: values as PersonUpdate });
     else await createPerson.mutateAsync({ data: values as PersonInput });
     setModal(null);
@@ -703,50 +831,130 @@ function Directory() {
     toast({ title: modal?.id ? "Location updated" : "Location added" });
   }
 
+  async function saveDepartment(values: { name: string }) {
+    if (modal?.kind === "department" && modal.id) await updateDepartment.mutateAsync({ departmentId: modal.id, data: values });
+    else await createDepartment.mutateAsync({ data: values });
+    setModal(null);
+    await client.invalidateQueries();
+    toast({ title: modal?.id ? "Department updated" : "Department added" });
+  }
+
+  async function removeRecord(kind: "person" | "location" | "department", id: string, label: string) {
+    if (!window.confirm(`Delete ${label}?`)) return;
+    try {
+      if (kind === "person") await deletePerson.mutateAsync({ personId: id });
+      if (kind === "location") await deleteLocation.mutateAsync({ locationId: id });
+      if (kind === "department") await deleteDepartment.mutateAsync({ departmentId: id });
+      await client.invalidateQueries();
+      toast({ title: `${label} deleted` });
+    } catch (err) {
+      toast({ title: `Could not delete ${label}`, description: apiErrorMessage(err, "Unable to delete this record."), variant: "destructive" });
+    }
+  }
+
   const editingPerson = modal?.kind === "person" ? peopleQuery.data?.find((person) => person.id === modal.id) : undefined;
   const editingLocation = modal?.kind === "location" ? locationsQuery.data?.find((location) => location.id === modal.id) : undefined;
+  const editingDepartment = modal?.kind === "department" ? departmentsQuery.data?.find((department) => department.id === modal.id) : undefined;
+  const departments = departmentsQuery.data ?? [];
   return <ShellPage>
-    <Topbar title="Directory" description="Keep custodians and operating locations current for clean assignments." action={canManage ? <div className="topbar-button-row"><Button className="button-ghost" onClick={() => setModal({ kind: "location" })}><MapPin size={15} /> Add location</Button><Button className="button-accent" onClick={() => setModal({ kind: "person" })}><Plus size={16} /> Add person</Button></div> : undefined} />
+    <Topbar title="Directory" description="Keep departments, custodians, and operating locations current for clean assignments." action={canManage ? <div className="topbar-button-row"><Button className="button-ghost" onClick={() => setModal({ kind: "department" })}>Add department</Button><Button className="button-ghost" onClick={() => setModal({ kind: "location" })}><MapPin size={15} /> Add location</Button><Button className="button-accent" onClick={() => setModal({ kind: "person" })}><Plus size={16} /> Add person</Button></div> : undefined} />
     <div className="page-wrap">
       <div className="directory-grid">
-        <Card><SectionHeading eyebrow="Custodians" title="People" detail={`${peopleQuery.data?.length ?? "—"} people available for assignment.`} /><div className="directory-list">{peopleQuery.isLoading ? <LoadingBlock /> : peopleQuery.data?.length ? peopleQuery.data.map((person) => <div className="directory-row" key={person.id}><div className="avatar">{initials(person.name)}</div><div><b>{person.name}</b><small>{person.department} · {person.email}</small></div>{canManage && <button className="row-arrow" aria-label={`Edit ${person.name}`} onClick={() => setModal({ kind: "person", id: person.id })}><Pencil size={14} /></button>}</div>) : <EmptyState title="No people yet" text="Add a person to make assignment available." />}</div></Card>
-        <Card><SectionHeading eyebrow="Operating footprint" title="Locations" detail={`${locationsQuery.data?.length ?? "—"} sites in the register.`} /><div className="directory-list">{locationsQuery.isLoading ? <LoadingBlock /> : locationsQuery.data?.length ? locationsQuery.data.map((location) => <div className="directory-row" key={location.id}><div className="avatar location-avatar"><MapPin size={15} /></div><div><b>{location.name}</b><small>{location.city} · {location.assetCount} assets</small></div>{canManage && <button className="row-arrow" aria-label={`Edit ${location.name}`} onClick={() => setModal({ kind: "location", id: location.id })}><Pencil size={14} /></button>}</div>) : <EmptyState title="No locations yet" text="Add a location before registering assets." />}</div></Card>
+        <Card><SectionHeading eyebrow="Organization" title="Departments" detail={`${departmentsQuery.data?.length ?? "—"} departments in the lookup.`} /><div className="directory-list">{departmentsQuery.isLoading ? <LoadingBlock /> : departmentsQuery.data?.length ? departmentsQuery.data.map((department) => <div className="directory-row" key={department.id}><div className="avatar department-avatar">{department.name.slice(0, 1)}</div><div><b>{department.name}</b><small>{department.personCount} people</small></div>{canManage && <button className="row-arrow" aria-label={`Edit ${department.name}`} onClick={() => setModal({ kind: "department", id: department.id })}><Pencil size={14} /></button>}{canDelete && <button className="row-arrow danger-action" aria-label={`Delete ${department.name}`} onClick={() => void removeRecord("department", department.id, department.name)}><Trash2 size={14} /></button>}</div>) : <EmptyState title="No departments yet" text="Add a department before assigning people." />}</div></Card>
+        <Card><SectionHeading eyebrow="Custodians" title="People" detail={`${peopleQuery.data?.length ?? "—"} people available for assignment.`} /><div className="directory-list">{peopleQuery.isLoading ? <LoadingBlock /> : peopleQuery.data?.length ? peopleQuery.data.map((person) => <div className="directory-row" key={person.id}><div className="avatar">{initials(person.name)}</div><div><b>{person.name}</b><small>{person.department} · {person.email}</small></div>{canManage && <button className="row-arrow" aria-label={`Edit ${person.name}`} onClick={() => setModal({ kind: "person", id: person.id })}><Pencil size={14} /></button>}{canDelete && <button className="row-arrow danger-action" aria-label={`Delete ${person.name}`} onClick={() => void removeRecord("person", person.id, person.name)}><Trash2 size={14} /></button>}</div>) : <EmptyState title="No people yet" text="Add a person to make assignment available." />}</div></Card>
+        <Card><SectionHeading eyebrow="Operating footprint" title="Locations" detail={`${locationsQuery.data?.length ?? "—"} sites in the register.`} /><div className="directory-list">{locationsQuery.isLoading ? <LoadingBlock /> : locationsQuery.data?.length ? locationsQuery.data.map((location) => <div className="directory-row" key={location.id}><div className="avatar location-avatar"><MapPin size={15} /></div><div><b>{location.name}</b><small>{location.city} · {location.assetCount} assets</small></div>{canManage && <button className="row-arrow" aria-label={`Edit ${location.name}`} onClick={() => setModal({ kind: "location", id: location.id })}><Pencil size={14} /></button>}{canDelete && <button className="row-arrow danger-action" aria-label={`Delete ${location.name}`} onClick={() => void removeRecord("location", location.id, location.name)}><Trash2 size={14} /></button>}</div>) : <EmptyState title="No locations yet" text="Add a location before registering assets." />}</div></Card>
       </div>
     </div>
-    {modal?.kind === "person" && <Modal title={editingPerson ? "Edit person" : "Add person"} onClose={() => setModal(null)}><DirectoryForm kind="person" initial={editingPerson} onSubmit={savePerson} onCancel={() => setModal(null)} submitting={createPerson.isPending || updatePerson.isPending} /></Modal>}
-    {modal?.kind === "location" && <Modal title={editingLocation ? "Edit location" : "Add location"} onClose={() => setModal(null)}><DirectoryForm kind="location" initial={editingLocation} onSubmit={saveLocation} onCancel={() => setModal(null)} submitting={createLocation.isPending || updateLocation.isPending} /></Modal>}
+    {modal?.kind === "person" && <Modal title={editingPerson ? "Edit person" : "Add person"} onClose={() => setModal(null)}><PersonForm initial={editingPerson} departments={departments} onSubmit={savePerson} onCancel={() => setModal(null)} submitting={createPerson.isPending || updatePerson.isPending} /></Modal>}
+    {modal?.kind === "location" && <Modal title={editingLocation ? "Edit location" : "Add location"} onClose={() => setModal(null)}><LocationForm initial={editingLocation} onSubmit={saveLocation} onCancel={() => setModal(null)} submitting={createLocation.isPending || updateLocation.isPending} /></Modal>}
+    {modal?.kind === "department" && <Modal title={editingDepartment ? "Edit department" : "Add department"} onClose={() => setModal(null)}><DepartmentForm initial={editingDepartment} onSubmit={saveDepartment} onCancel={() => setModal(null)} submitting={createDepartment.isPending || updateDepartment.isPending} /></Modal>}
   </ShellPage>;
 }
 
-function DirectoryForm({ kind, initial, onSubmit, onCancel, submitting }: { kind: "person" | "location"; initial?: Partial<Person & Location>; onSubmit: (values: { name: string; department: string; email: string } | { name: string; city: string }) => Promise<void>; onCancel: () => void; submitting: boolean }) {
-  const [values, setValues] = useState<{ name: string; department: string; email: string; city: string }>({ name: initial?.name ?? "", department: initial?.department ?? "", email: initial?.email ?? "", city: initial?.city ?? "" });
+function PersonForm({ initial, departments, onSubmit, onCancel, submitting }: { initial?: Partial<Person>; departments: Department[]; onSubmit: (values: { name: string; departmentId: string; email: string }) => Promise<void>; onCancel: () => void; submitting: boolean }) {
+  const [values, setValues] = useState({ name: initial?.name ?? "", departmentId: initial?.departmentId ?? departments[0]?.id ?? "", email: initial?.email ?? "" });
   const [error, setError] = useState("");
   async function submit(event: FormEvent) {
     event.preventDefault();
     setError("");
-    try { await onSubmit(kind === "person" ? { name: values.name, department: values.department, email: values.email } : { name: values.name, city: values.city }); } catch (err) { setError(err instanceof Error ? err.message : "Unable to save this record."); }
+    try { await onSubmit(values); } catch (err) { setError(apiErrorMessage(err, "Unable to save this record.")); }
   }
-  return <form className="asset-form" onSubmit={submit}><div className="form-grid"><Field label="Name" value={values.name} onChange={(value) => setValues((current) => ({ ...current, name: value }))} required />{kind === "person" ? <><Field label="Department" value={values.department} onChange={(value) => setValues((current) => ({ ...current, department: value }))} placeholder="Operations" required /><Field label="Email" value={values.email} onChange={(value) => setValues((current) => ({ ...current, email: value }))} type="email" required /></> : <Field label="City / region" value={values.city} onChange={(value) => setValues((current) => ({ ...current, city: value }))} placeholder="Bengaluru" required />}</div>{error && <p className="form-error">{error}</p>}<div className="modal-actions"><Button type="button" className="button-ghost" onClick={onCancel}>Cancel</Button><Button className="button-dark" disabled={submitting}>{submitting ? "Saving…" : "Save record"}</Button></div></form>;
+  if (!departments.length) {
+    return <div className="asset-form"><p className="modal-intro">Add a department first, then you can assign people to it.</p><div className="modal-actions"><Button type="button" className="button-ghost" onClick={onCancel}>Close</Button></div></div>;
+  }
+  return <form className="asset-form" onSubmit={submit}><div className="form-grid"><Field label="Name" value={values.name} onChange={(value) => setValues((current) => ({ ...current, name: value }))} required /><Field label="Department" value={values.departmentId} onChange={(value) => setValues((current) => ({ ...current, departmentId: value }))} options={departments.map((department) => ({ value: department.id, label: department.name }))} required /><Field label="Email" value={values.email} onChange={(value) => setValues((current) => ({ ...current, email: value }))} type="email" required /></div>{error && <p className="form-error">{error}</p>}<div className="modal-actions"><Button type="button" className="button-ghost" onClick={onCancel}>Cancel</Button><Button className="button-dark" disabled={submitting}>{submitting ? "Saving…" : "Save record"}</Button></div></form>;
+}
+
+function LocationForm({ initial, onSubmit, onCancel, submitting }: { initial?: Partial<Location>; onSubmit: (values: { name: string; city: string }) => Promise<void>; onCancel: () => void; submitting: boolean }) {
+  const [values, setValues] = useState({ name: initial?.name ?? "", city: initial?.city ?? "" });
+  const [error, setError] = useState("");
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    setError("");
+    try { await onSubmit(values); } catch (err) { setError(apiErrorMessage(err, "Unable to save this record.")); }
+  }
+  return <form className="asset-form" onSubmit={submit}><div className="form-grid"><Field label="Name" value={values.name} onChange={(value) => setValues((current) => ({ ...current, name: value }))} required /><Field label="City / region" value={values.city} onChange={(value) => setValues((current) => ({ ...current, city: value }))} placeholder="Bengaluru" required /></div>{error && <p className="form-error">{error}</p>}<div className="modal-actions"><Button type="button" className="button-ghost" onClick={onCancel}>Cancel</Button><Button className="button-dark" disabled={submitting}>{submitting ? "Saving…" : "Save record"}</Button></div></form>;
+}
+
+function DepartmentForm({ initial, onSubmit, onCancel, submitting }: { initial?: Partial<Department>; onSubmit: (values: { name: string }) => Promise<void>; onCancel: () => void; submitting: boolean }) {
+  const [name, setName] = useState(initial?.name ?? "");
+  const [error, setError] = useState("");
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    setError("");
+    try { await onSubmit({ name }); } catch (err) { setError(apiErrorMessage(err, "Unable to save this department.")); }
+  }
+  return <form className="asset-form" onSubmit={submit}><Field label="Department name" value={name} onChange={setName} placeholder="Operations" required />{error && <p className="form-error">{error}</p>}<div className="modal-actions"><Button type="button" className="button-ghost" onClick={onCancel}>Cancel</Button><Button className="button-dark" disabled={submitting}>{submitting ? "Saving…" : "Save department"}</Button></div></form>;
 }
 
 function Maintenance() {
   const { role } = useRole();
   const canSchedule = canManageMaintenance(role);
   const canEdit = canCompleteMaintenance(role);
-  const maintenance = useListMaintenance({ limit: 50 });
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
+  const [mode, setMode] = useState("");
+  const [scope, setScope] = useState("");
+  const [activityType, setActivityType] = useState("");
+  const [priority, setPriority] = useState("");
+  const maintenance = useListMaintenance({
+    limit: 50,
+    search: search || undefined,
+    status: (status || undefined) as MaintenanceItem["status"] | undefined,
+    mode: (mode || undefined) as MaintenanceItem["mode"] | undefined,
+    scope: (scope || undefined) as MaintenanceItem["scope"] | undefined,
+    activityType: (activityType || undefined) as MaintenanceItem["activityType"] | undefined,
+    priority: (priority || undefined) as MaintenanceItem["priority"] | undefined,
+  });
   const assets = useListAssets({ page: 1, pageSize: 100 });
   const create = useCreateMaintenance();
   const update = useUpdateMaintenance();
   const remove = useDeleteMaintenance();
+  const createPhoto = useCreateMaintenanceAttachment();
   const client = useQueryClient();
   const { toast } = useToast();
   const [editing, setEditing] = useState<MaintenanceItem | null>(null);
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState<"asset" | "estate" | false>(false);
 
-  async function save(values: { assetId: string; scheduledAt: string; technician: string; priority: string; status: string; resolutionNotes: string }) {
-    const data = { ...values, priority: values.priority as MaintenanceInput["priority"], status: values.status as MaintenanceInput["status"], scheduledAt: new Date(values.scheduledAt).toISOString() };
-    if (editing) await update.mutateAsync({ maintenanceId: editing.id, data: data as MaintenanceUpdate });
-    else await create.mutateAsync({ data: data as MaintenanceInput });
+  async function save(values: MaintenanceFormValues, photos: File[]) {
+    const data: MaintenanceInput = {
+      title: values.title,
+      assetId: values.scope === "estate" ? null : values.assetId,
+      scope: values.scope as MaintenanceInput["scope"],
+      mode: values.mode as MaintenanceInput["mode"],
+      activityType: values.scope === "estate" ? values.activityType as MaintenanceInput["activityType"] : "other",
+      scheduledAt: new Date(values.scheduledAt).toISOString(),
+      technician: values.technician,
+      priority: values.priority as MaintenanceInput["priority"],
+      status: values.status as MaintenanceInput["status"],
+      resolutionNotes: values.resolutionNotes,
+    };
+    const saved = editing
+      ? await update.mutateAsync({ maintenanceId: editing.id, data: data as MaintenanceUpdate })
+      : await create.mutateAsync({ data });
+    for (const file of photos.slice(0, 5)) {
+      await createPhoto.mutateAsync({ maintenanceId: saved.id, data: await fileToAttachmentPayload(file) });
+    }
     setEditing(null);
     setShowForm(false);
     await client.invalidateQueries();
@@ -754,24 +962,112 @@ function Maintenance() {
   }
 
   async function deleteItem(item: MaintenanceItem) {
-    if (!window.confirm(`Remove maintenance for ${item.assetTag}?`)) return;
+    if (!window.confirm(`Remove “${item.title}”?`)) return;
     await remove.mutateAsync({ maintenanceId: item.id });
     await client.invalidateQueries();
     toast({ title: "Maintenance item removed" });
   }
 
-  return <ShellPage><Topbar title="Maintenance" description="Keep service work visible before it becomes a business interruption." action={canSchedule ? <Button className="button-accent" onClick={() => { setEditing(null); setShowForm(true); }}><Plus size={16} /> Schedule work</Button> : undefined} /><div className="page-wrap"><div className="maintenance-header"><div className="queue-summary"><span className="queue-number">{maintenance.data?.length ?? "—"}</span><div><b>Open service items</b><small>Sorted by scheduled date</small></div></div><div className="legend"><span><i className="legend-dot high" /> High priority</span><span><i className="legend-dot normal" /> Planned</span></div></div><Card className="maintenance-page-card">{maintenance.isLoading ? <div className="stack-skeleton"><Skeleton className="h-20" /><Skeleton className="h-20" /><Skeleton className="h-20" /></div> : maintenance.isError ? <ErrorState onRetry={() => void maintenance.refetch()} /> : maintenance.data?.length ? <MaintenanceList items={maintenance.data} onEdit={canEdit ? (item) => { setEditing(item); setShowForm(true); } : undefined} onDelete={canSchedule ? (item) => void deleteItem(item) : undefined} /> : <EmptyState title="Maintenance queue is clear" text="Nothing is scheduled for the next 14 days." />}</Card><Card className="maintenance-note"><Wrench size={18} /><div><b>Maintenance control</b><p>Schedule, reprioritize, complete, or remove service work without leaving the asset register.</p></div></Card></div>{(canSchedule || canEdit) && showForm && <Modal title={editing ? "Edit maintenance" : "Schedule maintenance"} onClose={() => { setEditing(null); setShowForm(false); }}><MaintenanceForm assets={assets.data?.items ?? []} initial={editing} editing={Boolean(editing)} onSubmit={save} onCancel={() => { setEditing(null); setShowForm(false); }} submitting={create.isPending || update.isPending} /></Modal>}</ShellPage>;
+  return <ShellPage>
+    <Topbar title="Maintenance" description="Device service and estate work share one queue: OS/app patches, LAN, and firewall updates included." action={canSchedule ? <div className="topbar-button-row"><Button className="button-ghost" onClick={() => { setEditing(null); setShowForm("estate"); }}>Estate work</Button><Button className="button-accent" onClick={() => { setEditing(null); setShowForm("asset"); }}><Plus size={16} /> Device work</Button></div> : undefined} />
+    <div className="page-wrap">
+      <div className="inventory-toolbar">
+        <SearchBox value={search} onChange={setSearch} placeholder="Search title, technician, or asset tag…" />
+        <SelectField value={status} onChange={setStatus} options={[{ value: "pending", label: "Pending" }, { value: "scheduled", label: "Scheduled" }, { value: "completed", label: "Completed" }, { value: "overdue", label: "Overdue" }]} label="Status" testId="select-maintenance-status" />
+        <SelectField value={mode} onChange={setMode} options={[{ value: "scheduled", label: "Scheduled" }, { value: "emergency", label: "Emergency" }]} label="Mode" testId="select-maintenance-mode" />
+        <SelectField value={scope} onChange={setScope} options={[{ value: "asset", label: "Device" }, { value: "estate", label: "Estate" }]} label="Scope" testId="select-maintenance-scope" />
+        <SelectField value={activityType} onChange={setActivityType} options={ACTIVITY_TYPE_OPTIONS} label="Activity" testId="select-maintenance-activity" />
+        <SelectField value={priority} onChange={setPriority} options={[{ value: "high", label: "High" }, { value: "normal", label: "Normal" }, { value: "low", label: "Low" }]} label="Priority" testId="select-maintenance-priority" />
+      </div>
+      <div className="maintenance-header"><div className="queue-summary"><span className="queue-number">{maintenance.data?.length ?? "—"}</span><div><b>Open service items</b><small>Sorted by scheduled date</small></div></div><div className="legend"><span><i className="legend-dot high" /> High priority</span><span><i className="legend-dot normal" /> Planned</span></div></div>
+      <Card className="maintenance-page-card">{maintenance.isLoading ? <div className="stack-skeleton"><Skeleton className="h-20" /><Skeleton className="h-20" /><Skeleton className="h-20" /></div> : maintenance.isError ? <ErrorState onRetry={() => void maintenance.refetch()} /> : maintenance.data?.length ? <MaintenanceList items={maintenance.data} onEdit={canEdit ? (item) => { setEditing(item); setShowForm(item.scope === "estate" ? "estate" : "asset"); } : undefined} onDelete={canSchedule ? (item) => void deleteItem(item) : undefined} /> : <EmptyState title="Maintenance queue is clear" text="Nothing matches these filters, or nothing is scheduled." />}</Card>
+      <Card className="maintenance-note"><Wrench size={18} /><div><b>Maintenance control</b><p>Schedule, reprioritize, complete, or remove service work without leaving the asset register. Estate OS, application, LAN, and firewall work lives on this same queue.</p></div></Card>
+    </div>
+    {(canSchedule || canEdit) && showForm && <Modal title={editing ? "Edit maintenance" : showForm === "estate" ? "Schedule estate work" : "Schedule device work"} onClose={() => { setEditing(null); setShowForm(false); }}><MaintenanceForm assets={assets.data?.items ?? []} initial={editing} scope={editing?.scope ?? showForm} editing={Boolean(editing)} onSubmit={save} onCancel={() => { setEditing(null); setShowForm(false); }} submitting={create.isPending || update.isPending || createPhoto.isPending} /></Modal>}
+  </ShellPage>;
 }
 
-function MaintenanceForm({ assets, initial, editing, onSubmit, onCancel, submitting }: { assets: Asset[]; initial?: MaintenanceItem | null; editing: boolean; onSubmit: (values: { assetId: string; scheduledAt: string; technician: string; priority: string; status: string; resolutionNotes: string }) => Promise<void>; onCancel: () => void; submitting: boolean }) {
-  const [values, setValues] = useState<{ assetId: string; scheduledAt: string; technician: string; priority: string; status: string; resolutionNotes: string }>({ assetId: initial ? assets.find((asset) => asset.assetTag === initial.assetTag)?.id ?? "" : assets[0]?.id ?? "", scheduledAt: initial ? new Date(initial.scheduledAt).toISOString().slice(0, 16) : "", technician: initial?.technician ?? "", priority: initial?.priority ?? "normal", status: initial?.status ?? "scheduled", resolutionNotes: initial?.resolutionNotes ?? "" });
+type MaintenanceFormValues = {
+  title: string;
+  assetId: string;
+  scope: "asset" | "estate";
+  mode: string;
+  activityType: string;
+  scheduledAt: string;
+  technician: string;
+  priority: string;
+  status: string;
+  resolutionNotes: string;
+};
+
+function MaintenanceForm({ assets, initial, scope, editing, onSubmit, onCancel, submitting }: { assets: Asset[]; initial?: MaintenanceItem | null; scope: "asset" | "estate"; editing: boolean; onSubmit: (values: MaintenanceFormValues, photos: File[]) => Promise<void>; onCancel: () => void; submitting: boolean }) {
+  const [values, setValues] = useState<MaintenanceFormValues>({
+    title: initial?.title ?? "",
+    assetId: initial?.assetId ?? assets[0]?.id ?? "",
+    scope,
+    mode: initial?.mode ?? "scheduled",
+    activityType: initial?.activityType ?? "os_patch",
+    scheduledAt: initial ? new Date(initial.scheduledAt).toISOString().slice(0, 16) : "",
+    technician: initial?.technician ?? "",
+    priority: initial?.priority ?? "normal",
+    status: initial?.status ?? "scheduled",
+    resolutionNotes: initial?.resolutionNotes ?? "",
+  });
+  const [photos, setPhotos] = useState<File[]>([]);
   const [error, setError] = useState("");
   async function submit(event: FormEvent) {
     event.preventDefault();
     setError("");
-    try { await onSubmit(values); } catch (err) { setError(err instanceof Error ? err.message : "Unable to save maintenance."); }
+    try { await onSubmit(values, photos); } catch (err) { setError(apiErrorMessage(err, "Unable to save maintenance.")); }
   }
-  return <form className="asset-form" onSubmit={submit}><p className="modal-intro">Record the next service action and keep the technician accountable.</p><div className="form-grid"><Field label="Asset" value={values.assetId} onChange={(value) => setValues((current) => ({ ...current, assetId: value }))} options={assets.map((asset) => ({ value: asset.id, label: `${asset.assetTag} · ${asset.name}` }))} required /><Field label="Scheduled at" value={values.scheduledAt} onChange={(value) => setValues((current) => ({ ...current, scheduledAt: value }))} type="datetime-local" required /><Field label="Technician" value={values.technician} onChange={(value) => setValues((current) => ({ ...current, technician: value }))} placeholder="Name or team" required /><Field label="Priority" value={values.priority} onChange={(value) => setValues((current) => ({ ...current, priority: value }))} options={[{ value: "high", label: "High" }, { value: "normal", label: "Normal" }, { value: "low", label: "Low" }]} /><Field label="Status" value={values.status} onChange={(value) => setValues((current) => ({ ...current, status: value }))} options={[{ value: "pending", label: "Pending" }, { value: "scheduled", label: "Scheduled" }, { value: "completed", label: "Completed" }, { value: "overdue", label: "Overdue" }]} /></div><label className="field field-full"><span>Resolution / outcome notes</span><textarea value={values.resolutionNotes} onChange={(event) => setValues((current) => ({ ...current, resolutionNotes: event.target.value }))} placeholder="What was done, root cause, parts replaced…" rows={3} /></label>{initial?.completedAt && <p className="modal-intro" data-testid="maintenance-completed-meta">Completed {formatRelative(initial.completedAt)}{initial.completedBy ? ` by ${initial.completedBy}` : ""}.</p>}{error && <p className="form-error">{error}</p>}<div className="modal-actions"><Button type="button" className="button-ghost" onClick={onCancel}>Cancel</Button><Button className="button-dark" disabled={submitting || !values.assetId}>{submitting ? "Saving…" : editing ? "Save changes" : "Schedule work"}</Button></div></form>;
+  const remaining = 5 - photos.length;
+  return <form className="asset-form" onSubmit={submit}>
+    <p className="modal-intro">{values.scope === "estate" ? "Record estate-level OS, application, LAN, or firewall work. This is not tied to a single device." : "Record the next service action for a device and keep the technician accountable."}</p>
+    <div className="form-grid">
+      <Field label="Title" value={values.title} onChange={(value) => setValues((current) => ({ ...current, title: value }))} placeholder={values.scope === "estate" ? "Windows 11 security patch" : "Battery replacement"} required />
+      {values.scope === "asset" && <Field label="Asset" value={values.assetId} onChange={(value) => setValues((current) => ({ ...current, assetId: value }))} options={assets.map((asset) => ({ value: asset.id, label: `${asset.assetTag} · ${asset.name}` }))} required />}
+      {values.scope === "estate" && <Field label="Activity type" value={values.activityType} onChange={(value) => setValues((current) => ({ ...current, activityType: value }))} options={ACTIVITY_TYPE_OPTIONS} required />}
+      <Field label="Mode" value={values.mode} onChange={(value) => setValues((current) => ({ ...current, mode: value }))} options={[{ value: "scheduled", label: "Scheduled" }, { value: "emergency", label: "Emergency" }]} />
+      <Field label="Scheduled at" value={values.scheduledAt} onChange={(value) => setValues((current) => ({ ...current, scheduledAt: value }))} type="datetime-local" required />
+      <Field label="Technician" value={values.technician} onChange={(value) => setValues((current) => ({ ...current, technician: value }))} placeholder="Name or team" required />
+      <Field label="Priority" value={values.priority} onChange={(value) => setValues((current) => ({ ...current, priority: value }))} options={[{ value: "high", label: "High" }, { value: "normal", label: "Normal" }, { value: "low", label: "Low" }]} />
+      <Field label="Status" value={values.status} onChange={(value) => setValues((current) => ({ ...current, status: value }))} options={[{ value: "pending", label: "Pending" }, { value: "scheduled", label: "Scheduled" }, { value: "completed", label: "Completed" }, { value: "overdue", label: "Overdue" }]} />
+    </div>
+    <label className="field field-full"><span>Resolution / outcome notes</span><textarea value={values.resolutionNotes} onChange={(event) => setValues((current) => ({ ...current, resolutionNotes: event.target.value }))} placeholder="What was done, root cause, parts replaced…" rows={3} /></label>
+    {initial?.completedAt && <p className="modal-intro" data-testid="maintenance-completed-meta">Completed {formatRelative(initial.completedAt)}{initial.completedBy ? ` by ${initial.completedBy}` : ""}.</p>}
+    {initial && <MaintenancePhotos maintenanceId={initial.id} />}
+    {!initial && <PhotoPicker files={photos} onChange={setPhotos} remaining={remaining} />}
+    {error && <p className="form-error">{error}</p>}
+    <div className="modal-actions"><Button type="button" className="button-ghost" onClick={onCancel}>Cancel</Button><Button className="button-dark" disabled={submitting || (values.scope === "asset" && !values.assetId) || !values.title}>{submitting ? "Saving…" : editing ? "Save changes" : "Schedule work"}</Button></div>
+  </form>;
+}
+
+function MaintenancePhotos({ maintenanceId }: { maintenanceId: string }) {
+  const existingPhotos = useListMaintenanceAttachments(maintenanceId);
+  const removePhoto = useDeleteAttachment();
+  const addPhoto = useCreateMaintenanceAttachment();
+  const client = useQueryClient();
+  const { toast } = useToast();
+  async function uploadExisting(files: File[]) {
+    try {
+      for (const file of files) {
+        await addPhoto.mutateAsync({ maintenanceId, data: await fileToAttachmentPayload(file) });
+      }
+      await client.invalidateQueries();
+    } catch (err) {
+      toast({ title: "Could not add photo", description: apiErrorMessage(err, "Unable to save this photo."), variant: "destructive" });
+    }
+  }
+  async function deleteExisting(attachmentId: string) {
+    if (!window.confirm("Remove this photo?")) return;
+    try {
+      await removePhoto.mutateAsync({ attachmentId });
+      await client.invalidateQueries();
+    } catch (err) {
+      toast({ title: "Could not remove photo", description: apiErrorMessage(err, "Unable to remove this photo."), variant: "destructive" });
+    }
+  }
+  return <PhotoGallery attachments={existingPhotos.data ?? []} remaining={Math.max(0, 5 - (existingPhotos.data?.length ?? 0))} adding={addPhoto.isPending} onAdd={(files) => void uploadExisting(files)} onRemove={(attachment) => void deleteExisting(attachment.id)} />;
 }
 
 const REPORT_STAGES: ComplianceReport["status"][] = ["in_preparation", "ready_for_review", "final"];
@@ -799,10 +1095,11 @@ function metricLabel(key: string) {
 }
 
 function Team() {
-  const { role } = useRole();
+  const { role, user } = useRole();
   const users = useListUsers();
   const createUser = useCreateUser();
   const updateUserRole = useUpdateUserRole();
+  const deleteUser = useDeleteUser();
   const client = useQueryClient();
   const { toast } = useToast();
   const [showInvite, setShowInvite] = useState(false);
@@ -823,17 +1120,33 @@ function Team() {
       await client.invalidateQueries();
       toast({ title: "Role updated" });
     } catch (err) {
-      toast({ title: "Could not update role", description: err instanceof Error ? err.message : undefined, variant: "destructive" });
+      toast({ title: "Could not update role", description: apiErrorMessage(err, "Unable to update this role."), variant: "destructive" });
+    }
+  }
+
+  async function removeMember(member: User) {
+    if (member.id === user?.id) {
+      toast({ title: "You cannot delete your own account while signed in.", variant: "destructive" });
+      return;
+    }
+    if (!window.confirm(`Remove ${member.name || member.email} from the team? Their login access is revoked in this app. Clerk is not changed.`)) return;
+    try {
+      await deleteUser.mutateAsync({ userId: member.id });
+      await client.invalidateQueries();
+      toast({ title: "Team member removed" });
+    } catch (err) {
+      toast({ title: "Could not remove member", description: apiErrorMessage(err, "Unable to remove this team member."), variant: "destructive" });
     }
   }
 
   const canRoles = canManageRoles(role);
+  const canDelete = canDeleteTeamMembers(role);
   return <ShellPage>
     <Topbar title="Team" description="Manage who has access and what they can do." action={canOnboardUsers(role) ? <Button className="button-accent" onClick={() => setShowInvite(true)}><Plus size={16} /> Onboard user</Button> : undefined} />
     <div className="page-wrap">
       <Card className="table-card">
         {users.isLoading ? <LoadingBlock /> : users.isError ? <ErrorState onRetry={() => void users.refetch()} /> : users.data?.length ? (
-          <div className="table-scroll"><table className="asset-table"><thead><tr><th>Member</th><th>Role</th><th>Status</th><th>Onboarding</th><th>Last active</th></tr></thead><tbody>
+          <div className="table-scroll"><table className="asset-table"><thead><tr><th>Member</th><th>Role</th><th>Status</th><th>Onboarding</th><th>Last active</th><th /></tr></thead><tbody>
             {users.data.map((member) => {
               const pending = member.id.startsWith("pending:");
               return <tr key={member.id} data-testid={`row-user-${member.id}`}>
@@ -842,6 +1155,7 @@ function Team() {
                 <td>{pending ? <span className="status-pill status-orange"><i />Invited</span> : <span className="status-pill status-green"><i />Active</span>}</td>
                 <td className="muted">{member.invitedBy ? "Onboarded" : "Self-registered"}</td>
                 <td className="muted">{pending ? "—" : formatRelative(member.lastSeenAt)}</td>
+                <td>{canDelete && member.id !== user?.id && <button className="row-arrow danger-action" aria-label={`Delete ${member.email}`} onClick={() => void removeMember(member)}><Trash2 size={14} /></button>}</td>
               </tr>;
             })}
           </tbody></table></div>
@@ -877,6 +1191,7 @@ function Reports() {
   const [, setLocation] = useLocation();
   const reports = useListComplianceReports();
   const createReport = useCreateComplianceReport();
+  const deleteReport = useDeleteComplianceReport();
   const client = useQueryClient();
   const { toast } = useToast();
   const [showNew, setShowNew] = useState(false);
@@ -891,6 +1206,17 @@ function Reports() {
     setShowNew(false);
     await client.invalidateQueries();
     toast({ title: "Report started" });
+  }
+
+  async function removeReport(report: ComplianceReport) {
+    if (!window.confirm(`Delete “${report.title}”? This cannot be undone.`)) return;
+    try {
+      await deleteReport.mutateAsync({ reportId: report.id });
+      await client.invalidateQueries();
+      toast({ title: "Report deleted" });
+    } catch (err) {
+      toast({ title: "Could not delete report", description: apiErrorMessage(err, "Unable to delete this report."), variant: "destructive" });
+    }
   }
 
   return <ShellPage>
@@ -915,7 +1241,7 @@ function Reports() {
               <td><span className={`status-pill ${REPORT_STAGE_TONE[report.status]}`}><i />{REPORT_STAGE_LABEL[report.status]}</span></td>
               <td className="muted">{report.periodStart ? `${formatDate(report.periodStart)} – ${formatDate(report.periodEnd)}` : "—"}</td>
               <td className="muted">{formatRelative(report.updatedAt)}</td>
-              <td><button className="row-arrow" aria-label={`Open ${report.title}`} onClick={(event) => { event.stopPropagation(); setLocation(`/reports/${report.id}`); }}><ArrowRight size={16} /></button></td>
+              <td><div className="row-actions">{canDeleteReports(role) && <button className="row-arrow danger-action" aria-label={`Delete ${report.title}`} onClick={(event) => { event.stopPropagation(); void removeReport(report); }}><Trash2 size={14} /></button>}<button className="row-arrow" aria-label={`Open ${report.title}`} onClick={(event) => { event.stopPropagation(); setLocation(`/reports/${report.id}`); }}><ArrowRight size={16} /></button></div></td>
             </tr>)}
           </tbody></table></div>
         ) : <EmptyState title="No reports yet" text="Start a compliance report to capture findings." />}
@@ -952,6 +1278,7 @@ function ReportDetailPage() {
   const reportId = params?.reportId ?? "";
   const report = useGetComplianceReport(reportId);
   const updateReport = useUpdateComplianceReport();
+  const deleteReport = useDeleteComplianceReport();
   const client = useQueryClient();
   const { toast } = useToast();
   const [draft, setDraft] = useState<{ title: string; summary: string; findings: string; rootCauseNotes: string } | null>(null);
@@ -973,12 +1300,23 @@ function ReportDetailPage() {
       setDraft(null);
       toast({ title: message });
     } catch (err) {
-      toast({ title: "Update failed", description: err instanceof Error ? err.message : undefined, variant: "destructive" });
+      toast({ title: "Update failed", description: apiErrorMessage(err, "Unable to update this report."), variant: "destructive" });
+    }
+  }
+
+  async function removeThisReport() {
+    if (!window.confirm(`Delete “${data.title}”? This cannot be undone.`)) return;
+    try {
+      await deleteReport.mutateAsync({ reportId });
+      toast({ title: "Report deleted" });
+      setLocation("/reports");
+    } catch (err) {
+      toast({ title: "Could not delete report", description: apiErrorMessage(err, "Unable to delete this report."), variant: "destructive" });
     }
   }
 
   return <ShellPage>
-    <Topbar title={data.title} description={`Compliance report · ${REPORT_STAGE_LABEL[data.status]}`} />
+    <Topbar title={data.title} description={`Compliance report · ${REPORT_STAGE_LABEL[data.status]}`} action={canDeleteReports(role) ? <Button className="button-ghost" onClick={() => void removeThisReport()}><Trash2 size={15} /> Delete</Button> : undefined} />
     <div className="page-wrap">
       <button className="back-link" onClick={() => setLocation("/reports")}><ArrowLeft size={15} /> Back to reports</button>
       <div className="detail-hero">

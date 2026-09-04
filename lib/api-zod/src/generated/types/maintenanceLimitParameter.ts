@@ -6,10 +6,4 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface Person {
-  id: string;
-  name: string;
-  departmentId: string;
-  department: string;
-  email: string;
-}
+export type MaintenanceLimitParameter = number;
