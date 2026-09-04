@@ -29,25 +29,56 @@ function localDir() {
   return process.env.UPLOAD_DIR || path.join(process.cwd(), "uploads");
 }
 
+function blobToken() {
+  const token = process.env.BLOB_READ_WRITE_TOKEN?.trim();
+  return token || undefined;
+}
+
+function shouldUseBlob() {
+  return Boolean(
+    process.env.VERCEL ||
+      blobToken() ||
+      process.env.BLOB_STORE_ID?.trim(),
+  );
+}
+
+function blobAuth() {
+  const token = blobToken();
+  return token ? { token } : {};
+}
+
+async function putBlob(id: string, bytes: Buffer, contentType: string) {
+  const { put } = await import("@vercel/blob");
+  const blob = await put(`attachments/${id}`, bytes, {
+    access: "public",
+    contentType,
+    addRandomSuffix: false,
+    ...blobAuth(),
+  });
+  return { url: blob.url, storageKey: `blob:${blob.url}` };
+}
+
 export async function storeImage(
   id: string,
   bytes: Buffer,
   contentType: string,
 ): Promise<{ url: string; storageKey: string }> {
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (token) {
-    const { put } = await import("@vercel/blob");
-    const blob = await put(`attachments/${id}`, bytes, {
-      access: "public",
-      contentType,
-      token,
-    });
-    return { url: blob.url, storageKey: `blob:${blob.url}` };
+  if (shouldUseBlob()) {
+    try {
+      return await putBlob(id, bytes, contentType);
+    } catch (err) {
+      if (process.env.VERCEL) {
+        const detail = err instanceof Error ? err.message : "Unknown Blob error";
+        throw new Error(
+          `Photo storage failed (${detail}). Confirm the Blob store is Public and connected to this Vercel project’s Production environment.`,
+        );
+      }
+      throw err;
+    }
   }
   const dir = localDir();
   await mkdir(dir, { recursive: true });
-  const filePath = path.join(dir, id);
-  await writeFile(filePath, bytes);
+  await writeFile(path.join(dir, id), bytes);
   return { url: `/api/attachments/${id}/file`, storageKey: `local:${id}` };
 }
 
@@ -61,18 +92,15 @@ export async function readLocalImage(id: string): Promise<Buffer | null> {
 
 export async function removeStoredImage(storageKey: string): Promise<void> {
   if (storageKey.startsWith("local:")) {
-    const id = storageKey.slice("local:".length);
     try {
-      await unlink(path.join(localDir(), id));
+      await unlink(path.join(localDir(), storageKey.slice("local:".length)));
     } catch {
       // already gone
     }
     return;
   }
-  if (storageKey.startsWith("blob:") && process.env.BLOB_READ_WRITE_TOKEN) {
+  if (storageKey.startsWith("blob:") && shouldUseBlob()) {
     const { del } = await import("@vercel/blob");
-    await del(storageKey.slice("blob:".length), {
-      token: process.env.BLOB_READ_WRITE_TOKEN,
-    });
+    await del(storageKey.slice("blob:".length), blobAuth());
   }
 }
