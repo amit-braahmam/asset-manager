@@ -12,6 +12,7 @@ import {
   canDeleteReports,
   canManageMaintenance,
   canManageRoles,
+  canManageLookups,
   canOnboardUsers,
   canUpdateAssetStatus,
   canViewReports,
@@ -57,10 +58,11 @@ describe("UI permission helpers match the API role matrix", () => {
     assert.deepEqual(allowed(canDeleteDirectory), ["admin", "manager"]);
   });
 
-  it("Team is Admin + Manager; role changes and team/report deletes are Admin only", () => {
+  it("Team is Admin + Manager; role changes, lookup catalogs, and team/report deletes are Admin only", () => {
     assert.deepEqual(allowed(canViewTeam), ["admin", "manager"]);
     assert.deepEqual(allowed(canOnboardUsers), ["admin", "manager"]);
     assert.deepEqual(allowed(canManageRoles), ["admin"]);
+    assert.deepEqual(allowed(canManageLookups), ["admin"]);
     assert.deepEqual(allowed(canDeleteTeamMembers), ["admin"]);
     assert.deepEqual(allowed(canDeleteReports), ["admin"]);
   });

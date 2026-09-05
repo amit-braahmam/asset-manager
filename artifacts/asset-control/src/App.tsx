@@ -115,6 +115,7 @@ import {
   canViewTeam,
   canOnboardUsers,
   canManageRoles,
+  canManageLookups,
   canViewReports,
   canEditReports,
   grantableRoles,
@@ -756,6 +757,7 @@ function Directory() {
   const { role } = useRole();
   const canManage = canManageDirectory(role);
   const canDelete = canDeleteDirectory(role);
+  const canLookups = canManageLookups(role);
   const peopleQuery = useListPeople();
   const locationsQuery = useListLocations();
   const departmentsQuery = useListDepartments();
@@ -815,14 +817,14 @@ function Directory() {
   const editingDepartment = modal?.kind === "department" ? departmentsQuery.data?.find((department) => department.id === modal.id) : undefined;
   const departments = departmentsQuery.data ?? [];
   return <ShellPage>
-    <Topbar title="Directory" description="Keep departments, custodians, locations, and dropdown options current for clean assignments." action={canManage ? <div className="topbar-button-row"><Button className="button-ghost" onClick={() => setShowImport(true)}><FileUp size={15} /> Import people</Button><Button className="button-ghost" onClick={() => setModal({ kind: "department" })}>Add department</Button><Button className="button-ghost" onClick={() => setModal({ kind: "location" })}><MapPin size={15} /> Add location</Button><Button className="button-accent" onClick={() => setModal({ kind: "person" })}><Plus size={16} /> Add person</Button></div> : undefined} />
+    <Topbar title="Directory" description={canLookups ? "Keep departments, custodians, locations, and dropdown options current for clean assignments." : "Keep departments, custodians, and locations current for clean assignments."} action={canManage ? <div className="topbar-button-row"><Button className="button-ghost" onClick={() => setShowImport(true)}><FileUp size={15} /> Import people</Button><Button className="button-ghost" onClick={() => setModal({ kind: "department" })}>Add department</Button><Button className="button-ghost" onClick={() => setModal({ kind: "location" })}><MapPin size={15} /> Add location</Button><Button className="button-accent" onClick={() => setModal({ kind: "person" })}><Plus size={16} /> Add person</Button></div> : undefined} />
     <div className="page-wrap">
       <div className="directory-grid">
         <Card><SectionHeading eyebrow="Organization" title="Departments" detail={`${departmentsQuery.data?.length ?? "—"} departments in the lookup.`} /><div className="directory-list">{departmentsQuery.isLoading ? <LoadingBlock /> : departmentsQuery.data?.length ? departmentsQuery.data.map((department) => <div className="directory-row" key={department.id}><div className="avatar department-avatar">{department.name.slice(0, 1)}</div><div><b>{department.name}</b><small>{department.personCount} people</small></div>{canManage && <button className="row-arrow" aria-label={`Edit ${department.name}`} onClick={() => setModal({ kind: "department", id: department.id })}><Pencil size={14} /></button>}{canDelete && <button className="row-arrow danger-action" aria-label={`Delete ${department.name}`} onClick={() => void removeRecord("department", department.id, department.name)}><Trash2 size={14} /></button>}</div>) : <EmptyState title="No departments yet" text="Add a department before assigning people." />}</div></Card>
         <Card><SectionHeading eyebrow="Custodians" title="People" detail={`${peopleQuery.data?.length ?? "—"} people available for assignment.`} /><div className="directory-list">{peopleQuery.isLoading ? <LoadingBlock /> : peopleQuery.data?.length ? peopleQuery.data.map((person) => <div className="directory-row" key={person.id}><div className="avatar">{initials(person.name)}</div><div><b>{person.name}</b><small>{person.department} · {person.email}</small></div>{canManage && <button className="row-arrow" aria-label={`Edit ${person.name}`} onClick={() => setModal({ kind: "person", id: person.id })}><Pencil size={14} /></button>}{canDelete && <button className="row-arrow danger-action" aria-label={`Delete ${person.name}`} onClick={() => void removeRecord("person", person.id, person.name)}><Trash2 size={14} /></button>}</div>) : <EmptyState title="No people yet" text="Add a person to make assignment available." />}</div></Card>
         <Card><SectionHeading eyebrow="Operating footprint" title="Locations" detail={`${locationsQuery.data?.length ?? "—"} sites in the register.`} /><div className="directory-list">{locationsQuery.isLoading ? <LoadingBlock /> : locationsQuery.data?.length ? locationsQuery.data.map((location) => <div className="directory-row" key={location.id}><div className="avatar location-avatar"><MapPin size={15} /></div><div><b>{location.name}</b><small>{location.city} · {location.assetCount} assets</small></div>{canManage && <button className="row-arrow" aria-label={`Edit ${location.name}`} onClick={() => setModal({ kind: "location", id: location.id })}><Pencil size={14} /></button>}{canDelete && <button className="row-arrow danger-action" aria-label={`Delete ${location.name}`} onClick={() => void removeRecord("location", location.id, location.name)}><Trash2 size={14} /></button>}</div>) : <EmptyState title="No locations yet" text="Add a location before registering assets." />}</div></Card>
       </div>
-      <DirectoryLookups canManage={canManage} canDelete={canDelete} />
+      {canLookups && <DirectoryLookups canManage canDelete />}
     </div>
     {modal?.kind === "person" && <Modal title={editingPerson ? "Edit person" : "Add person"} onClose={() => setModal(null)}><PersonForm initial={editingPerson} departments={departments} onSubmit={savePerson} onCancel={() => setModal(null)} submitting={createPerson.isPending || updatePerson.isPending} /></Modal>}
     {modal?.kind === "location" && <Modal title={editingLocation ? "Edit location" : "Add location"} onClose={() => setModal(null)}><LocationForm initial={editingLocation} onSubmit={saveLocation} onCancel={() => setModal(null)} submitting={createLocation.isPending || updateLocation.isPending} /></Modal>}

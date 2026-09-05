@@ -97,6 +97,7 @@ describe("requireRoles", () => {
     { allowed: ["admin", "manager", "technician"], path: "update asset status" },
     { allowed: ["admin", "auditor"], path: "reports and audit logs" },
     { allowed: ["admin"], path: "change user role" },
+    { allowed: ["admin"], path: "edit Directory dropdown options" },
     { allowed: ["admin"], path: "delete team member or compliance report" },
   ];
 

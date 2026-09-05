@@ -40,7 +40,7 @@ export const HELP_GUIDES: HelpGuide[] = [
       "Add a department, then people who belong to it. Add locations before you create or move assets.",
       "Import people with the CSV wizard when you have a roster to load in bulk.",
       "An asset can only be assigned to someone who already exists in this directory.",
-      "Managers and Admins can also edit Inventory and Maintenance dropdowns on this page.",
+      "Only Admins can see and edit Inventory and Maintenance dropdown options on this page.",
     ],
   },
   {

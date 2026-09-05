@@ -72,6 +72,7 @@ export const canViewTeam = (role: Role | null) =>
 export const canOnboardUsers = (role: Role | null) =>
   role === "admin" || role === "manager";
 export const canManageRoles = (role: Role | null) => role === "admin";
+export const canManageLookups = (role: Role | null) => role === "admin";
 export const canViewReports = (role: Role | null) =>
   role === "admin" || role === "auditor";
 export const canEditReports = (role: Role | null) =>

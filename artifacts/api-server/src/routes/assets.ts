@@ -1080,7 +1080,7 @@ router.get("/lookups", async (req, res) => {
   } satisfies ApiLookupOption)));
 });
 
-router.post("/lookups", requireRoles("admin", "manager"), async (req, res) => {
+router.post("/lookups", requireRoles("admin"), async (req, res) => {
   await seedReady;
   const body = CreateLookupBody.parse(req.body);
   const created = await createLookupOption(body.group, body.label);
@@ -1091,7 +1091,7 @@ router.post("/lookups", requireRoles("admin", "manager"), async (req, res) => {
   res.status(201).json(created.option satisfies ApiLookupOption);
 });
 
-router.patch("/lookups/:lookupId", requireRoles("admin", "manager"), async (req, res) => {
+router.patch("/lookups/:lookupId", requireRoles("admin"), async (req, res) => {
   await seedReady;
   const { lookupId } = UpdateLookupParams.parse(req.params);
   const body = UpdateLookupBody.parse(req.body);
@@ -1103,7 +1103,7 @@ router.patch("/lookups/:lookupId", requireRoles("admin", "manager"), async (req,
   res.json(updated.option satisfies ApiLookupOption);
 });
 
-router.delete("/lookups/:lookupId", requireRoles("admin", "manager"), async (req, res) => {
+router.delete("/lookups/:lookupId", requireRoles("admin"), async (req, res) => {
   await seedReady;
   const { lookupId } = DeleteLookupParams.parse(req.params);
   const removed = await removeLookupOption(lookupId);

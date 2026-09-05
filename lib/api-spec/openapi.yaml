@@ -521,7 +521,7 @@ paths:
     post:
       operationId: createLookup
       tags: [lookups]
-      summary: Create a dropdown option (Admin and Manager)
+      summary: Create a dropdown option (Admin)
       requestBody:
         required: true
         content:
@@ -543,7 +543,7 @@ paths:
     patch:
       operationId: updateLookup
       tags: [lookups]
-      summary: Update a dropdown option (Admin and Manager)
+      summary: Update a dropdown option (Admin)
       parameters:
         - $ref: "#/components/parameters/LookupId"
       requestBody:
@@ -566,7 +566,7 @@ paths:
     delete:
       operationId: deleteLookup
       tags: [lookups]
-      summary: Delete a dropdown option (Admin and Manager)
+      summary: Delete a dropdown option (Admin)
       parameters:
         - $ref: "#/components/parameters/LookupId"
       responses:
