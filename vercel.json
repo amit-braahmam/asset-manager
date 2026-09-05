@@ -20,7 +20,7 @@
     },
     {
       "path": "/api/internal/cron/custody",
-      "schedule": "0 * * * *"
+      "schedule": "0 9 * * *"
     }
   ]
 }
