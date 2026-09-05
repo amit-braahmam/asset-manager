@@ -2,8 +2,9 @@ import { Link, useLocation } from 'wouter';
 import { type ChangeEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 import { useClerk, useUser } from '@clerk/react';
 import { Bell, Boxes, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, ClipboardList, FileText, Home, ImagePlus, LogOut, Menu, MoreHorizontal, Search, ShieldCheck, UsersRound, Wrench, X, ArrowUpRight, RefreshCw, Pencil, Trash2, Users } from 'lucide-react';
-import { customFetch, type Asset, type Attachment, type MaintenanceItem } from '@workspace/api-client-react';
+import { customFetch, useGetDashboardActivity, useListWarrantyAlerts, type Asset, type Attachment, type MaintenanceItem, type WarrantyAlert } from '@workspace/api-client-react';
 import { useRole, ROLE_LABELS, canViewTeam, canViewReports } from '@/lib/role';
+import { HELP_GUIDES, helpGuide, helpSectionFromPath, type HelpSection } from '@/lib/help-guides';
 
 export const statusLabels: Record<string, string> = { available: 'Available', assigned: 'Assigned', in_repair: 'In repair', rma: 'RMA', retired: 'Retired', lost: 'Lost' };
 export const statusTone: Record<string, string> = { available: 'status-green', assigned: 'status-blue', in_repair: 'status-orange', rma: 'status-red', retired: 'status-gray', lost: 'status-purple' };
@@ -77,10 +78,125 @@ export function Sidebar() {
 }
 
 export function Topbar({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
-  return <header className="topbar"><div className="mobile-menu"><Menu size={20} /></div><div><div className="eyebrow">AssetControl / workspace</div><h1 data-testid="text-page-title">{title}</h1>{description && <p>{description}</p>}</div><div className="topbar-actions"><button className="icon-button" aria-label="Help" data-testid="button-help"><CircleHelp size={18} /></button><button className="icon-button notice" aria-label="Notifications" data-testid="button-notifications"><Bell size={18} /><i /></button>{action}</div></header>;
+  return <header className="topbar"><div className="mobile-menu"><Menu size={20} /></div><div><div className="eyebrow">AssetControl / workspace</div><h1 data-testid="text-page-title">{title}</h1>{description && <p>{description}</p>}</div><div className="topbar-actions"><HelpCenterButton /><NotificationsPanel />{action}</div></header>;
 }
 
-export function AppShell({ children }: { children: ReactNode }) { return <div className="app-shell noise"><Sidebar /><main className="main-area">{children}</main></div>; }
+export function AppFooter() {
+  return <footer className="app-footer" data-testid="app-footer">Powered by <strong>Braahmam</strong></footer>;
+}
+
+export function AppShell({ children }: { children: ReactNode }) {
+  return <div className="app-shell noise"><Sidebar /><main className="main-area"><div className="main-scroll">{children}</div><AppFooter /></main></div>;
+}
+
+function warrantyCopy(alert: WarrantyAlert) {
+  if (alert.window === 'warranty_expired' || alert.daysRemaining <= 0) {
+    return alert.daysRemaining < 0 ? `Expired ${Math.abs(alert.daysRemaining)}d ago` : 'Expired today';
+  }
+  return `Ends in ${alert.daysRemaining}d`;
+}
+
+function NotificationsPanel() {
+  const [, setLocation] = useLocation();
+  const [open, setOpen] = useState(false);
+  const [coords, setCoords] = useState({ top: 0, right: 0 });
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const warranty = useListWarrantyAlerts();
+  const activity = useGetDashboardActivity({ limit: 5 });
+  const alerts = warranty.data ?? [];
+  const events = activity.data ?? [];
+  function placePanel() {
+    const box = wrapRef.current?.getBoundingClientRect();
+    if (!box) return;
+    setCoords({ top: box.bottom + 8, right: Math.max(12, window.innerWidth - box.right) });
+  }
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(event: PointerEvent) {
+      if (wrapRef.current && !wrapRef.current.contains(event.target as Node)) setOpen(false);
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setOpen(false);
+    }
+    function onClose() { setOpen(false); }
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    window.addEventListener('resize', onClose);
+    document.querySelector('.main-scroll')?.addEventListener('scroll', onClose);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('resize', onClose);
+      document.querySelector('.main-scroll')?.removeEventListener('scroll', onClose);
+    };
+  }, [open]);
+  return (
+    <div className="chrome-menu-wrap" ref={wrapRef}>
+      <button className={`icon-button ${alerts.length ? 'notice' : ''}`} aria-label="Notifications" aria-expanded={open} data-testid="button-notifications" onClick={() => { placePanel(); setOpen((current) => !current); }}>
+        <Bell size={18} />
+        {alerts.length > 0 && <i />}
+      </button>
+      {open && <div className="chrome-panel" role="dialog" aria-label="Notifications" data-testid="panel-notifications" style={{ top: coords.top, right: coords.right }}>
+        <section>
+          <h3>Warranty</h3>
+          {warranty.isLoading ? <p className="chrome-muted">Checking warranties…</p> : warranty.isError ? <p className="chrome-muted">Could not load warranty alerts.</p> : alerts.length === 0 ? <p className="chrome-muted">No warranties due in the next 30 days.</p> : (
+            <ul className="chrome-list">
+              {alerts.map((alert) => (
+                <li key={alert.assetId}>
+                  <button type="button" className="chrome-item" data-testid={`notice-warranty-${alert.assetId}`} onClick={() => { setOpen(false); setLocation(`/assets/${alert.assetId}`); }}>
+                    <b>{alert.assetName}</b>
+                    <span className="mono">{alert.assetTag}</span>
+                    <small className={alert.window === 'warranty_expired' || alert.daysRemaining <= 0 ? 'warranty-expired' : ''}>{warrantyCopy(alert)} · {formatDate(alert.warrantyEnd)}</small>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+        <section>
+          <h3>Recent updates</h3>
+          {activity.isLoading ? <p className="chrome-muted">Loading activity…</p> : activity.isError ? <p className="chrome-muted">Could not load recent updates.</p> : events.length === 0 ? <p className="chrome-muted">No recent activity yet.</p> : (
+            <ul className="chrome-list">
+              {events.map((event) => (
+                <li key={event.id} className="chrome-item static" data-testid={`notice-activity-${event.id}`}>
+                  <b>{event.message}</b>
+                  <small>{event.actor} · {formatDateTime(event.createdAt)}{event.assetTag ? ` · ${event.assetTag}` : ''}</small>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>}
+    </div>
+  );
+}
+
+function HelpCenterButton() {
+  const [location] = useLocation();
+  const [open, setOpen] = useState(false);
+  const [section, setSection] = useState<HelpSection>(() => helpSectionFromPath(location));
+  const guide = helpGuide(section);
+  return (
+    <>
+      <button className="icon-button" aria-label="Help" data-testid="button-help" onClick={() => { setSection(helpSectionFromPath(location)); setOpen(true); }}>
+        <CircleHelp size={18} />
+      </button>
+      {open && <Modal title="Help Center" className="help-modal" onClose={() => setOpen(false)}>
+        <div className="help-layout" data-testid="panel-help">
+          <nav className="help-nav" aria-label="Help sections">
+            {HELP_GUIDES.map((item) => (
+              <button key={item.id} type="button" className={item.id === section ? 'active' : ''} data-testid={`help-tab-${item.id}`} onClick={() => setSection(item.id)}>{item.title}</button>
+            ))}
+          </nav>
+          <div className="help-body">
+            <p className="modal-intro">{guide.summary}</p>
+            <ol className="help-steps">{guide.steps.map((step) => <li key={step}>{step}</li>)}</ol>
+          </div>
+        </div>
+      </Modal>}
+    </>
+  );
+}
 
 export function Card({ children, className = '', ...props }: { children: ReactNode; className?: string; [key: string]: unknown }) { return <section className={`panel ${className}`} {...props}>{children}</section>; }
 
@@ -100,8 +216,14 @@ export function Pagination({ page, pageSize, total, onPage }: { page: number; pa
 
 export function Modal({ title, children, onClose, className = "" }: { title: string; children: ReactNode; onClose: () => void; className?: string }) { return <div className="modal-backdrop" role="presentation" onMouseDown={(e) => e.target === e.currentTarget && onClose()}><div className={`modal ${className}`.trim()} role="dialog" aria-modal="true"><div className="modal-head"><div><div className="eyebrow">AssetControl / action</div><h2>{title}</h2></div><button className="icon-button" onClick={onClose} aria-label="Close" data-testid="button-close-modal"><X size={18} /></button></div>{children}</div></div>; }
 
-export function formatRelative(value?: string | null) { if (!value) return '—'; const date = new Date(value); if (Number.isNaN(date.getTime())) return value; const mins = Math.max(1, Math.round((Date.now() - date.getTime()) / 60000)); if (mins < 60) return `${mins}m ago`; if (mins < 1440) return `${Math.round(mins / 60)}h ago`; return `${Math.round(mins / 1440)}d ago`; }
-export function formatDate(value?: string | null) { if (!value) return 'Not set'; const date = new Date(value); return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+function toDate(value?: string | Date | null) {
+  if (value == null || value === '') return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+export function formatRelative(value?: string | Date | null) { const date = toDate(value); if (!date) return value ? String(value) : '—'; const mins = Math.max(1, Math.round((Date.now() - date.getTime()) / 60000)); if (mins < 60) return `${mins}m ago`; if (mins < 1440) return `${Math.round(mins / 60)}h ago`; return `${Math.round(mins / 1440)}d ago`; }
+export function formatDate(value?: string | Date | null) { const date = toDate(value); if (!date) return value ? String(value) : 'Not set'; return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+export function formatDateTime(value?: string | Date | null) { const date = toDate(value); if (!date) return value ? String(value) : '—'; return date.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }); }
 export function formatMoney(value?: number | null) { return value == null ? '—' : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value); }
 
 export function ActivityList({ events }: { events: { id: string; type: string; message: string; actor: string; createdAt: string; assetTag: string | null }[] }) { return <div className="activity-list">{events.map((event) => <div className="activity-item" key={event.id} data-testid={`activity-${event.id}`}><div className={`activity-mark activity-${event.type}`}><ClipboardList size={14} /></div><div><p>{event.message}</p><span>{event.actor} <i /> {formatRelative(event.createdAt)} {event.assetTag && <><i /> <b className="mono">{event.assetTag}</b></>}</span></div></div>)}</div>; }
@@ -119,7 +241,7 @@ export const ACTIVITY_TYPE_OPTIONS = [
 ];
 
 export function activityTypeLabel(value?: string | null) {
-  return ACTIVITY_TYPE_OPTIONS.find((option) => option.value === value)?.label ?? 'Estate activity';
+  return ACTIVITY_TYPE_OPTIONS.find((option) => option.value === value)?.label ?? 'Preventive activity';
 }
 
 export async function fileToAttachmentPayload(file: File) {

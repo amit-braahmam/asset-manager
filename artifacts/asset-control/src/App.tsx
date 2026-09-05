@@ -124,6 +124,7 @@ import {
 import {
   ActivityList,
   ACTIVITY_TYPE_OPTIONS,
+  AppFooter,
   AppShell,
   AssetTable,
   Button,
@@ -931,21 +932,21 @@ function Maintenance() {
   }
 
   return <ShellPage>
-    <Topbar title="Maintenance" description="Device service and estate work share one queue: OS/app patches, LAN, and firewall updates included." action={canSchedule ? <div className="topbar-button-row"><Button className="button-ghost" onClick={() => { setEditing(null); setShowForm("estate"); }}>Estate work</Button><Button className="button-accent" onClick={() => { setEditing(null); setShowForm("asset"); }}><Plus size={16} /> Device work</Button></div> : undefined} />
+    <Topbar title="Maintenance" description="Device service and preventive work share one queue: OS/app patches, LAN, and firewall updates included." action={canSchedule ? <div className="topbar-button-row"><Button className="button-ghost" onClick={() => { setEditing(null); setShowForm("estate"); }}>Preventive work</Button><Button className="button-accent" onClick={() => { setEditing(null); setShowForm("asset"); }}><Plus size={16} /> Device work</Button></div> : undefined} />
     <div className="page-wrap">
       <div className="inventory-toolbar">
         <SearchBox value={search} onChange={setSearch} placeholder="Search title, technician, or asset tag…" />
         <SelectField value={status} onChange={setStatus} options={[{ value: "pending", label: "Pending" }, { value: "scheduled", label: "Scheduled" }, { value: "completed", label: "Completed" }, { value: "overdue", label: "Overdue" }]} label="Status" testId="select-maintenance-status" />
         <SelectField value={mode} onChange={setMode} options={[{ value: "scheduled", label: "Scheduled" }, { value: "emergency", label: "Emergency" }]} label="Mode" testId="select-maintenance-mode" />
-        <SelectField value={scope} onChange={setScope} options={[{ value: "asset", label: "Device" }, { value: "estate", label: "Estate" }]} label="Scope" testId="select-maintenance-scope" />
+        <SelectField value={scope} onChange={setScope} options={[{ value: "asset", label: "Device" }, { value: "estate", label: "Preventive" }]} label="Scope" testId="select-maintenance-scope" />
         <SelectField value={activityType} onChange={setActivityType} options={ACTIVITY_TYPE_OPTIONS} label="Activity" testId="select-maintenance-activity" />
         <SelectField value={priority} onChange={setPriority} options={[{ value: "high", label: "High" }, { value: "normal", label: "Normal" }, { value: "low", label: "Low" }]} label="Priority" testId="select-maintenance-priority" />
       </div>
       <div className="maintenance-header"><div className="queue-summary"><span className="queue-number">{maintenance.data?.length ?? "—"}</span><div><b>Open service items</b><small>Sorted by scheduled date</small></div></div><div className="legend"><span><i className="legend-dot high" /> High priority</span><span><i className="legend-dot normal" /> Planned</span></div></div>
       <Card className="maintenance-page-card">{maintenance.isLoading ? <div className="stack-skeleton"><Skeleton className="h-20" /><Skeleton className="h-20" /><Skeleton className="h-20" /></div> : maintenance.isError ? <ErrorState onRetry={() => void maintenance.refetch()} /> : maintenance.data?.length ? <MaintenanceList items={maintenance.data} onEdit={canEdit ? (item) => { setEditing(item); setShowForm(item.scope === "estate" ? "estate" : "asset"); } : undefined} onDelete={canSchedule ? (item) => void deleteItem(item) : undefined} /> : <EmptyState title="Maintenance queue is clear" text="Nothing matches these filters, or nothing is scheduled." />}</Card>
-      <Card className="maintenance-note"><Wrench size={18} /><div><b>Maintenance control</b><p>Schedule, reprioritize, complete, or remove service work without leaving the asset register. Estate OS, application, LAN, and firewall work lives on this same queue.</p></div></Card>
+      <Card className="maintenance-note"><Wrench size={18} /><div><b>Maintenance control</b><p>Schedule, reprioritize, complete, or remove service work without leaving the asset register. Preventive OS, application, LAN, and firewall work lives on this same queue.</p></div></Card>
     </div>
-    {(canSchedule || canEdit) && showForm && <Modal title={editing ? "Edit maintenance" : showForm === "estate" ? "Schedule estate work" : "Schedule device work"} onClose={() => { setEditing(null); setShowForm(false); }}><MaintenanceForm assets={assets.data?.items ?? []} initial={editing} scope={editing?.scope ?? showForm} editing={Boolean(editing)} onSubmit={save} onCancel={() => { setEditing(null); setShowForm(false); }} submitting={create.isPending || update.isPending || createPhoto.isPending} /></Modal>}
+    {(canSchedule || canEdit) && showForm && <Modal title={editing ? "Edit maintenance" : showForm === "estate" ? "Schedule preventive work" : "Schedule device work"} onClose={() => { setEditing(null); setShowForm(false); }}><MaintenanceForm assets={assets.data?.items ?? []} initial={editing} scope={editing?.scope ?? showForm} editing={Boolean(editing)} onSubmit={save} onCancel={() => { setEditing(null); setShowForm(false); }} submitting={create.isPending || update.isPending || createPhoto.isPending} /></Modal>}
   </ShellPage>;
 }
 
@@ -984,7 +985,7 @@ function MaintenanceForm({ assets, initial, scope, editing, onSubmit, onCancel, 
   }
   const remaining = 5 - photos.length;
   return <form className="asset-form" onSubmit={submit}>
-    <p className="modal-intro">{values.scope === "estate" ? "Record estate-level OS, application, LAN, or firewall work. This is not tied to a single device." : "Record the next service action for a device and keep the technician accountable."}</p>
+    <p className="modal-intro">{values.scope === "estate" ? "Record preventive OS, application, LAN, or firewall work. This is not tied to a single device." : "Record the next service action for a device and keep the technician accountable."}</p>
     <div className="form-grid">
       <Field label="Title" value={values.title} onChange={(value) => setValues((current) => ({ ...current, title: value }))} placeholder={values.scope === "estate" ? "Windows 11 security patch" : "Battery replacement"} required />
       {values.scope === "asset" && <Field label="Asset" value={values.assetId} onChange={(value) => setValues((current) => ({ ...current, assetId: value }))} options={assets.map((asset) => ({ value: asset.id, label: `${asset.assetTag} · ${asset.name}` }))} required />}
@@ -1325,7 +1326,7 @@ function NotFound() {
 }
 
 function Landing() {
-  return <div className="auth-landing noise"><header className="auth-landing-header"><Link href="/" className="brand"><span className="brand-mark"><ShieldCheck size={20} strokeWidth={2.4} /></span><span className="brand-copy"><strong>asset<span>control</span></strong><small>OPERATIONS CONSOLE</small></span></Link><div className="auth-landing-actions"><Link href="/sign-in" className="button button-ghost">Sign in</Link><Link href="/sign-up" className="button button-accent">Create account</Link></div></header><main className="auth-landing-main"><div className="auth-kicker"><span className="health-dot" /> Asset operations, without the blind spots</div><h1>Know where every asset is. <em>Know what happens next.</em></h1><p>AssetControl gives growing operations teams one trusted register for inventory, people, locations, maintenance, and accountability.</p><div className="auth-landing-ctas"><Link href="/sign-up" className="button button-dark">Start your workspace <ArrowRight size={16} /></Link><Link href="/sign-in" className="text-link">Already have access? Sign in</Link></div><div className="auth-landing-proof"><span><Check size={15} /> Live asset register</span><span><Check size={15} /> Audit-ready activity</span><span><Check size={15} /> Maintenance visibility</span></div></main><div className="auth-landing-orbit orbit-one" /><div className="auth-landing-orbit orbit-two" /></div>;
+  return <div className="auth-landing noise"><header className="auth-landing-header"><Link href="/" className="brand"><span className="brand-mark"><ShieldCheck size={20} strokeWidth={2.4} /></span><span className="brand-copy"><strong>asset<span>control</span></strong><small>OPERATIONS CONSOLE</small></span></Link><div className="auth-landing-actions"><Link href="/sign-in" className="button button-ghost">Sign in</Link><Link href="/sign-up" className="button button-accent">Create account</Link></div></header><main className="auth-landing-main"><div className="auth-kicker"><span className="health-dot" /> Asset operations, without the blind spots</div><h1>Know where every asset is. <em>Know what happens next.</em></h1><p>AssetControl gives growing operations teams one trusted register for inventory, people, locations, maintenance, and accountability.</p><div className="auth-landing-ctas"><Link href="/sign-up" className="button button-dark">Start your workspace <ArrowRight size={16} /></Link><Link href="/sign-in" className="text-link">Already have access? Sign in</Link></div><div className="auth-landing-proof"><span><Check size={15} /> Live asset register</span><span><Check size={15} /> Audit-ready activity</span><span><Check size={15} /> Maintenance visibility</span></div></main><div className="auth-landing-orbit orbit-one" /><div className="auth-landing-orbit orbit-two" /><AppFooter /></div>;
 }
 
 function HomeRedirect() {

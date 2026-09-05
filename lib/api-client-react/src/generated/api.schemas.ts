@@ -415,6 +415,25 @@ export interface ActivityEvent {
   assetTag: string | null;
 }
 
+export type WarrantyAlertWindow = typeof WarrantyAlertWindow[keyof typeof WarrantyAlertWindow];
+
+
+export const WarrantyAlertWindow = {
+  warranty_30d: 'warranty_30d',
+  warranty_14d: 'warranty_14d',
+  warranty_7d: 'warranty_7d',
+  warranty_expired: 'warranty_expired',
+} as const;
+
+export interface WarrantyAlert {
+  assetId: string;
+  assetTag: string;
+  assetName: string;
+  warrantyEnd: string;
+  window: WarrantyAlertWindow;
+  daysRemaining: number;
+}
+
 export type MaintenanceItemScope = typeof MaintenanceItemScope[keyof typeof MaintenanceItemScope];
 
 

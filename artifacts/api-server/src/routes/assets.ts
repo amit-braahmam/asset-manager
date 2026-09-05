@@ -72,6 +72,7 @@ import {
 import { db } from "@workspace/db";
 import { randomUUID } from "node:crypto";
 import { seedReady } from "../lib/seed";
+import { collectWarrantyAlerts } from "../lib/warranty-alerts";
 import { actorLabel, requireRoles } from "../lib/auth";
 import { assigneeEmailFor, notify } from "../lib/notify";
 import {
@@ -88,7 +89,7 @@ const ACTIVITY_LABEL: Record<string, string> = {
   application_patch: "Application patch",
   lan: "LAN update",
   firewall: "Firewall update",
-  other: "Estate activity",
+  other: "Preventive activity",
 };
 
 type AssetRow = {
@@ -249,7 +250,7 @@ function toMaintenanceItem(
     activityType: maintenance.activityType as ApiMaintenanceItem["activityType"],
     assetId: maintenance.assetId,
     assetTag: asset?.assetTag ?? null,
-    category: asset?.name ?? ACTIVITY_LABEL[maintenance.activityType] ?? "Estate activity",
+    category: asset?.name ?? ACTIVITY_LABEL[maintenance.activityType] ?? "Preventive activity",
     scheduledAt: maintenance.scheduledAt,
     technician: maintenance.technician,
     priority: maintenance.priority as ApiMaintenanceItem["priority"],
@@ -375,6 +376,19 @@ router.get("/dashboard/activity", async (req, res) => {
 router.get("/dashboard/maintenance", async (req, res) => {
   await seedReady;
   res.json(await listMaintenanceItems(getLimit(req, GetDashboardMaintenanceQueryParams)));
+});
+
+router.get("/notifications/warranty", async (_req, res) => {
+  await seedReady;
+  const rows = await db
+    .select({
+      id: assetsTable.id,
+      assetTag: assetsTable.assetTag,
+      name: assetsTable.name,
+      warrantyEnd: assetsTable.warrantyEnd,
+    })
+    .from(assetsTable);
+  res.json(collectWarrantyAlerts(rows));
 });
 
 router.get("/assets", async (req, res) => {

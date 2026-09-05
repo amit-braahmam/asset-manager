@@ -6,6 +6,7 @@ import {
   technicianMatches,
   uniqueValidEmails,
   warrantyWindow,
+  warrantyDaysRemaining,
 } from "./notify-recipients";
 
 describe("normalizeEmail / uniqueValidEmails", () => {
@@ -50,5 +51,11 @@ describe("warrantyWindow", () => {
 
   it("returns null for unparseable dates", () => {
     assert.equal(warrantyWindow("n/a", today), null);
+  });
+
+  it("exposes remaining days for in-app warranty rows", () => {
+    assert.equal(warrantyDaysRemaining("2026-09-10", today), 7);
+    assert.equal(warrantyDaysRemaining("2026-09-03", today), 0);
+    assert.equal(warrantyDaysRemaining("n/a", today), null);
   });
 });

@@ -62,7 +62,8 @@ import type {
   PersonUpdate,
   User,
   UserInput,
-  UserRoleUpdate
+  UserRoleUpdate,
+  WarrantyAlert
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -403,6 +404,83 @@ export function useGetDashboardMaintenance<TData = Awaited<ReturnType<typeof get
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetDashboardMaintenanceQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListWarrantyAlertsUrl = () => {
+
+
+
+
+  return `/api/notifications/warranty`
+}
+
+/**
+ * @summary List assets with warranty expired or ending within 30 days
+ */
+export const listWarrantyAlerts = async ( options?: Parameters<typeof customFetch>[1]): Promise<WarrantyAlert[]> => {
+
+  return customFetch<WarrantyAlert[]>(getListWarrantyAlertsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListWarrantyAlertsQueryKey = () => {
+    return [
+    `/api/notifications/warranty`
+    ] as const;
+    }
+
+
+export const getListWarrantyAlertsQueryOptions = <TData = Awaited<ReturnType<typeof listWarrantyAlerts>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listWarrantyAlerts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListWarrantyAlertsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listWarrantyAlerts>>> = ({ signal }) => listWarrantyAlerts({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listWarrantyAlerts>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListWarrantyAlertsQueryResult = NonNullable<Awaited<ReturnType<typeof listWarrantyAlerts>>>
+export type ListWarrantyAlertsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List assets with warranty expired or ending within 30 days
+ */
+
+export function useListWarrantyAlerts<TData = Awaited<ReturnType<typeof listWarrantyAlerts>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listWarrantyAlerts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListWarrantyAlertsQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

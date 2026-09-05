@@ -92,6 +92,20 @@ export const GetDashboardMaintenanceResponse = zod.array(GetDashboardMaintenance
 
 
 /**
+ * @summary List assets with warranty expired or ending within 30 days
+ */
+export const ListWarrantyAlertsResponseItem = zod.object({
+  "assetId": zod.string(),
+  "assetTag": zod.string(),
+  "assetName": zod.string(),
+  "warrantyEnd": zod.coerce.date(),
+  "window": zod.enum(['warranty_30d', 'warranty_14d', 'warranty_7d', 'warranty_expired']),
+  "daysRemaining": zod.int()
+})
+export const ListWarrantyAlertsResponse = zod.array(ListWarrantyAlertsResponseItem)
+
+
+/**
  * @summary List and filter assets
  */
 export const listAssetsQueryPageDefault = 1;
