@@ -6,7 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { AssetCondition } from './assetCondition';
-import type { AssetStatus } from './assetStatus';
 import type { Location } from './location';
 import type { Person } from './person';
 
@@ -18,7 +17,8 @@ export interface Asset {
   manufacturer: string;
   model: string;
   serialNumber: string;
-  status: AssetStatus;
+  /** @minLength 1 */
+  status: string;
   condition: AssetCondition;
   location: Location;
   assignee: Person | null;

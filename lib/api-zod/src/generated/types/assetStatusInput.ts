@@ -5,9 +5,9 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { AssetStatusInputStatus } from './assetStatusInputStatus';
 
 export interface AssetStatusInput {
-  status: AssetStatusInputStatus;
+  /** @minLength 1 */
+  status: string;
   note?: string;
 }

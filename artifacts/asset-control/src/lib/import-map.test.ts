@@ -10,6 +10,7 @@ import {
   inventoryTemplateHeaders,
   mappedAssetPayloads,
   mappedPersonPayloads,
+  mapStatus,
   peopleTemplateHeaders,
   previewAssetRows,
   previewPersonRows,
@@ -122,6 +123,14 @@ describe("inventory import preview", () => {
     assert.equal(payloads[0].status, "available");
     assert.equal(payloads[0].description, "Work laptop");
     assert.equal(payloads[1].locationId, "loc-lab");
+  });
+});
+
+describe("inventory status mapping", () => {
+  it("maps assigned to available and matches Directory labels", () => {
+    assert.equal(mapStatus("Assigned"), "available");
+    assert.equal(mapStatus("On Hold", [{ value: "on_hold", label: "On Hold" }]), "on_hold");
+    assert.equal(mapStatus("mystery"), "available");
   });
 });
 

@@ -36,9 +36,8 @@ describe("asset lifecycle contracts", () => {
     assert.throws(() => AssignAssetBody.parse({ personId: "person-sarah" }));
   });
 
-  it("accepts a status change in the allowed enum", () => {
-    const parsed = UpdateAssetStatusBody.parse({ status: "in_repair" });
-    assert.equal(parsed.status, "in_repair");
-    assert.throws(() => UpdateAssetStatusBody.parse({ status: "on_fire" }));
+  it("accepts a custom inventory status at the contract layer", () => {
+    const parsed = UpdateAssetStatusBody.parse({ status: "on_hold" });
+    assert.equal(parsed.status, "on_hold");
   });
 });

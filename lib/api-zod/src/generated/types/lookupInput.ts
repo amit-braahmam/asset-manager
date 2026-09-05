@@ -5,11 +5,10 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { LookupInputGroup } from './lookupInputGroup';
 
-export interface BulkAssetStatusInput {
-  /** @minItems 1 */
-  assetIds: string[];
+export interface LookupInput {
+  group: LookupInputGroup;
   /** @minLength 1 */
-  status: string;
-  note?: string;
+  label: string;
 }

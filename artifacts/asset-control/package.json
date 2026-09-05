@@ -9,7 +9,7 @@
     "build:vercel": "pnpm -w run build:vercel",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "tsx --test src/lib/role.test.ts src/lib/import-map.test.ts src/lib/import-file.test.ts src/lib/help-guides.test.ts"
+    "test": "tsx --test src/lib/role.test.ts src/lib/import-map.test.ts src/lib/import-file.test.ts src/lib/help-guides.test.ts src/lib/lookup-options.test.ts"
   },
   "devDependencies": {
     "@hookform/resolvers": "^3.10.0",

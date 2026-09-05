@@ -71,19 +71,25 @@ export const GetDashboardMaintenanceQueryParams = zod.object({
   "limit": zod.coerce.number().int().min(1).max(getDashboardMaintenanceQueryLimitMax).default(getDashboardMaintenanceQueryLimitDefault)
 })
 
+
+
+
+
+
+
 export const GetDashboardMaintenanceResponseItem = zod.object({
   "id": zod.string(),
   "title": zod.string(),
   "scope": zod.enum(['asset', 'estate']),
-  "mode": zod.enum(['scheduled', 'emergency']),
-  "activityType": zod.enum(['os_patch', 'application_patch', 'lan', 'firewall', 'other']),
+  "mode": zod.string().min(1),
+  "activityType": zod.string().min(1),
   "assetId": zod.string().nullable(),
   "assetTag": zod.string().nullable(),
   "category": zod.string(),
   "scheduledAt": zod.coerce.date(),
   "technician": zod.string(),
-  "priority": zod.enum(['high', 'normal', 'low']),
-  "status": zod.enum(['pending', 'scheduled', 'completed', 'overdue']),
+  "priority": zod.string().min(1),
+  "status": zod.string().min(1),
   "resolutionNotes": zod.string(),
   "completedAt": zod.coerce.date().nullable(),
   "completedBy": zod.string().nullable()
@@ -108,6 +114,7 @@ export const ListWarrantyAlertsResponse = zod.array(ListWarrantyAlertsResponseIt
 /**
  * @summary List and filter assets
  */
+
 export const listAssetsQueryPageDefault = 1;
 
 export const listAssetsQueryPageSizeDefault = 12;
@@ -117,12 +124,15 @@ export const listAssetsQueryPageSizeMax = 100;
 
 export const ListAssetsQueryParams = zod.object({
   "search": zod.coerce.string().optional(),
-  "status": zod.enum(['available', 'assigned', 'in_repair', 'rma', 'retired', 'lost']).optional(),
+  "status": zod.coerce.string().min(1).optional(),
   "category": zod.coerce.string().optional(),
   "locationId": zod.coerce.string().optional(),
   "page": zod.coerce.number().int().min(1).default(listAssetsQueryPageDefault),
   "pageSize": zod.coerce.number().int().min(1).max(listAssetsQueryPageSizeMax).default(listAssetsQueryPageSizeDefault)
 })
+
+
+
 
 export const ListAssetsResponse = zod.object({
   "items": zod.array(zod.object({
@@ -133,7 +143,7 @@ export const ListAssetsResponse = zod.object({
   "manufacturer": zod.string(),
   "model": zod.string(),
   "serialNumber": zod.string(),
-  "status": zod.enum(['available', 'assigned', 'in_repair', 'rma', 'retired', 'lost']),
+  "status": zod.string().min(1),
   "condition": zod.enum(['excellent', 'good', 'fair', 'poor']),
   "location": zod.object({
   "id": zod.string(),
@@ -170,6 +180,7 @@ export const ListAssetsResponse = zod.object({
 
 
 export const createAssetBodyStatusDefault = `available`;
+
 export const createAssetBodyConditionDefault = `good`;
 export const createAssetBodyNotesDefault = ``;
 export const createAssetBodyDescriptionDefault = ``;
@@ -181,7 +192,7 @@ export const CreateAssetBody = zod.object({
   "manufacturer": zod.string().min(1),
   "model": zod.string().min(1),
   "serialNumber": zod.string().min(1),
-  "status": zod.enum(['available', 'assigned', 'in_repair', 'rma', 'retired', 'lost']).default(createAssetBodyStatusDefault),
+  "status": zod.string().min(1).default(createAssetBodyStatusDefault),
   "condition": zod.enum(['excellent', 'good', 'fair', 'poor']).default(createAssetBodyConditionDefault),
   "locationId": zod.string(),
   "warrantyEnd": zod.coerce.date().nullish(),
@@ -191,6 +202,9 @@ export const CreateAssetBody = zod.object({
   "description": zod.string().default(createAssetBodyDescriptionDefault)
 })
 
+
+
+
 export const CreateAssetResponse = zod.object({
   "id": zod.string(),
   "assetTag": zod.string(),
@@ -199,7 +213,7 @@ export const CreateAssetResponse = zod.object({
   "manufacturer": zod.string(),
   "model": zod.string(),
   "serialNumber": zod.string(),
-  "status": zod.enum(['available', 'assigned', 'in_repair', 'rma', 'retired', 'lost']),
+  "status": zod.string().min(1),
   "condition": zod.enum(['excellent', 'good', 'fair', 'poor']),
   "location": zod.object({
   "id": zod.string(),
@@ -232,6 +246,7 @@ export const CreateAssetResponse = zod.object({
 
 
 export const bulkImportAssetsBodyItemsItemStatusDefault = `available`;
+
 export const bulkImportAssetsBodyItemsItemConditionDefault = `good`;
 export const bulkImportAssetsBodyItemsItemNotesDefault = ``;
 export const bulkImportAssetsBodyItemsItemDescriptionDefault = ``;
@@ -247,7 +262,7 @@ export const BulkImportAssetsBody = zod.object({
   "manufacturer": zod.string().min(1),
   "model": zod.string().min(1),
   "serialNumber": zod.string().min(1),
-  "status": zod.enum(['available', 'assigned', 'in_repair', 'rma', 'retired', 'lost']).default(bulkImportAssetsBodyItemsItemStatusDefault),
+  "status": zod.string().min(1).default(bulkImportAssetsBodyItemsItemStatusDefault),
   "condition": zod.enum(['excellent', 'good', 'fair', 'poor']).default(bulkImportAssetsBodyItemsItemConditionDefault),
   "locationId": zod.string(),
   "warrantyEnd": zod.coerce.date().nullish(),
@@ -282,6 +297,9 @@ export const GetAssetParams = zod.object({
   "assetId": zod.coerce.string()
 })
 
+
+
+
 export const GetAssetResponse = zod.object({
   "id": zod.string(),
   "assetTag": zod.string(),
@@ -290,7 +308,7 @@ export const GetAssetResponse = zod.object({
   "manufacturer": zod.string(),
   "model": zod.string(),
   "serialNumber": zod.string(),
-  "status": zod.enum(['available', 'assigned', 'in_repair', 'rma', 'retired', 'lost']),
+  "status": zod.string().min(1),
   "condition": zod.enum(['excellent', 'good', 'fair', 'poor']),
   "location": zod.object({
   "id": zod.string(),
@@ -349,6 +367,9 @@ export const UpdateAssetBody = zod.object({
   "description": zod.string().optional()
 })
 
+
+
+
 export const UpdateAssetResponse = zod.object({
   "id": zod.string(),
   "assetTag": zod.string(),
@@ -357,7 +378,7 @@ export const UpdateAssetResponse = zod.object({
   "manufacturer": zod.string(),
   "model": zod.string(),
   "serialNumber": zod.string(),
-  "status": zod.enum(['available', 'assigned', 'in_repair', 'rma', 'retired', 'lost']),
+  "status": zod.string().min(1),
   "condition": zod.enum(['excellent', 'good', 'fair', 'poor']),
   "location": zod.object({
   "id": zod.string(),
@@ -402,6 +423,9 @@ export const AssignAssetBody = zod.object({
   "locationId": zod.string()
 })
 
+
+
+
 export const AssignAssetResponse = zod.object({
   "id": zod.string(),
   "assetTag": zod.string(),
@@ -410,7 +434,7 @@ export const AssignAssetResponse = zod.object({
   "manufacturer": zod.string(),
   "model": zod.string(),
   "serialNumber": zod.string(),
-  "status": zod.enum(['available', 'assigned', 'in_repair', 'rma', 'retired', 'lost']),
+  "status": zod.string().min(1),
   "condition": zod.enum(['excellent', 'good', 'fair', 'poor']),
   "location": zod.object({
   "id": zod.string(),
@@ -451,6 +475,9 @@ export const ReturnAssetParams = zod.object({
   "assetId": zod.coerce.string()
 })
 
+
+
+
 export const ReturnAssetResponse = zod.object({
   "id": zod.string(),
   "assetTag": zod.string(),
@@ -459,7 +486,7 @@ export const ReturnAssetResponse = zod.object({
   "manufacturer": zod.string(),
   "model": zod.string(),
   "serialNumber": zod.string(),
-  "status": zod.enum(['available', 'assigned', 'in_repair', 'rma', 'retired', 'lost']),
+  "status": zod.string().min(1),
   "condition": zod.enum(['excellent', 'good', 'fair', 'poor']),
   "location": zod.object({
   "id": zod.string(),
@@ -500,12 +527,16 @@ export const UpdateAssetStatusParams = zod.object({
   "assetId": zod.coerce.string()
 })
 
+
 export const updateAssetStatusBodyNoteDefault = ``;
 
 export const UpdateAssetStatusBody = zod.object({
-  "status": zod.enum(['available', 'assigned', 'in_repair', 'rma', 'retired', 'lost']),
+  "status": zod.string().min(1),
   "note": zod.string().default(updateAssetStatusBodyNoteDefault)
 })
+
+
+
 
 export const UpdateAssetStatusResponse = zod.object({
   "id": zod.string(),
@@ -515,7 +546,7 @@ export const UpdateAssetStatusResponse = zod.object({
   "manufacturer": zod.string(),
   "model": zod.string(),
   "serialNumber": zod.string(),
-  "status": zod.enum(['available', 'assigned', 'in_repair', 'rma', 'retired', 'lost']),
+  "status": zod.string().min(1),
   "condition": zod.enum(['excellent', 'good', 'fair', 'poor']),
   "location": zod.object({
   "id": zod.string(),
@@ -797,6 +828,87 @@ export const DeleteDepartmentResponse = zod.void()
 
 
 /**
+ * @summary List Directory dropdown options
+ */
+export const ListLookupsQueryParams = zod.object({
+  "group": zod.enum(['inventory_category', 'inventory_status', 'maintenance_status', 'maintenance_mode', 'maintenance_scope', 'maintenance_activity', 'maintenance_priority']).optional()
+})
+
+export const ListLookupsResponseItem = zod.object({
+  "id": zod.string(),
+  "group": zod.enum(['inventory_category', 'inventory_status', 'maintenance_status', 'maintenance_mode', 'maintenance_scope', 'maintenance_activity', 'maintenance_priority']),
+  "value": zod.string(),
+  "label": zod.string(),
+  "sortOrder": zod.int(),
+  "active": zod.boolean(),
+  "system": zod.boolean(),
+  "usageCount": zod.int()
+})
+export const ListLookupsResponse = zod.array(ListLookupsResponseItem)
+
+
+/**
+ * @summary Create a dropdown option (Admin and Manager)
+ */
+
+
+
+export const CreateLookupBody = zod.object({
+  "group": zod.enum(['inventory_category', 'inventory_status', 'maintenance_status', 'maintenance_mode', 'maintenance_scope', 'maintenance_activity', 'maintenance_priority']),
+  "label": zod.string().min(1)
+})
+
+export const CreateLookupResponse = zod.object({
+  "id": zod.string(),
+  "group": zod.enum(['inventory_category', 'inventory_status', 'maintenance_status', 'maintenance_mode', 'maintenance_scope', 'maintenance_activity', 'maintenance_priority']),
+  "value": zod.string(),
+  "label": zod.string(),
+  "sortOrder": zod.int(),
+  "active": zod.boolean(),
+  "system": zod.boolean(),
+  "usageCount": zod.int()
+})
+
+
+/**
+ * @summary Update a dropdown option (Admin and Manager)
+ */
+export const UpdateLookupParams = zod.object({
+  "lookupId": zod.coerce.string()
+})
+
+
+
+
+export const UpdateLookupBody = zod.object({
+  "label": zod.string().min(1).optional(),
+  "active": zod.boolean().optional(),
+  "sortOrder": zod.int().optional()
+})
+
+export const UpdateLookupResponse = zod.object({
+  "id": zod.string(),
+  "group": zod.enum(['inventory_category', 'inventory_status', 'maintenance_status', 'maintenance_mode', 'maintenance_scope', 'maintenance_activity', 'maintenance_priority']),
+  "value": zod.string(),
+  "label": zod.string(),
+  "sortOrder": zod.int(),
+  "active": zod.boolean(),
+  "system": zod.boolean(),
+  "usageCount": zod.int()
+})
+
+
+/**
+ * @summary Delete a dropdown option (Admin and Manager)
+ */
+export const DeleteLookupParams = zod.object({
+  "lookupId": zod.coerce.string()
+})
+
+export const DeleteLookupResponse = zod.void()
+
+
+/**
  * @summary List upcoming maintenance
  */
 export const listMaintenanceQueryLimitDefault = 50;
@@ -804,29 +916,39 @@ export const listMaintenanceQueryLimitMax = 100;
 
 
 
+
+
+
+
 export const ListMaintenanceQueryParams = zod.object({
   "limit": zod.coerce.number().int().min(1).max(listMaintenanceQueryLimitMax).default(listMaintenanceQueryLimitDefault),
   "search": zod.coerce.string().optional(),
-  "status": zod.enum(['pending', 'scheduled', 'completed', 'overdue']).optional(),
-  "mode": zod.enum(['scheduled', 'emergency']).optional(),
+  "status": zod.coerce.string().min(1).optional(),
+  "mode": zod.coerce.string().min(1).optional(),
   "scope": zod.enum(['asset', 'estate']).optional(),
-  "activityType": zod.enum(['os_patch', 'application_patch', 'lan', 'firewall', 'other']).optional(),
-  "priority": zod.enum(['high', 'normal', 'low']).optional()
+  "activityType": zod.coerce.string().min(1).optional(),
+  "priority": zod.coerce.string().min(1).optional()
 })
+
+
+
+
+
+
 
 export const ListMaintenanceResponseItem = zod.object({
   "id": zod.string(),
   "title": zod.string(),
   "scope": zod.enum(['asset', 'estate']),
-  "mode": zod.enum(['scheduled', 'emergency']),
-  "activityType": zod.enum(['os_patch', 'application_patch', 'lan', 'firewall', 'other']),
+  "mode": zod.string().min(1),
+  "activityType": zod.string().min(1),
   "assetId": zod.string().nullable(),
   "assetTag": zod.string().nullable(),
   "category": zod.string(),
   "scheduledAt": zod.coerce.date(),
   "technician": zod.string(),
-  "priority": zod.enum(['high', 'normal', 'low']),
-  "status": zod.enum(['pending', 'scheduled', 'completed', 'overdue']),
+  "priority": zod.string().min(1),
+  "status": zod.string().min(1),
   "resolutionNotes": zod.string(),
   "completedAt": zod.coerce.date().nullable(),
   "completedBy": zod.string().nullable()
@@ -840,37 +962,48 @@ export const ListMaintenanceResponse = zod.array(ListMaintenanceResponseItem)
 
 export const createMaintenanceBodyScopeDefault = `asset`;
 export const createMaintenanceBodyModeDefault = `scheduled`;
+
 export const createMaintenanceBodyActivityTypeDefault = `other`;
+
+
 export const createMaintenanceBodyPriorityDefault = `normal`;
+
 export const createMaintenanceBodyStatusDefault = `scheduled`;
+
 export const createMaintenanceBodyResolutionNotesDefault = ``;
 
 export const CreateMaintenanceBody = zod.object({
   "title": zod.string().min(1),
   "assetId": zod.string().nullish(),
   "scope": zod.enum(['asset', 'estate']).default(createMaintenanceBodyScopeDefault),
-  "mode": zod.enum(['scheduled', 'emergency']).default(createMaintenanceBodyModeDefault),
-  "activityType": zod.enum(['os_patch', 'application_patch', 'lan', 'firewall', 'other']).default(createMaintenanceBodyActivityTypeDefault),
+  "mode": zod.string().min(1).default(createMaintenanceBodyModeDefault),
+  "activityType": zod.string().min(1).default(createMaintenanceBodyActivityTypeDefault),
   "scheduledAt": zod.coerce.date(),
   "technician": zod.string().min(1),
-  "priority": zod.enum(['high', 'normal', 'low']).default(createMaintenanceBodyPriorityDefault),
-  "status": zod.enum(['pending', 'scheduled', 'completed', 'overdue']).default(createMaintenanceBodyStatusDefault),
+  "priority": zod.string().min(1).default(createMaintenanceBodyPriorityDefault),
+  "status": zod.string().min(1).default(createMaintenanceBodyStatusDefault),
   "resolutionNotes": zod.string().default(createMaintenanceBodyResolutionNotesDefault)
 })
+
+
+
+
+
+
 
 export const CreateMaintenanceResponse = zod.object({
   "id": zod.string(),
   "title": zod.string(),
   "scope": zod.enum(['asset', 'estate']),
-  "mode": zod.enum(['scheduled', 'emergency']),
-  "activityType": zod.enum(['os_patch', 'application_patch', 'lan', 'firewall', 'other']),
+  "mode": zod.string().min(1),
+  "activityType": zod.string().min(1),
   "assetId": zod.string().nullable(),
   "assetTag": zod.string().nullable(),
   "category": zod.string(),
   "scheduledAt": zod.coerce.date(),
   "technician": zod.string(),
-  "priority": zod.enum(['high', 'normal', 'low']),
-  "status": zod.enum(['pending', 'scheduled', 'completed', 'overdue']),
+  "priority": zod.string().min(1),
+  "status": zod.string().min(1),
   "resolutionNotes": zod.string(),
   "completedAt": zod.coerce.date().nullable(),
   "completedBy": zod.string().nullable()
@@ -888,32 +1021,42 @@ export const UpdateMaintenanceParams = zod.object({
 
 
 
+
+
+
+
 export const UpdateMaintenanceBody = zod.object({
   "title": zod.string().min(1).optional(),
   "assetId": zod.string().nullish(),
   "scope": zod.enum(['asset', 'estate']).optional(),
-  "mode": zod.enum(['scheduled', 'emergency']).optional(),
-  "activityType": zod.enum(['os_patch', 'application_patch', 'lan', 'firewall', 'other']).optional(),
+  "mode": zod.string().min(1).optional(),
+  "activityType": zod.string().min(1).optional(),
   "scheduledAt": zod.coerce.date().optional(),
   "technician": zod.string().min(1).optional(),
-  "priority": zod.enum(['high', 'normal', 'low']).optional(),
-  "status": zod.enum(['pending', 'scheduled', 'completed', 'overdue']).optional(),
+  "priority": zod.string().min(1).optional(),
+  "status": zod.string().min(1).optional(),
   "resolutionNotes": zod.string().optional()
 })
+
+
+
+
+
+
 
 export const UpdateMaintenanceResponse = zod.object({
   "id": zod.string(),
   "title": zod.string(),
   "scope": zod.enum(['asset', 'estate']),
-  "mode": zod.enum(['scheduled', 'emergency']),
-  "activityType": zod.enum(['os_patch', 'application_patch', 'lan', 'firewall', 'other']),
+  "mode": zod.string().min(1),
+  "activityType": zod.string().min(1),
   "assetId": zod.string().nullable(),
   "assetTag": zod.string().nullable(),
   "category": zod.string(),
   "scheduledAt": zod.coerce.date(),
   "technician": zod.string(),
-  "priority": zod.enum(['high', 'normal', 'low']),
-  "status": zod.enum(['pending', 'scheduled', 'completed', 'overdue']),
+  "priority": zod.string().min(1),
+  "status": zod.string().min(1),
   "resolutionNotes": zod.string(),
   "completedAt": zod.coerce.date().nullable(),
   "completedBy": zod.string().nullable()
@@ -1040,13 +1183,17 @@ export const DeleteAttachmentResponse = zod.void()
  * @summary Change status for several assets
  */
 
+
 export const bulkUpdateAssetStatusBodyNoteDefault = ``;
 
 export const BulkUpdateAssetStatusBody = zod.object({
   "assetIds": zod.array(zod.string()).min(1),
-  "status": zod.enum(['available', 'assigned', 'in_repair', 'rma', 'retired', 'lost']),
+  "status": zod.string().min(1),
   "note": zod.string().default(bulkUpdateAssetStatusBodyNoteDefault)
 })
+
+
+
 
 export const BulkUpdateAssetStatusResponseItem = zod.object({
   "id": zod.string(),
@@ -1056,7 +1203,7 @@ export const BulkUpdateAssetStatusResponseItem = zod.object({
   "manufacturer": zod.string(),
   "model": zod.string(),
   "serialNumber": zod.string(),
-  "status": zod.enum(['available', 'assigned', 'in_repair', 'rma', 'retired', 'lost']),
+  "status": zod.string().min(1),
   "condition": zod.enum(['excellent', 'good', 'fair', 'poor']),
   "location": zod.object({
   "id": zod.string(),

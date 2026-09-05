@@ -5,11 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { MaintenanceInputActivityType } from './maintenanceInputActivityType';
-import type { MaintenanceInputMode } from './maintenanceInputMode';
-import type { MaintenanceInputPriority } from './maintenanceInputPriority';
 import type { MaintenanceInputScope } from './maintenanceInputScope';
-import type { MaintenanceInputStatus } from './maintenanceInputStatus';
 
 export interface MaintenanceInput {
   /** @minLength 1 */
@@ -17,12 +13,16 @@ export interface MaintenanceInput {
   /** @nullable */
   assetId?: string | null;
   scope?: MaintenanceInputScope;
-  mode?: MaintenanceInputMode;
-  activityType?: MaintenanceInputActivityType;
+  /** @minLength 1 */
+  mode?: string;
+  /** @minLength 1 */
+  activityType?: string;
   scheduledAt: Date;
   /** @minLength 1 */
   technician: string;
-  priority?: MaintenanceInputPriority;
-  status?: MaintenanceInputStatus;
+  /** @minLength 1 */
+  priority?: string;
+  /** @minLength 1 */
+  status?: string;
   resolutionNotes?: string;
 }

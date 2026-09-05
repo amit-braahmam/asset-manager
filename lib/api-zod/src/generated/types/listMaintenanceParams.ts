@@ -20,9 +20,21 @@ export type ListMaintenanceParams = {
  */
 limit?: MaintenanceLimitParameter;
 search?: SearchParameter;
+/**
+ * @minLength 1
+ */
 status?: MaintenanceStatusParameter;
+/**
+ * @minLength 1
+ */
 mode?: MaintenanceModeParameter;
 scope?: MaintenanceScopeParameter;
+/**
+ * @minLength 1
+ */
 activityType?: MaintenanceActivityTypeParameter;
+/**
+ * @minLength 1
+ */
 priority?: MaintenancePriorityParameter;
 };

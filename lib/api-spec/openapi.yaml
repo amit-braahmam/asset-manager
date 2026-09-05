@@ -22,6 +22,8 @@ tags:
     description: Asset custodians
   - name: departments
     description: Organisation departments
+  - name: lookups
+    description: Directory dropdown options for inventory and maintenance
   - name: attachments
     description: Photos attached to assets and maintenance
   - name: users
@@ -500,6 +502,80 @@ paths:
           $ref: "#/components/responses/NotFound"
         "409":
           description: Department still has people
+  /lookups:
+    get:
+      operationId: listLookups
+      tags: [lookups]
+      summary: List Directory dropdown options
+      parameters:
+        - $ref: "#/components/parameters/LookupGroup"
+      responses:
+        "200":
+          description: Lookup options
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LookupOption"
+    post:
+      operationId: createLookup
+      tags: [lookups]
+      summary: Create a dropdown option (Admin and Manager)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LookupInput"
+      responses:
+        "201":
+          description: Created option
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LookupOption"
+        "400":
+          description: Group does not allow new options
+        "409":
+          description: Option already exists
+  /lookups/{lookupId}:
+    patch:
+      operationId: updateLookup
+      tags: [lookups]
+      summary: Update a dropdown option (Admin and Manager)
+      parameters:
+        - $ref: "#/components/parameters/LookupId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LookupUpdate"
+      responses:
+        "200":
+          description: Updated option
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LookupOption"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Option label already exists
+    delete:
+      operationId: deleteLookup
+      tags: [lookups]
+      summary: Delete a dropdown option (Admin and Manager)
+      parameters:
+        - $ref: "#/components/parameters/LookupId"
+      responses:
+        "204":
+          description: Option removed
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: System option or option still in use
   /maintenance:
     get:
       operationId: listMaintenance
@@ -888,7 +964,7 @@ components:
       in: query
       schema:
         type: string
-        enum: [available, assigned, in_repair, rma, retired, lost]
+        minLength: 1
     Category:
       name: category
       in: query
@@ -917,6 +993,25 @@ components:
       required: true
       schema:
         type: string
+    LookupId:
+      name: lookupId
+      in: path
+      required: true
+      schema:
+        type: string
+    LookupGroup:
+      name: group
+      in: query
+      schema:
+        type: string
+        enum:
+          - inventory_category
+          - inventory_status
+          - maintenance_status
+          - maintenance_mode
+          - maintenance_scope
+          - maintenance_activity
+          - maintenance_priority
     AttachmentId:
       name: attachmentId
       in: path
@@ -988,13 +1083,13 @@ components:
       in: query
       schema:
         type: string
-        enum: [pending, scheduled, completed, overdue]
+        minLength: 1
     MaintenanceMode:
       name: mode
       in: query
       schema:
         type: string
-        enum: [scheduled, emergency]
+        minLength: 1
     MaintenanceScope:
       name: scope
       in: query
@@ -1006,13 +1101,13 @@ components:
       in: query
       schema:
         type: string
-        enum: [os_patch, application_patch, lan, firewall, other]
+        minLength: 1
     MaintenancePriority:
       name: priority
       in: query
       schema:
         type: string
-        enum: [high, normal, low]
+        minLength: 1
   responses:
     NotFound:
       description: Resource not found
@@ -1241,6 +1336,61 @@ components:
         name:
           type: string
           minLength: 1
+    LookupOption:
+      type: object
+      properties:
+        id:
+          type: string
+        group:
+          type: string
+          enum:
+            - inventory_category
+            - inventory_status
+            - maintenance_status
+            - maintenance_mode
+            - maintenance_scope
+            - maintenance_activity
+            - maintenance_priority
+        value:
+          type: string
+        label:
+          type: string
+        sortOrder:
+          type: integer
+        active:
+          type: boolean
+        system:
+          type: boolean
+        usageCount:
+          type: integer
+      required: [id, group, value, label, sortOrder, active, system, usageCount]
+    LookupInput:
+      type: object
+      properties:
+        group:
+          type: string
+          enum:
+            - inventory_category
+            - inventory_status
+            - maintenance_status
+            - maintenance_mode
+            - maintenance_scope
+            - maintenance_activity
+            - maintenance_priority
+        label:
+          type: string
+          minLength: 1
+      required: [group, label]
+    LookupUpdate:
+      type: object
+      properties:
+        label:
+          type: string
+          minLength: 1
+        active:
+          type: boolean
+        sortOrder:
+          type: integer
     Person:
       type: object
       properties:
@@ -1318,7 +1468,7 @@ components:
           type: string
         status:
           type: string
-          enum: [available, assigned, in_repair, rma, retired, lost]
+          minLength: 1
         condition:
           type: string
           enum: [excellent, good, fair, poor]
@@ -1400,7 +1550,7 @@ components:
           minLength: 1
         status:
           type: string
-          enum: [available, assigned, in_repair, rma, retired, lost]
+          minLength: 1
           default: available
         condition:
           type: string
@@ -1467,7 +1617,7 @@ components:
       properties:
         status:
           type: string
-          enum: [available, assigned, in_repair, rma, retired, lost]
+          minLength: 1
         note:
           type: string
           default: ""
@@ -1549,10 +1699,10 @@ components:
           enum: [asset, estate]
         mode:
           type: string
-          enum: [scheduled, emergency]
+          minLength: 1
         activityType:
           type: string
-          enum: [os_patch, application_patch, lan, firewall, other]
+          minLength: 1
         assetId:
           type: ["string", "null"]
         assetTag:
@@ -1566,10 +1716,10 @@ components:
           type: string
         priority:
           type: string
-          enum: [high, normal, low]
+          minLength: 1
         status:
           type: string
-          enum: [pending, scheduled, completed, overdue]
+          minLength: 1
         resolutionNotes:
           type: string
         completedAt:
@@ -1607,11 +1757,11 @@ components:
           default: asset
         mode:
           type: string
-          enum: [scheduled, emergency]
+          minLength: 1
           default: scheduled
         activityType:
           type: string
-          enum: [os_patch, application_patch, lan, firewall, other]
+          minLength: 1
           default: other
         scheduledAt:
           type: string
@@ -1621,11 +1771,11 @@ components:
           minLength: 1
         priority:
           type: string
-          enum: [high, normal, low]
+          minLength: 1
           default: normal
         status:
           type: string
-          enum: [pending, scheduled, completed, overdue]
+          minLength: 1
           default: scheduled
         resolutionNotes:
           type: string
@@ -1644,10 +1794,10 @@ components:
           enum: [asset, estate]
         mode:
           type: string
-          enum: [scheduled, emergency]
+          minLength: 1
         activityType:
           type: string
-          enum: [os_patch, application_patch, lan, firewall, other]
+          minLength: 1
         scheduledAt:
           type: string
           format: date-time
@@ -1656,10 +1806,10 @@ components:
           minLength: 1
         priority:
           type: string
-          enum: [high, normal, low]
+          minLength: 1
         status:
           type: string
-          enum: [pending, scheduled, completed, overdue]
+          minLength: 1
         resolutionNotes:
           type: string
     Attachment:
@@ -1757,7 +1907,7 @@ components:
             type: string
         status:
           type: string
-          enum: [available, assigned, in_repair, rma, retired, lost]
+          minLength: 1
         note:
           type: string
           default: ""

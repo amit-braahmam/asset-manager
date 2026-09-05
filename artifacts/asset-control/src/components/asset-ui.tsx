@@ -2,15 +2,18 @@ import { Link, useLocation } from 'wouter';
 import { type ChangeEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 import { useClerk, useUser } from '@clerk/react';
 import { Bell, Boxes, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, ClipboardList, FileText, Home, ImagePlus, LogOut, Menu, MoreHorizontal, Search, ShieldCheck, UsersRound, Wrench, X, ArrowUpRight, RefreshCw, Pencil, Trash2, Users } from 'lucide-react';
-import { customFetch, useGetDashboardActivity, useListWarrantyAlerts, type Asset, type Attachment, type MaintenanceItem, type WarrantyAlert } from '@workspace/api-client-react';
+import { customFetch, useGetDashboardActivity, useListLookups, useListWarrantyAlerts, type Asset, type Attachment, type MaintenanceItem, type WarrantyAlert } from '@workspace/api-client-react';
 import { useRole, ROLE_LABELS, canViewTeam, canViewReports } from '@/lib/role';
 import { HELP_GUIDES, helpGuide, helpSectionFromPath, type HelpSection } from '@/lib/help-guides';
+import { lookupLabel } from '@/lib/lookup-options';
 
 export const statusLabels: Record<string, string> = { available: 'Available', assigned: 'Assigned', in_repair: 'In repair', rma: 'RMA', retired: 'Retired', lost: 'Lost' };
 export const statusTone: Record<string, string> = { available: 'status-green', assigned: 'status-blue', in_repair: 'status-orange', rma: 'status-red', retired: 'status-gray', lost: 'status-purple' };
 
-export function StatusPill({ status }: { status: string }) {
-  return <span data-testid={`status-${status}`} className={`status-pill ${statusTone[status] ?? 'status-gray'}`}><i />{statusLabels[status] ?? status}</span>;
+export function StatusPill({ status, group = 'inventory_status' }: { status: string; group?: string }) {
+  const lookups = useListLookups();
+  const label = lookupLabel(lookups.data, group, status, statusLabels[status] ?? status);
+  return <span data-testid={`status-${status}`} className={`status-pill ${statusTone[status] ?? 'status-gray'}`}><i />{label}</span>;
 }
 
 export function Skeleton({ className = '' }: { className?: string }) { return <div className={`skeleton ${className}`} />; }
@@ -228,8 +231,9 @@ export function formatMoney(value?: number | null) { return value == null ? '—
 
 export function ActivityList({ events }: { events: { id: string; type: string; message: string; actor: string; createdAt: string; assetTag: string | null }[] }) { return <div className="activity-list">{events.map((event) => <div className="activity-item" key={event.id} data-testid={`activity-${event.id}`}><div className={`activity-mark activity-${event.type}`}><ClipboardList size={14} /></div><div><p>{event.message}</p><span>{event.actor} <i /> {formatRelative(event.createdAt)} {event.assetTag && <><i /> <b className="mono">{event.assetTag}</b></>}</span></div></div>)}</div>; }
 export function MaintenanceList({ items, limit, onEdit, onDelete }: { items: MaintenanceItem[]; limit?: number; onEdit?: (item: MaintenanceItem) => void; onDelete?: (item: MaintenanceItem) => void }) {
+  const lookups = useListLookups();
   const shown = limit ? items.slice(0, limit) : items;
-  return <div className="maintenance-list">{shown.map((item) => <div className="maintenance-item" key={item.id} data-testid={`maintenance-${item.id}`}><div className="date-block"><b>{new Date(item.scheduledAt).toLocaleDateString('en-US', { day: '2-digit' })}</b><span>{new Date(item.scheduledAt).toLocaleDateString('en-US', { month: 'short' })}</span></div><div className="maintenance-main"><div><b>{item.title}</b><span className="item-category">{item.scope === 'estate' ? activityTypeLabel(item.activityType) : item.assetTag}<span className="mode-chip">{item.mode === 'emergency' ? 'Emergency' : 'Scheduled'}</span></span></div><p>{item.technician}</p>{item.resolutionNotes && <p className="maintenance-outcome" data-testid={`maintenance-outcome-${item.id}`}><ClipboardList size={12} /> {item.resolutionNotes}{item.completedBy ? ` — ${item.completedBy}` : ''}</p>}</div><span className={`priority priority-${item.priority}`}>{item.priority}</span><StatusPill status={item.status} />{(onEdit || onDelete) && <div className="maintenance-controls">{onEdit && <button className="row-arrow" aria-label={`Edit ${item.title}`} onClick={() => onEdit(item)}><Pencil size={14} /></button>}{onDelete && <button className="row-arrow danger-action" aria-label={`Delete ${item.title}`} onClick={() => onDelete(item)}><Trash2 size={14} /></button>}</div>}</div>)}</div>;
+  return <div className="maintenance-list">{shown.map((item) => <div className="maintenance-item" key={item.id} data-testid={`maintenance-${item.id}`}><div className="date-block"><b>{new Date(item.scheduledAt).toLocaleDateString('en-US', { day: '2-digit' })}</b><span>{new Date(item.scheduledAt).toLocaleDateString('en-US', { month: 'short' })}</span></div><div className="maintenance-main"><div><b>{item.title}</b><span className="item-category">{item.scope === 'estate' ? lookupLabel(lookups.data, 'maintenance_activity', item.activityType, activityTypeLabel(item.activityType)) : item.assetTag}<span className="mode-chip">{lookupLabel(lookups.data, 'maintenance_mode', item.mode, item.mode === 'emergency' ? 'Emergency' : 'Scheduled')}</span></span></div><p>{item.technician}</p>{item.resolutionNotes && <p className="maintenance-outcome" data-testid={`maintenance-outcome-${item.id}`}><ClipboardList size={12} /> {item.resolutionNotes}{item.completedBy ? ` — ${item.completedBy}` : ''}</p>}</div><span className={`priority priority-${item.priority}`}>{lookupLabel(lookups.data, 'maintenance_priority', item.priority, item.priority)}</span><StatusPill status={item.status} group="maintenance_status" />{(onEdit || onDelete) && <div className="maintenance-controls">{onEdit && <button className="row-arrow" aria-label={`Edit ${item.title}`} onClick={() => onEdit(item)}><Pencil size={14} /></button>}{onDelete && <button className="row-arrow danger-action" aria-label={`Delete ${item.title}`} onClick={() => onDelete(item)}><Trash2 size={14} /></button>}</div>}</div>)}</div>;
 }
 
 export const ACTIVITY_TYPE_OPTIONS = [

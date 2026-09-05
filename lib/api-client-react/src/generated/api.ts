@@ -49,10 +49,14 @@ import type {
   HealthStatus,
   HistoryEvent,
   ListAssetsParams,
+  ListLookupsParams,
   ListMaintenanceParams,
   Location,
   LocationInput,
   LocationUpdate,
+  LookupInput,
+  LookupOption,
+  LookupUpdate,
   MaintenanceInput,
   MaintenanceItem,
   MaintenanceUpdate,
@@ -2173,6 +2177,304 @@ export const useDeleteDepartment = <TError = ErrorType<NotFoundResponse | void>,
         TContext
       > => {
       return useMutation(getDeleteDepartmentMutationOptions(options));
+    }
+
+export const getListLookupsUrl = (params?: ListLookupsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/lookups?${stringifiedParams}` : `/api/lookups`
+}
+
+/**
+ * @summary List Directory dropdown options
+ */
+export const listLookups = async (params?: ListLookupsParams, options?: Parameters<typeof customFetch>[1]): Promise<LookupOption[]> => {
+
+  return customFetch<LookupOption[]>(getListLookupsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListLookupsQueryKey = (params?: ListLookupsParams,) => {
+    return [
+    `/api/lookups`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListLookupsQueryOptions = <TData = Awaited<ReturnType<typeof listLookups>>, TError = ErrorType<unknown>>(params?: ListLookupsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLookups>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListLookupsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listLookups>>> = ({ signal }) => listLookups(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listLookups>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListLookupsQueryResult = NonNullable<Awaited<ReturnType<typeof listLookups>>>
+export type ListLookupsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List Directory dropdown options
+ */
+
+export function useListLookups<TData = Awaited<ReturnType<typeof listLookups>>, TError = ErrorType<unknown>>(
+ params?: ListLookupsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLookups>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListLookupsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateLookupUrl = () => {
+
+
+
+
+  return `/api/lookups`
+}
+
+/**
+ * @summary Create a dropdown option (Admin and Manager)
+ */
+export const createLookup = async (lookupInput: LookupInput, options?: Parameters<typeof customFetch>[1]): Promise<LookupOption> => {
+
+  return customFetch<LookupOption>(getCreateLookupUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(lookupInput)
+  }
+);}
+
+
+
+
+
+export const getCreateLookupMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLookup>>, TError,{data: BodyType<LookupInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createLookup>>, TError,{data: BodyType<LookupInput>}, TContext> => {
+
+const mutationKey = ['createLookup'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createLookup>>, {data: BodyType<LookupInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createLookup(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateLookupMutationResult = NonNullable<Awaited<ReturnType<typeof createLookup>>>
+    export type CreateLookupMutationBody = BodyType<LookupInput>
+    export type CreateLookupMutationError = ErrorType<void>
+
+    /**
+ * @summary Create a dropdown option (Admin and Manager)
+ */
+export const useCreateLookup = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLookup>>, TError,{data: BodyType<LookupInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createLookup>>,
+        TError,
+        {data: BodyType<LookupInput>},
+        TContext
+      > => {
+      return useMutation(getCreateLookupMutationOptions(options));
+    }
+
+export const getUpdateLookupUrl = (lookupId: string,) => {
+
+
+
+
+  return `/api/lookups/${lookupId}`
+}
+
+/**
+ * @summary Update a dropdown option (Admin and Manager)
+ */
+export const updateLookup = async (lookupId: string,
+    lookupUpdate: LookupUpdate, options?: Parameters<typeof customFetch>[1]): Promise<LookupOption> => {
+
+  return customFetch<LookupOption>(getUpdateLookupUrl(lookupId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(lookupUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateLookupMutationOptions = <TError = ErrorType<NotFoundResponse | void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateLookup>>, TError,{lookupId: string;data: BodyType<LookupUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateLookup>>, TError,{lookupId: string;data: BodyType<LookupUpdate>}, TContext> => {
+
+const mutationKey = ['updateLookup'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateLookup>>, {lookupId: string;data: BodyType<LookupUpdate>}> = (props) => {
+          const {lookupId,data} = props ?? {};
+
+          return  updateLookup(lookupId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateLookupMutationResult = NonNullable<Awaited<ReturnType<typeof updateLookup>>>
+    export type UpdateLookupMutationBody = BodyType<LookupUpdate>
+    export type UpdateLookupMutationError = ErrorType<NotFoundResponse | void>
+
+    /**
+ * @summary Update a dropdown option (Admin and Manager)
+ */
+export const useUpdateLookup = <TError = ErrorType<NotFoundResponse | void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateLookup>>, TError,{lookupId: string;data: BodyType<LookupUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateLookup>>,
+        TError,
+        {lookupId: string;data: BodyType<LookupUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateLookupMutationOptions(options));
+    }
+
+export const getDeleteLookupUrl = (lookupId: string,) => {
+
+
+
+
+  return `/api/lookups/${lookupId}`
+}
+
+/**
+ * @summary Delete a dropdown option (Admin and Manager)
+ */
+export const deleteLookup = async (lookupId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteLookupUrl(lookupId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteLookupMutationOptions = <TError = ErrorType<NotFoundResponse | void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLookup>>, TError,{lookupId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteLookup>>, TError,{lookupId: string}, TContext> => {
+
+const mutationKey = ['deleteLookup'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteLookup>>, {lookupId: string}> = (props) => {
+          const {lookupId} = props ?? {};
+
+          return  deleteLookup(lookupId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteLookupMutationResult = NonNullable<Awaited<ReturnType<typeof deleteLookup>>>
+
+    export type DeleteLookupMutationError = ErrorType<NotFoundResponse | void>
+
+    /**
+ * @summary Delete a dropdown option (Admin and Manager)
+ */
+export const useDeleteLookup = <TError = ErrorType<NotFoundResponse | void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLookup>>, TError,{lookupId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteLookup>>,
+        TError,
+        {lookupId: string},
+        TContext
+      > => {
+      return useMutation(getDeleteLookupMutationOptions(options));
     }
 
 export const getListMaintenanceUrl = (params?: ListMaintenanceParams,) => {

@@ -9,7 +9,7 @@
     "build:vercel": "node ./build.mjs --vercel",
     "start": "node --env-file=../../.env --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "tsx --test src/lib/auth-roles.test.ts src/lib/report-workflow.test.ts src/lib/asset-lifecycle.test.ts src/lib/notify-recipients.test.ts src/lib/notify-safe.test.ts src/lib/email.test.ts src/lib/cron-auth.test.ts src/lib/warranty-alerts.test.ts"
+    "test": "tsx --test src/lib/auth-roles.test.ts src/lib/report-workflow.test.ts src/lib/asset-lifecycle.test.ts src/lib/notify-recipients.test.ts src/lib/notify-safe.test.ts src/lib/email.test.ts src/lib/cron-auth.test.ts src/lib/warranty-alerts.test.ts src/lib/lookup-rules.test.ts"
   },
   "dependencies": {
     "@clerk/express": "^2.1.64",

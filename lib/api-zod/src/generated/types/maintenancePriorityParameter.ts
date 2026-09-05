@@ -6,11 +6,4 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type MaintenancePriorityParameter = typeof MaintenancePriorityParameter[keyof typeof MaintenancePriorityParameter];
-
-
-export const MaintenancePriorityParameter = {
-  high: 'high',
-  normal: 'normal',
-  low: 'low',
-} as const;
+export type MaintenancePriorityParameter = string;

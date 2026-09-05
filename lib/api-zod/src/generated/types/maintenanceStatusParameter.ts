@@ -6,12 +6,4 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type MaintenanceStatusParameter = typeof MaintenanceStatusParameter[keyof typeof MaintenanceStatusParameter];
-
-
-export const MaintenanceStatusParameter = {
-  pending: 'pending',
-  scheduled: 'scheduled',
-  completed: 'completed',
-  overdue: 'overdue',
-} as const;
+export type MaintenanceStatusParameter = string;

@@ -7,6 +7,7 @@ import {
   maintenanceTable,
   peopleTable,
 } from "@workspace/db";
+import { ensureLookupOptions } from "./lookups";
 
 const seedLocations = [
   { id: "loc-hq", name: "HQ · Bengaluru", city: "Bengaluru" },
@@ -127,6 +128,7 @@ function shouldSeedDemo(): boolean {
  * Idempotent demo seed. Awaited by data routes so a fresh local database is
  * populated on first request. Disabled in production unless SEED_DEMO=true.
  */
-export const seedReady: Promise<void> = shouldSeedDemo()
-  ? seedDatabase()
-  : Promise.resolve();
+export const seedReady: Promise<void> = (async () => {
+  await ensureLookupOptions();
+  if (shouldSeedDemo()) await seedDatabase();
+})();

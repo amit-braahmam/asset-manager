@@ -6,7 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { AssetInputCondition } from './assetInputCondition';
-import type { AssetInputStatus } from './assetInputStatus';
 
 export interface AssetInput {
   /** @minLength 1 */
@@ -21,7 +20,8 @@ export interface AssetInput {
   model: string;
   /** @minLength 1 */
   serialNumber: string;
-  status?: AssetInputStatus;
+  /** @minLength 1 */
+  status?: string;
   condition?: AssetInputCondition;
   locationId: string;
   /** @nullable */

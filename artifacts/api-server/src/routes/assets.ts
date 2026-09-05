@@ -1,4 +1,4 @@
-import { Router, type IRouter, type Request } from "express";
+import { Router, type IRouter, type Request, type Response } from "express";
 import { and, asc, desc, eq, gte, ilike, or } from "drizzle-orm";
 import {
   AssignAssetBody,
@@ -12,6 +12,7 @@ import {
   CreateAssetBody,
   CreateDepartmentBody,
   CreateLocationBody,
+  CreateLookupBody,
   CreateMaintenanceAttachmentBody,
   CreateMaintenanceAttachmentParams,
   CreateMaintenanceBody,
@@ -20,6 +21,7 @@ import {
   DeleteAttachmentParams,
   DeleteDepartmentParams,
   DeleteLocationParams,
+  DeleteLookupParams,
   DeleteMaintenanceParams,
   DeletePersonParams,
   GetAssetHistoryParams,
@@ -28,6 +30,7 @@ import {
   GetDashboardMaintenanceQueryParams,
   ListAssetAttachmentsParams,
   ListAssetsQueryParams,
+  ListLookupsQueryParams,
   ListMaintenanceAttachmentsParams,
   ListMaintenanceQueryParams,
   ReturnAssetParams,
@@ -35,6 +38,8 @@ import {
   UpdateDepartmentParams,
   UpdateLocationBody,
   UpdateLocationParams,
+  UpdateLookupBody,
+  UpdateLookupParams,
   UpdateMaintenanceBody,
   UpdateMaintenanceParams,
   UpdatePersonBody,
@@ -51,6 +56,7 @@ import {
   type Department as ApiDepartment,
   type HistoryEvent as ApiHistoryEvent,
   type Location as ApiLocation,
+  type LookupOption as ApiLookupOption,
   type MaintenanceItem as ApiMaintenanceItem,
   type Person as ApiPerson,
 } from "@workspace/api-zod";
@@ -61,6 +67,7 @@ import {
   departmentsTable,
   insertAssetHistorySchema,
   locationsTable,
+  lookupOptionsTable,
   maintenanceTable,
   peopleTable,
   type Asset as DbAsset,
@@ -73,8 +80,17 @@ import { db } from "@workspace/db";
 import { randomUUID } from "node:crypto";
 import { seedReady } from "../lib/seed";
 import { collectWarrantyAlerts } from "../lib/warranty-alerts";
+import {
+  createLookupOption,
+  listLookupOptions,
+  removeLookupOption,
+  requireLookupValue,
+  resolveOrCreateCategory,
+  updateLookupOption,
+} from "../lib/lookups";
 import { actorLabel, requireRoles } from "../lib/auth";
 import { assigneeEmailFor, notify } from "../lib/notify";
+import type { LookupGroup } from "@workspace/db/lookups";
 import {
   decodeImagePayload,
   readLocalImage,
@@ -91,6 +107,24 @@ const ACTIVITY_LABEL: Record<string, string> = {
   firewall: "Firewall update",
   other: "Preventive activity",
 };
+
+async function rejectUnknownLookup(res: Response, group: LookupGroup, value: string | undefined) {
+  if (value === undefined || value === "") return false;
+  const result = await requireLookupValue(group, value);
+  if (!result.ok) {
+    res.status(400).json({ error: result.error });
+    return true;
+  }
+  return false;
+}
+
+async function activityLabelMap(): Promise<Record<string, string>> {
+  const rows = await db.select({
+    value: lookupOptionsTable.value,
+    label: lookupOptionsTable.label,
+  }).from(lookupOptionsTable).where(eq(lookupOptionsTable.group, "maintenance_activity"));
+  return { ...ACTIVITY_LABEL, ...Object.fromEntries(rows.map((row) => [row.value, row.label])) };
+}
 
 type AssetRow = {
   asset: DbAsset;
@@ -234,12 +268,14 @@ async function listMaintenanceItems(
     .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(asc(maintenanceTable.scheduledAt))
     .limit(limit);
-  return rows.map(({ maintenance, asset }) => toMaintenanceItem(maintenance, asset));
+  const labels = await activityLabelMap();
+  return rows.map(({ maintenance, asset }) => toMaintenanceItem(maintenance, asset, labels));
 }
 
 function toMaintenanceItem(
   maintenance: typeof maintenanceTable.$inferSelect,
   asset: Pick<DbAsset, "id" | "assetTag" | "name"> | null,
+  labels: Record<string, string> = ACTIVITY_LABEL,
 ): ApiMaintenanceItem {
   const scope = maintenance.scope as ApiMaintenanceItem["scope"];
   return {
@@ -250,7 +286,7 @@ function toMaintenanceItem(
     activityType: maintenance.activityType as ApiMaintenanceItem["activityType"],
     assetId: maintenance.assetId,
     assetTag: asset?.assetTag ?? null,
-    category: asset?.name ?? ACTIVITY_LABEL[maintenance.activityType] ?? "Preventive activity",
+    category: asset?.name ?? labels[maintenance.activityType] ?? ACTIVITY_LABEL[maintenance.activityType] ?? "Preventive activity",
     scheduledAt: maintenance.scheduledAt,
     technician: maintenance.technician,
     priority: maintenance.priority as ApiMaintenanceItem["priority"],
@@ -440,13 +476,15 @@ router.get("/assets", async (req, res) => {
 router.post("/assets", requireRoles("admin", "manager"), async (req, res) => {
   await seedReady;
   const body = CreateAssetBody.parse(req.body);
+  const category = await resolveOrCreateCategory(body.category);
+  if (await rejectUnknownLookup(res, "inventory_status", body.status ?? "available")) return;
   const id = `asset-${randomUUID().slice(0, 8)}`;
   const now = new Date();
   await db.insert(assetsTable).values({
     id,
     assetTag: body.assetTag,
     name: body.name,
-    category: body.category,
+    category,
     manufacturer: body.manufacturer,
     model: body.model,
     serialNumber: body.serialNumber,
@@ -508,12 +546,18 @@ router.post("/assets/bulk/import", requireRoles("admin", "manager"), async (req,
       continue;
     }
     const status = item.status === "assigned" ? "available" : item.status;
+    const statusCheck = await requireLookupValue("inventory_status", status);
+    if (!statusCheck.ok) {
+      skippedRows.push({ row, reason: statusCheck.error });
+      continue;
+    }
+    const category = await resolveOrCreateCategory(item.category);
     const id = `asset-${randomUUID().slice(0, 8)}`;
     await db.insert(assetsTable).values({
       id,
       assetTag: item.assetTag.trim(),
       name: item.name.trim(),
-      category: item.category.trim(),
+      category,
       manufacturer: item.manufacturer.trim(),
       model: item.model.trim(),
       serialNumber: item.serialNumber.trim(),
@@ -549,6 +593,7 @@ router.post("/assets/bulk/import", requireRoles("admin", "manager"), async (req,
 router.post("/assets/bulk/status", requireRoles("admin", "manager"), async (req, res) => {
   await seedReady;
   const body = BulkUpdateAssetStatusBody.parse(req.body);
+  if (await rejectUnknownLookup(res, "inventory_status", body.status)) return;
   const assetIds = Array.from(new Set(body.assetIds));
   const rows = await getAssetRows();
   const existing = new Map(rows.map((row) => [row.asset.id, row]));
@@ -622,9 +667,10 @@ router.patch("/assets/:assetId", requireRoles("admin", "manager"), async (req, r
     res.status(404).json({ error: "Asset not found" });
     return;
   }
+  const category = body.category === undefined ? undefined : await resolveOrCreateCategory(body.category);
   const updates = {
     ...(body.name === undefined ? {} : { name: body.name }),
-    ...(body.category === undefined ? {} : { category: body.category }),
+    ...(category === undefined ? {} : { category }),
     ...(body.manufacturer === undefined ? {} : { manufacturer: body.manufacturer }),
     ...(body.model === undefined ? {} : { model: body.model }),
     ...(body.serialNumber === undefined ? {} : { serialNumber: body.serialNumber }),
@@ -749,6 +795,7 @@ router.post("/assets/:assetId/status", requireRoles("admin", "manager", "technic
     res.status(404).json({ error: "Asset not found" });
     return;
   }
+  if (await rejectUnknownLookup(res, "inventory_status", body.status)) return;
   await db.update(assetsTable).set({
     status: body.status,
     ...(body.status === "available" ? { assigneeId: null, assignedAt: null } : {}),
@@ -1017,6 +1064,56 @@ router.delete("/departments/:departmentId", requireRoles("admin", "manager"), as
   res.status(204).send();
 });
 
+router.get("/lookups", async (req, res) => {
+  await seedReady;
+  const query = ListLookupsQueryParams.parse(req.query);
+  const rows = await listLookupOptions(query.group);
+  res.json(rows.map((row) => ({
+    id: row.id,
+    group: row.group,
+    value: row.value,
+    label: row.label,
+    sortOrder: row.sortOrder,
+    active: row.active,
+    system: row.system,
+    usageCount: row.usageCount,
+  } satisfies ApiLookupOption)));
+});
+
+router.post("/lookups", requireRoles("admin", "manager"), async (req, res) => {
+  await seedReady;
+  const body = CreateLookupBody.parse(req.body);
+  const created = await createLookupOption(body.group, body.label);
+  if (!created.ok) {
+    res.status(created.status).json({ error: created.error });
+    return;
+  }
+  res.status(201).json(created.option satisfies ApiLookupOption);
+});
+
+router.patch("/lookups/:lookupId", requireRoles("admin", "manager"), async (req, res) => {
+  await seedReady;
+  const { lookupId } = UpdateLookupParams.parse(req.params);
+  const body = UpdateLookupBody.parse(req.body);
+  const updated = await updateLookupOption(lookupId, body);
+  if (!updated.ok) {
+    res.status(updated.status).json({ error: updated.error });
+    return;
+  }
+  res.json(updated.option satisfies ApiLookupOption);
+});
+
+router.delete("/lookups/:lookupId", requireRoles("admin", "manager"), async (req, res) => {
+  await seedReady;
+  const { lookupId } = DeleteLookupParams.parse(req.params);
+  const removed = await removeLookupOption(lookupId);
+  if (!removed.ok) {
+    res.status(removed.status).json({ error: removed.error });
+    return;
+  }
+  res.status(204).send();
+});
+
 router.get("/maintenance", async (req, res) => {
   await seedReady;
   const query = ListMaintenanceQueryParams.parse(req.query);
@@ -1032,6 +1129,11 @@ router.post("/maintenance", requireRoles("admin", "manager"), async (req, res) =
     res.status(400).json({ error: "Choose an asset for device maintenance." });
     return;
   }
+  if (await rejectUnknownLookup(res, "maintenance_scope", scope)) return;
+  if (await rejectUnknownLookup(res, "maintenance_mode", body.mode ?? "scheduled")) return;
+  if (await rejectUnknownLookup(res, "maintenance_activity", body.activityType ?? "other")) return;
+  if (await rejectUnknownLookup(res, "maintenance_priority", body.priority)) return;
+  if (await rejectUnknownLookup(res, "maintenance_status", body.status)) return;
   let asset: DbAsset | null = null;
   if (assetId) {
     const rows = await db.select().from(assetsTable).where(eq(assetsTable.id, assetId)).limit(1);
@@ -1075,7 +1177,7 @@ router.post("/maintenance", requireRoles("admin", "manager"), async (req, res) =
       assigneeEmail: await assigneeEmailFor(asset.assigneeId),
     });
   }
-  res.status(201).json(toMaintenanceItem(maintenance, asset));
+  res.status(201).json(toMaintenanceItem(maintenance, asset, await activityLabelMap()));
 });
 
 router.patch("/maintenance/:maintenanceId", requireRoles("admin", "manager", "technician"), async (req, res) => {
@@ -1091,6 +1193,11 @@ router.patch("/maintenance/:maintenanceId", requireRoles("admin", "manager", "te
     res.status(404).json({ error: "Maintenance item not found" });
     return;
   }
+  if (await rejectUnknownLookup(res, "maintenance_scope", body.scope)) return;
+  if (await rejectUnknownLookup(res, "maintenance_mode", body.mode)) return;
+  if (await rejectUnknownLookup(res, "maintenance_activity", body.activityType)) return;
+  if (await rejectUnknownLookup(res, "maintenance_priority", body.priority)) return;
+  if (await rejectUnknownLookup(res, "maintenance_status", body.status)) return;
   const wasCompleted = current[0].maintenance.status === "completed";
   const nextStatus = body.status ?? current[0].maintenance.status;
   const completion =
@@ -1141,7 +1248,7 @@ router.patch("/maintenance/:maintenanceId", requireRoles("admin", "manager", "te
     .leftJoin(assetsTable, eq(maintenanceTable.assetId, assetsTable.id))
     .where(eq(maintenanceTable.id, maintenanceId))
     .limit(1);
-  res.json(toMaintenanceItem(updated[0].maintenance, updated[0].asset));
+  res.json(toMaintenanceItem(updated[0].maintenance, updated[0].asset, await activityLabelMap()));
 });
 
 router.delete("/maintenance/:maintenanceId", requireRoles("admin", "manager"), async (req, res) => {

@@ -6,14 +6,4 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type StatusParameter = typeof StatusParameter[keyof typeof StatusParameter];
-
-
-export const StatusParameter = {
-  available: 'available',
-  assigned: 'assigned',
-  in_repair: 'in_repair',
-  rma: 'rma',
-  retired: 'retired',
-  lost: 'lost',
-} as const;
+export type StatusParameter = string;

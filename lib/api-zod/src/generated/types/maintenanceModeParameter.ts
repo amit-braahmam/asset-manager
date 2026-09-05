@@ -6,10 +6,4 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type MaintenanceModeParameter = typeof MaintenanceModeParameter[keyof typeof MaintenanceModeParameter];
-
-
-export const MaintenanceModeParameter = {
-  scheduled: 'scheduled',
-  emergency: 'emergency',
-} as const;
+export type MaintenanceModeParameter = string;

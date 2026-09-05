@@ -6,4 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type MaintenanceActivityTypeParameter = string;
+export interface LookupUpdate {
+  /** @minLength 1 */
+  label?: string;
+  active?: boolean;
+  sortOrder?: number;
+}

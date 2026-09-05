@@ -14,6 +14,9 @@ import type { StatusParameter } from './statusParameter';
 
 export type ListAssetsParams = {
 search?: SearchParameter;
+/**
+ * @minLength 1
+ */
 status?: StatusParameter;
 category?: CategoryParameter;
 locationId?: LocationIdParameter;

@@ -6,6 +6,7 @@ import {
   useBulkImportPeople,
   useListDepartments,
   useListLocations,
+  useListLookups,
   useListPeople,
   type AssetInput,
   type PersonInput,
@@ -29,6 +30,7 @@ import {
   type ImportKind,
   type PersonFieldKey,
 } from "@/lib/import-map";
+import { lookupOptions } from "@/lib/lookup-options";
 
 const IMPORT_BATCH_SIZE = 100;
 
@@ -84,6 +86,7 @@ export function DataImportModal({
   const locationsQuery = useListLocations();
   const peopleQuery = useListPeople();
   const departmentsQuery = useListDepartments();
+  const lookupsQuery = useListLookups();
   const importAssets = useBulkImportAssets();
   const importPeople = useBulkImportPeople();
   const [tab, setTab] = useState<ImportKind>(initialTab);
@@ -182,7 +185,14 @@ export function DataImportModal({
       const readyRows = new Set(preview.filter((row) => row.status === "ready").map((row) => row.row));
       const result = tab === "assets"
         ? await importInBatches(
-          mappedAssetPayloads(table.rows, assetMapping!, locations, defaultLocationId, readyRows) as AssetInput[],
+          mappedAssetPayloads(
+            table.rows,
+            assetMapping!,
+            locations,
+            defaultLocationId,
+            readyRows,
+            lookupOptions(lookupsQuery.data, "inventory_status"),
+          ) as AssetInput[],
           (items) => importAssets.mutateAsync({ data: { items } }),
         )
         : await importInBatches(

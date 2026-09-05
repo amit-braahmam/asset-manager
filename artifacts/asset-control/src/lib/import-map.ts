@@ -142,10 +142,11 @@ function toDateOnly(value: string): string | null {
   return null;
 }
 
-function mapStatus(value: string) {
+export function mapStatus(value: string, catalog?: { value: string; label: string }[]) {
   if (!value) return "available";
   const key = token(value);
-  const mapped = STATUS_MAP[key] ?? "available";
+  const fromCatalog = catalog?.find((option) => token(option.value) === key || token(option.label) === key);
+  const mapped = fromCatalog?.value ?? STATUS_MAP[key] ?? "available";
   return mapped === "assigned" ? "available" : mapped;
 }
 
@@ -230,6 +231,7 @@ export function mappedAssetPayloads(
   locations: { id: string; name: string }[],
   defaultLocationId: string,
   readyRows: Set<number>,
+  statusCatalog?: { value: string; label: string }[],
 ) {
   const locationByName = new Map(locations.map((location) => [normalizeMatch(location.name), location.id]));
   return rows.flatMap((source, index) => {
@@ -246,7 +248,7 @@ export function mappedAssetPayloads(
       manufacturer: read(source, mapping.manufacturer),
       model: read(source, mapping.model),
       serialNumber: read(source, mapping.serialNumber),
-      status: mapStatus(read(source, mapping.status)) as "available" | "assigned" | "in_repair" | "rma" | "retired" | "lost",
+      status: mapStatus(read(source, mapping.status), statusCatalog),
       condition: mapCondition(read(source, mapping.condition)) as "excellent" | "good" | "fair" | "poor",
       locationId,
       warrantyEnd: toDateOnly(read(source, mapping.warrantyEnd)),

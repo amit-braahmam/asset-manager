@@ -1,6 +1,8 @@
 import { createInsertSchema } from "drizzle-zod";
 import {
+  boolean,
   date,
+  integer,
   jsonb,
   numeric,
   pgTable,
@@ -9,6 +11,7 @@ import {
   unique,
   varchar,
 } from "drizzle-orm/pg-core";
+import type { LookupGroup } from "../lookups";
 
 // Application roles, ordered from highest to lowest privilege.
 // Auditor sits just below Admin: broad read + audit/compliance authority.
@@ -49,6 +52,22 @@ export const departmentsTable = pgTable("asset_departments", {
   name: text("name").notNull().unique(),
 });
 
+export const lookupOptionsTable = pgTable(
+  "asset_lookup_options",
+  {
+    id: varchar("id", { length: 32 }).primaryKey(),
+    group: varchar("group", { length: 32 }).$type<LookupGroup>().notNull(),
+    value: varchar("value", { length: 64 }).notNull(),
+    label: text("label").notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+    active: boolean("active").notNull().default(true),
+    system: boolean("system").notNull().default(false),
+  },
+  (table) => [
+    unique("asset_lookup_options_group_value").on(table.group, table.value),
+  ],
+);
+
 export const peopleTable = pgTable("asset_people", {
   id: varchar("id", { length: 32 }).primaryKey(),
   name: text("name").notNull(),
@@ -66,7 +85,7 @@ export const assetsTable = pgTable("assets", {
   manufacturer: text("manufacturer").notNull(),
   model: text("model").notNull(),
   serialNumber: varchar("serial_number", { length: 128 }).notNull().unique(),
-  status: varchar("status", { length: 24 }).notNull().default("available"),
+  status: varchar("status", { length: 64 }).notNull().default("available"),
   condition: varchar("condition", { length: 24 }).notNull().default("good"),
   locationId: varchar("location_id", { length: 32 })
     .notNull()
@@ -125,12 +144,12 @@ export const maintenanceTable = pgTable("asset_maintenance", {
   assetId: varchar("asset_id", { length: 32 }).references(() => assetsTable.id),
   title: text("title").notNull().default(""),
   scope: varchar("scope", { length: 16 }).notNull().default("asset"),
-  mode: varchar("mode", { length: 16 }).notNull().default("scheduled"),
-  activityType: varchar("activity_type", { length: 32 }).notNull().default("other"),
+  mode: varchar("mode", { length: 64 }).notNull().default("scheduled"),
+  activityType: varchar("activity_type", { length: 64 }).notNull().default("other"),
   scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
   technician: text("technician").notNull(),
-  priority: varchar("priority", { length: 16 }).notNull().default("normal"),
-  status: varchar("status", { length: 16 }).notNull().default("scheduled"),
+  priority: varchar("priority", { length: 64 }).notNull().default("normal"),
+  status: varchar("status", { length: 64 }).notNull().default("scheduled"),
   // Outcome of the performed work — used by Auditors to review activity output.
   resolutionNotes: text("resolution_notes").notNull().default(""),
   completedAt: timestamp("completed_at", { withTimezone: true }),
@@ -214,6 +233,7 @@ export const emailSendsTable = pgTable(
 export const insertUserSchema = createInsertSchema(usersTable);
 export const insertLocationSchema = createInsertSchema(locationsTable);
 export const insertDepartmentSchema = createInsertSchema(departmentsTable);
+export const insertLookupOptionSchema = createInsertSchema(lookupOptionsTable);
 export const insertPersonSchema = createInsertSchema(peopleTable);
 export const insertAssetSchema = createInsertSchema(assetsTable).omit({
   createdAt: true,
@@ -233,6 +253,7 @@ export const insertComplianceReportSchema = createInsertSchema(
 export type User = typeof usersTable.$inferSelect;
 export type Location = typeof locationsTable.$inferSelect;
 export type Department = typeof departmentsTable.$inferSelect;
+export type LookupOption = typeof lookupOptionsTable.$inferSelect;
 export type Person = typeof peopleTable.$inferSelect;
 export type Asset = typeof assetsTable.$inferSelect;
 export type AssetHistory = typeof assetHistoryTable.$inferSelect;

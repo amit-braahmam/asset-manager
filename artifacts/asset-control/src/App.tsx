@@ -34,7 +34,6 @@ import type {
   Asset,
   AssetCondition,
   AssetInput,
-  AssetStatus,
   AssetUpdate,
   ActivityEvent,
   ComplianceReport,
@@ -85,6 +84,7 @@ import {
   useListComplianceReports,
   useListDepartments,
   useListLocations,
+  useListLookups,
   useListMaintenance,
   useListMaintenanceAttachments,
   useListPeople,
@@ -123,7 +123,6 @@ import {
 } from "@/lib/role";
 import {
   ActivityList,
-  ACTIVITY_TYPE_OPTIONS,
   AppFooter,
   AppShell,
   AssetTable,
@@ -152,6 +151,8 @@ import {
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import { DataImportModal } from "@/components/data-import";
+import { DirectoryLookups } from "@/components/directory-lookups";
+import { lookupOptions } from "@/lib/lookup-options";
 import "./index.css";
 
 const queryClient = new QueryClient({
@@ -221,21 +222,12 @@ const clerkAppearance = {
   },
 };
 
-const statusOptions = [
-  { value: "available", label: "Available" },
-  { value: "assigned", label: "Assigned" },
-  { value: "in_repair", label: "In repair" },
-  { value: "rma", label: "RMA" },
-  { value: "retired", label: "Retired" },
-  { value: "lost", label: "Lost" },
-];
 const conditionOptions = [
   { value: "excellent", label: "Excellent" },
   { value: "good", label: "Good" },
   { value: "fair", label: "Fair" },
   { value: "poor", label: "Poor" },
 ];
-const ASSET_CATEGORIES = ["Laptop", "Monitor", "Server", "Peripheral", "Mobile", "Networking"];
 
 type FormValues = {
   assetTag: string;
@@ -244,7 +236,7 @@ type FormValues = {
   manufacturer: string;
   model: string;
   serialNumber: string;
-  status: AssetStatus;
+  status: string;
   condition: AssetCondition;
   locationId: string;
   warrantyEnd: string;
@@ -394,13 +386,14 @@ function Inventory({ openCreate = false }: { openCreate?: boolean }) {
   const [locationId, setLocationId] = useState("");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<string[]>([]);
-  const [bulkStatus, setBulkStatus] = useState<AssetStatus>("available");
+  const [bulkStatus, setBulkStatus] = useState("available");
   const [showCreate, setShowCreate] = useState(openCreate);
   const [showImport, setShowImport] = useState(false);
   const locations = useListLocations();
+  const lookups = useListLookups();
   const assets = useListAssets({
     search: search || undefined,
-    status: (status || undefined) as AssetStatus | undefined,
+    status: status || undefined,
     category: category || undefined,
     locationId: locationId || undefined,
     page,
@@ -420,10 +413,8 @@ function Inventory({ openCreate = false }: { openCreate?: boolean }) {
 
   const items = assets.data?.items ?? [];
   const liveCategories = useMemo(() => Array.from(new Set(items.map((asset) => asset.category))), [items]);
-  const categoryOptions = useMemo(
-    () => Array.from(new Set([...ASSET_CATEGORIES, ...liveCategories])).sort().map((value) => ({ value, label: value })),
-    [liveCategories],
-  );
+  const categoryOptions = lookupOptions(lookups.data, "inventory_category", [category, ...liveCategories].filter(Boolean));
+  const statusOptions = lookupOptions(lookups.data, "inventory_status", [status, bulkStatus].filter(Boolean));
   const locationOptions = (locations.data ?? []).map((location) => ({ value: location.id, label: location.name }));
 
   async function handleCreate(values: FormValues, photos: File[]) {
@@ -509,7 +500,7 @@ function Inventory({ openCreate = false }: { openCreate?: boolean }) {
           <SelectField value={locationId} onChange={setLocationId} options={locationOptions} label="Location" testId="select-location" />
         </div>
         <div className="inventory-summary"><div><span className="eyebrow">Asset register</span><strong>{assets.data?.total ?? "—"} records</strong>{selected.length > 0 && <span className="selection-count">{selected.length} selected</span>}</div><div className="inventory-actions"><button className="text-button" onClick={exportCsv}><Download size={14} /> Export CSV</button></div></div>
-        {canManage && selected.length > 0 && <div className="bulk-toolbar"><span className="eyebrow">Bulk action</span><span>{selected.length} selected</span><SelectField value={bulkStatus} onChange={(value) => setBulkStatus(value as AssetStatus)} options={statusOptions} label="Set status" testId="select-bulk-status" /><Button className="button-dark" onClick={() => void handleBulkStatus()} disabled={bulkUpdate.isPending}>{bulkUpdate.isPending ? "Updating…" : "Apply status"}</Button>{canDelete && <Button className="button-ghost" onClick={() => void handleBulkDelete()} disabled={bulkDelete.isPending}>{bulkDelete.isPending ? "Deleting…" : "Delete selected"}</Button>}<button className="text-button" onClick={() => setSelected([])}>Clear</button></div>}
+        {canManage && selected.length > 0 && <div className="bulk-toolbar"><span className="eyebrow">Bulk action</span><span>{selected.length} selected</span><SelectField value={bulkStatus} onChange={setBulkStatus} options={statusOptions} label="Set status" testId="select-bulk-status" /><Button className="button-dark" onClick={() => void handleBulkStatus()} disabled={bulkUpdate.isPending}>{bulkUpdate.isPending ? "Updating…" : "Apply status"}</Button>{canDelete && <Button className="button-ghost" onClick={() => void handleBulkDelete()} disabled={bulkDelete.isPending}>{bulkDelete.isPending ? "Deleting…" : "Delete selected"}</Button>}<button className="text-button" onClick={() => setSelected([])}>Clear</button></div>}
         <Card className="table-card">
           {assets.isLoading ? <div className="table-loading"><Skeleton className="h-12" /><Skeleton className="h-12" /><Skeleton className="h-12" /><Skeleton className="h-12" /></div> : assets.isError ? <ErrorState onRetry={() => void assets.refetch()} /> : items.length ? <AssetTable items={items} selected={selected} selectable={canManage} onSelect={(id) => setSelected((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])} onDelete={canDelete ? handleDeleteAsset : undefined} /> : <EmptyState title="No matching assets" text="Try a different search or clear one of the filters." />}
           {assets.data && <Pagination page={assets.data.page} pageSize={assets.data.pageSize} total={assets.data.total} onPage={(next) => { setPage(next); setSelected([]); }} />}
@@ -536,9 +527,12 @@ function AssetForm({
   onCancel: () => void;
   submitting: boolean;
 }) {
+  const lookups = useListLookups();
   const [values, setValues] = useState<FormValues>({ ...blankForm, locationId: locations[0]?.id ?? "", ...initial });
   const [photos, setPhotos] = useState<File[]>([]);
   const [error, setError] = useState("");
+  const categoryOptions = lookupOptions(lookups.data, "inventory_category", [values.category]);
+  const statusOptions = lookupOptions(lookups.data, "inventory_status", [values.status]);
   function change(key: keyof FormValues, value: string) {
     setValues((current) => ({ ...current, [key]: value }));
   }
@@ -552,7 +546,7 @@ function AssetForm({
       <div className="form-grid">
         {!editing && <Field label="Asset tag" value={values.assetTag} onChange={(value) => change("assetTag", value)} placeholder="LT-1001" required />}
         <Field label="Asset name" value={values.name} onChange={(value) => change("name", value)} placeholder="MacBook Pro 14" required />
-        <Field label="Category" value={values.category} onChange={(value) => change("category", value)} options={ASSET_CATEGORIES.map((value) => ({ value, label: value }))} />
+        <Field label="Category" value={values.category} onChange={(value) => change("category", value)} options={categoryOptions} />
         <Field label="Manufacturer" value={values.manufacturer} onChange={(value) => change("manufacturer", value)} placeholder="Apple" required />
         <Field label="Model" value={values.model} onChange={(value) => change("model", value)} placeholder="MacBook Pro M3" required />
         <Field label="Serial number" value={values.serialNumber} onChange={(value) => change("serialNumber", value)} placeholder="Serial / IMEI" required />
@@ -634,7 +628,7 @@ function AssetDetailPage() {
     await returnMutation.mutateAsync({ assetId });
     await refresh("Asset returned to available stock");
   }
-  async function changeStatus(nextStatus: AssetStatus, note: string) {
+  async function changeStatus(nextStatus: string, note: string) {
     await statusMutation.mutateAsync({ assetId, data: { status: nextStatus, note: note || undefined } });
     setModal(null);
     await refresh("Asset status updated");
@@ -743,15 +737,17 @@ function AssignModal({ people: availablePeople, locations, currentLocation, onCl
   return <Modal title="Assign asset" onClose={onClose}><form className="asset-form" onSubmit={submit}><p className="modal-intro">Record who has custody of this asset and where it is operating.</p><Field label="Person" value={personId} onChange={setPersonId} options={availablePeople.map((person) => ({ value: person.id, label: `${person.name} · ${person.department}` }))} /><Field label="Location" value={locationId} onChange={setLocationId} options={locations.map((location) => ({ value: location.id, label: location.name }))} />{error && <p className="form-error">{error}</p>}<div className="modal-actions"><Button type="button" className="button-ghost" onClick={onClose}>Cancel</Button><Button className="button-dark" disabled={submitting || !personId}>{submitting ? "Assigning…" : "Confirm assignment"}</Button></div></form></Modal>;
 }
 
-function StatusModal({ current, onClose, onSubmit, submitting }: { current: AssetStatus; onClose: () => void; onSubmit: (status: AssetStatus, note: string) => Promise<void>; submitting: boolean }) {
-  const [status, setStatus] = useState<AssetStatus>(current);
+function StatusModal({ current, onClose, onSubmit, submitting }: { current: string; onClose: () => void; onSubmit: (status: string, note: string) => Promise<void>; submitting: boolean }) {
+  const lookups = useListLookups();
+  const [status, setStatus] = useState(current);
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
+  const statusOptions = lookupOptions(lookups.data, "inventory_status", [current, status]);
   async function submit(event: FormEvent) {
     event.preventDefault();
     try { await onSubmit(status, note); } catch (err) { setError(err instanceof Error ? err.message : "Unable to update status."); }
   }
-  return <Modal title="Change status" onClose={onClose}><form className="asset-form" onSubmit={submit}><p className="modal-intro">Status changes are added to the asset’s audit trail.</p><Field label="New status" value={status} onChange={(value) => setStatus(value as AssetStatus)} options={statusOptions} /><label className="field field-full"><span>Reason or note</span><textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Why is this status changing?" rows={3} /></label>{error && <p className="form-error">{error}</p>}<div className="modal-actions"><Button type="button" className="button-ghost" onClick={onClose}>Cancel</Button><Button className="button-dark" disabled={submitting}>{submitting ? "Updating…" : "Update status"}</Button></div></form></Modal>;
+  return <Modal title="Change status" onClose={onClose}><form className="asset-form" onSubmit={submit}><p className="modal-intro">Status changes are added to the asset’s audit trail.</p><Field label="New status" value={status} onChange={setStatus} options={statusOptions} /><label className="field field-full"><span>Reason or note</span><textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Why is this status changing?" rows={3} /></label>{error && <p className="form-error">{error}</p>}<div className="modal-actions"><Button type="button" className="button-ghost" onClick={onClose}>Cancel</Button><Button className="button-dark" disabled={submitting}>{submitting ? "Updating…" : "Update status"}</Button></div></form></Modal>;
 }
 
 type DirectoryModal = { kind: "person" | "location" | "department"; id?: string } | null;
@@ -819,13 +815,14 @@ function Directory() {
   const editingDepartment = modal?.kind === "department" ? departmentsQuery.data?.find((department) => department.id === modal.id) : undefined;
   const departments = departmentsQuery.data ?? [];
   return <ShellPage>
-    <Topbar title="Directory" description="Keep departments, custodians, and operating locations current for clean assignments." action={canManage ? <div className="topbar-button-row"><Button className="button-ghost" onClick={() => setShowImport(true)}><FileUp size={15} /> Import people</Button><Button className="button-ghost" onClick={() => setModal({ kind: "department" })}>Add department</Button><Button className="button-ghost" onClick={() => setModal({ kind: "location" })}><MapPin size={15} /> Add location</Button><Button className="button-accent" onClick={() => setModal({ kind: "person" })}><Plus size={16} /> Add person</Button></div> : undefined} />
+    <Topbar title="Directory" description="Keep departments, custodians, locations, and dropdown options current for clean assignments." action={canManage ? <div className="topbar-button-row"><Button className="button-ghost" onClick={() => setShowImport(true)}><FileUp size={15} /> Import people</Button><Button className="button-ghost" onClick={() => setModal({ kind: "department" })}>Add department</Button><Button className="button-ghost" onClick={() => setModal({ kind: "location" })}><MapPin size={15} /> Add location</Button><Button className="button-accent" onClick={() => setModal({ kind: "person" })}><Plus size={16} /> Add person</Button></div> : undefined} />
     <div className="page-wrap">
       <div className="directory-grid">
         <Card><SectionHeading eyebrow="Organization" title="Departments" detail={`${departmentsQuery.data?.length ?? "—"} departments in the lookup.`} /><div className="directory-list">{departmentsQuery.isLoading ? <LoadingBlock /> : departmentsQuery.data?.length ? departmentsQuery.data.map((department) => <div className="directory-row" key={department.id}><div className="avatar department-avatar">{department.name.slice(0, 1)}</div><div><b>{department.name}</b><small>{department.personCount} people</small></div>{canManage && <button className="row-arrow" aria-label={`Edit ${department.name}`} onClick={() => setModal({ kind: "department", id: department.id })}><Pencil size={14} /></button>}{canDelete && <button className="row-arrow danger-action" aria-label={`Delete ${department.name}`} onClick={() => void removeRecord("department", department.id, department.name)}><Trash2 size={14} /></button>}</div>) : <EmptyState title="No departments yet" text="Add a department before assigning people." />}</div></Card>
         <Card><SectionHeading eyebrow="Custodians" title="People" detail={`${peopleQuery.data?.length ?? "—"} people available for assignment.`} /><div className="directory-list">{peopleQuery.isLoading ? <LoadingBlock /> : peopleQuery.data?.length ? peopleQuery.data.map((person) => <div className="directory-row" key={person.id}><div className="avatar">{initials(person.name)}</div><div><b>{person.name}</b><small>{person.department} · {person.email}</small></div>{canManage && <button className="row-arrow" aria-label={`Edit ${person.name}`} onClick={() => setModal({ kind: "person", id: person.id })}><Pencil size={14} /></button>}{canDelete && <button className="row-arrow danger-action" aria-label={`Delete ${person.name}`} onClick={() => void removeRecord("person", person.id, person.name)}><Trash2 size={14} /></button>}</div>) : <EmptyState title="No people yet" text="Add a person to make assignment available." />}</div></Card>
         <Card><SectionHeading eyebrow="Operating footprint" title="Locations" detail={`${locationsQuery.data?.length ?? "—"} sites in the register.`} /><div className="directory-list">{locationsQuery.isLoading ? <LoadingBlock /> : locationsQuery.data?.length ? locationsQuery.data.map((location) => <div className="directory-row" key={location.id}><div className="avatar location-avatar"><MapPin size={15} /></div><div><b>{location.name}</b><small>{location.city} · {location.assetCount} assets</small></div>{canManage && <button className="row-arrow" aria-label={`Edit ${location.name}`} onClick={() => setModal({ kind: "location", id: location.id })}><Pencil size={14} /></button>}{canDelete && <button className="row-arrow danger-action" aria-label={`Delete ${location.name}`} onClick={() => void removeRecord("location", location.id, location.name)}><Trash2 size={14} /></button>}</div>) : <EmptyState title="No locations yet" text="Add a location before registering assets." />}</div></Card>
       </div>
+      <DirectoryLookups canManage={canManage} canDelete={canDelete} />
     </div>
     {modal?.kind === "person" && <Modal title={editingPerson ? "Edit person" : "Add person"} onClose={() => setModal(null)}><PersonForm initial={editingPerson} departments={departments} onSubmit={savePerson} onCancel={() => setModal(null)} submitting={createPerson.isPending || updatePerson.isPending} /></Modal>}
     {modal?.kind === "location" && <Modal title={editingLocation ? "Edit location" : "Add location"} onClose={() => setModal(null)}><LocationForm initial={editingLocation} onSubmit={saveLocation} onCancel={() => setModal(null)} submitting={createLocation.isPending || updateLocation.isPending} /></Modal>}
@@ -880,6 +877,12 @@ function Maintenance() {
   const [scope, setScope] = useState("");
   const [activityType, setActivityType] = useState("");
   const [priority, setPriority] = useState("");
+  const lookups = useListLookups();
+  const statusOptions = lookupOptions(lookups.data, "maintenance_status", [status]);
+  const modeOptions = lookupOptions(lookups.data, "maintenance_mode", [mode]);
+  const scopeOptions = lookupOptions(lookups.data, "maintenance_scope", [scope]);
+  const activityOptions = lookupOptions(lookups.data, "maintenance_activity", [activityType]);
+  const priorityOptions = lookupOptions(lookups.data, "maintenance_priority", [priority]);
   const maintenance = useListMaintenance({
     limit: 50,
     search: search || undefined,
@@ -936,11 +939,11 @@ function Maintenance() {
     <div className="page-wrap">
       <div className="inventory-toolbar">
         <SearchBox value={search} onChange={setSearch} placeholder="Search title, technician, or asset tag…" />
-        <SelectField value={status} onChange={setStatus} options={[{ value: "pending", label: "Pending" }, { value: "scheduled", label: "Scheduled" }, { value: "completed", label: "Completed" }, { value: "overdue", label: "Overdue" }]} label="Status" testId="select-maintenance-status" />
-        <SelectField value={mode} onChange={setMode} options={[{ value: "scheduled", label: "Scheduled" }, { value: "emergency", label: "Emergency" }]} label="Mode" testId="select-maintenance-mode" />
-        <SelectField value={scope} onChange={setScope} options={[{ value: "asset", label: "Device" }, { value: "estate", label: "Preventive" }]} label="Scope" testId="select-maintenance-scope" />
-        <SelectField value={activityType} onChange={setActivityType} options={ACTIVITY_TYPE_OPTIONS} label="Activity" testId="select-maintenance-activity" />
-        <SelectField value={priority} onChange={setPriority} options={[{ value: "high", label: "High" }, { value: "normal", label: "Normal" }, { value: "low", label: "Low" }]} label="Priority" testId="select-maintenance-priority" />
+        <SelectField value={status} onChange={setStatus} options={statusOptions} label="Status" testId="select-maintenance-status" />
+        <SelectField value={mode} onChange={setMode} options={modeOptions} label="Mode" testId="select-maintenance-mode" />
+        <SelectField value={scope} onChange={setScope} options={scopeOptions} label="Scope" testId="select-maintenance-scope" />
+        <SelectField value={activityType} onChange={setActivityType} options={activityOptions} label="Activity" testId="select-maintenance-activity" />
+        <SelectField value={priority} onChange={setPriority} options={priorityOptions} label="Priority" testId="select-maintenance-priority" />
       </div>
       <div className="maintenance-header"><div className="queue-summary"><span className="queue-number">{maintenance.data?.length ?? "—"}</span><div><b>Open service items</b><small>Sorted by scheduled date</small></div></div><div className="legend"><span><i className="legend-dot high" /> High priority</span><span><i className="legend-dot normal" /> Planned</span></div></div>
       <Card className="maintenance-page-card">{maintenance.isLoading ? <div className="stack-skeleton"><Skeleton className="h-20" /><Skeleton className="h-20" /><Skeleton className="h-20" /></div> : maintenance.isError ? <ErrorState onRetry={() => void maintenance.refetch()} /> : maintenance.data?.length ? <MaintenanceList items={maintenance.data} onEdit={canEdit ? (item) => { setEditing(item); setShowForm(item.scope === "estate" ? "estate" : "asset"); } : undefined} onDelete={canSchedule ? (item) => void deleteItem(item) : undefined} /> : <EmptyState title="Maintenance queue is clear" text="Nothing matches these filters, or nothing is scheduled." />}</Card>
@@ -964,6 +967,7 @@ type MaintenanceFormValues = {
 };
 
 function MaintenanceForm({ assets, initial, scope, editing, onSubmit, onCancel, submitting }: { assets: Asset[]; initial?: MaintenanceItem | null; scope: "asset" | "estate"; editing: boolean; onSubmit: (values: MaintenanceFormValues, photos: File[]) => Promise<void>; onCancel: () => void; submitting: boolean }) {
+  const lookups = useListLookups();
   const [values, setValues] = useState<MaintenanceFormValues>({
     title: initial?.title ?? "",
     assetId: initial?.assetId ?? assets[0]?.id ?? "",
@@ -984,17 +988,21 @@ function MaintenanceForm({ assets, initial, scope, editing, onSubmit, onCancel, 
     try { await onSubmit(values, photos); } catch (err) { setError(apiErrorMessage(err, "Unable to save maintenance.")); }
   }
   const remaining = 5 - photos.length;
+  const activityOptions = lookupOptions(lookups.data, "maintenance_activity", [values.activityType]);
+  const modeOptions = lookupOptions(lookups.data, "maintenance_mode", [values.mode]);
+  const priorityOptions = lookupOptions(lookups.data, "maintenance_priority", [values.priority]);
+  const statusOptions = lookupOptions(lookups.data, "maintenance_status", [values.status]);
   return <form className="asset-form" onSubmit={submit}>
     <p className="modal-intro">{values.scope === "estate" ? "Record preventive OS, application, LAN, or firewall work. This is not tied to a single device." : "Record the next service action for a device and keep the technician accountable."}</p>
     <div className="form-grid">
       <Field label="Title" value={values.title} onChange={(value) => setValues((current) => ({ ...current, title: value }))} placeholder={values.scope === "estate" ? "Windows 11 security patch" : "Battery replacement"} required />
       {values.scope === "asset" && <Field label="Asset" value={values.assetId} onChange={(value) => setValues((current) => ({ ...current, assetId: value }))} options={assets.map((asset) => ({ value: asset.id, label: `${asset.assetTag} · ${asset.name}` }))} required />}
-      {values.scope === "estate" && <Field label="Activity type" value={values.activityType} onChange={(value) => setValues((current) => ({ ...current, activityType: value }))} options={ACTIVITY_TYPE_OPTIONS} required />}
-      <Field label="Mode" value={values.mode} onChange={(value) => setValues((current) => ({ ...current, mode: value }))} options={[{ value: "scheduled", label: "Scheduled" }, { value: "emergency", label: "Emergency" }]} />
+      {values.scope === "estate" && <Field label="Activity type" value={values.activityType} onChange={(value) => setValues((current) => ({ ...current, activityType: value }))} options={activityOptions} required />}
+      <Field label="Mode" value={values.mode} onChange={(value) => setValues((current) => ({ ...current, mode: value }))} options={modeOptions} />
       <Field label="Scheduled at" value={values.scheduledAt} onChange={(value) => setValues((current) => ({ ...current, scheduledAt: value }))} type="datetime-local" required />
       <Field label="Technician" value={values.technician} onChange={(value) => setValues((current) => ({ ...current, technician: value }))} placeholder="Name or team" required />
-      <Field label="Priority" value={values.priority} onChange={(value) => setValues((current) => ({ ...current, priority: value }))} options={[{ value: "high", label: "High" }, { value: "normal", label: "Normal" }, { value: "low", label: "Low" }]} />
-      <Field label="Status" value={values.status} onChange={(value) => setValues((current) => ({ ...current, status: value }))} options={[{ value: "pending", label: "Pending" }, { value: "scheduled", label: "Scheduled" }, { value: "completed", label: "Completed" }, { value: "overdue", label: "Overdue" }]} />
+      <Field label="Priority" value={values.priority} onChange={(value) => setValues((current) => ({ ...current, priority: value }))} options={priorityOptions} />
+      <Field label="Status" value={values.status} onChange={(value) => setValues((current) => ({ ...current, status: value }))} options={statusOptions} />
     </div>
     <label className="field field-full"><span>Resolution / outcome notes</span><textarea value={values.resolutionNotes} onChange={(event) => setValues((current) => ({ ...current, resolutionNotes: event.target.value }))} placeholder="What was done, root cause, parts replaced…" rows={3} /></label>
     {initial?.completedAt && <p className="modal-intro" data-testid="maintenance-completed-meta">Completed {formatRelative(initial.completedAt)}{initial.completedBy ? ` by ${initial.completedBy}` : ""}.</p>}
