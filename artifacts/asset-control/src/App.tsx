@@ -599,8 +599,8 @@ function AssetDetailPage() {
   const { toast } = useToast();
   const [modal, setModal] = useState<"edit" | "assign" | "status" | null>(null);
 
-  if (asset.isLoading) return <ShellPage><Topbar title="Asset detail" /><div className="page-wrap"><LoadingBlock /></div></ShellPage>;
-  if (asset.isError || !asset.data) return <ShellPage><Topbar title="Asset detail" /><div className="page-wrap"><ErrorState message="This asset could not be found." onRetry={() => void asset.refetch()} /></div></ShellPage>;
+  if (asset.isLoading) return <ShellPage><Topbar title="Inventory" description="Every device, peripheral, and system in one working view." /><div className="page-wrap"><LoadingBlock /></div></ShellPage>;
+  if (asset.isError || !asset.data) return <ShellPage><Topbar title="Inventory" description="Every device, peripheral, and system in one working view." /><div className="page-wrap"><ErrorState message="This asset could not be found." onRetry={() => void asset.refetch()} /></div></ShellPage>;
   const data = asset.data;
   async function refresh(message: string) {
     await client.invalidateQueries();
@@ -685,7 +685,7 @@ function AssetDetailPage() {
   };
   return (
     <ShellPage>
-      <Topbar title={data.name} description={`${data.assetTag} · ${data.category}`} action={canManage ? <div className="topbar-button-row">{canDelete && <Button className="button-ghost" onClick={() => void deleteThisAsset()}><Trash2 size={15} /> Delete</Button>}<Button className="button-ghost" onClick={() => setModal("edit")}><Pencil size={15} /> Edit asset</Button></div> : undefined} />
+      <Topbar title="Inventory" description="Every device, peripheral, and system in one working view." action={canManage ? <div className="topbar-button-row">{canDelete && <Button className="button-ghost" onClick={() => void deleteThisAsset()}><Trash2 size={15} /> Delete</Button>}<Button className="button-ghost" onClick={() => setModal("edit")}><Pencil size={15} /> Edit asset</Button></div> : undefined} />
       <div className="page-wrap">
         <button className="back-link" onClick={() => setLocation("/inventory")}><ArrowLeft size={15} /> Back to inventory</button>
         <div className="detail-hero">
