@@ -29,6 +29,13 @@
       "when": 1788614400000,
       "tag": "0003_lookup_options",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788700800000,
+      "tag": "0004_custody_checks",
+      "breakpoints": true
     }
   ]
 }

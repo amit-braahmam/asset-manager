@@ -118,6 +118,8 @@ import {
   canManageLookups,
   canViewReports,
   canEditReports,
+  canViewCustody,
+  canManageCustody,
   grantableRoles,
   ALL_ROLES,
   type Role,
@@ -153,6 +155,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import { DataImportModal } from "@/components/data-import";
 import { DirectoryLookups } from "@/components/directory-lookups";
+import { CustodyChecks } from "@/components/custody-checks";
+import { CustodyRespondPage } from "@/components/custody-respond";
 import { lookupOptions } from "@/lib/lookup-options";
 import "./index.css";
 
@@ -370,6 +374,7 @@ function Dashboard() {
             <button onClick={() => setLocation("/inventory")}><span><Search size={17} /></span><b>Find an asset</b><small>Search by tag, model, or serial</small></button>
             <button onClick={() => setLocation("/maintenance")}><span><Wrench size={17} /></span><b>Review maintenance</b><small>See what needs attention next</small></button>
             {canViewReports(role) && <button onClick={() => setLocation("/reports")}><span><FileText size={17} /></span><b>Audit & reports</b><small>Investigate activity and compliance</small></button>}
+            {!canViewReports(role) && canViewCustody(role) && <button onClick={() => setLocation("/reports")}><span><FileText size={17} /></span><b>Custody checks</b><small>See possession confirmations in progress</small></button>}
           </div>
         </Card>
       </div>
@@ -1161,6 +1166,25 @@ function InviteForm({ roles, onSubmit, onCancel, submitting }: { roles: Role[]; 
 
 function Reports() {
   const { role } = useRole();
+  if (canViewReports(role)) return <ComplianceReportsPage />;
+  if (canViewCustody(role)) return <CustodyReportsPage />;
+  return <NotFound />;
+}
+
+function CustodyReportsPage() {
+  const { role } = useRole();
+  const [showStart, setShowStart] = useState(false);
+  const canManage = canManageCustody(role);
+  return <ShellPage>
+    <Topbar title="Reports & audit" description="Possession checks for assigned equipment." action={canManage ? <Button className="button-accent" data-testid="button-start-custody-header" onClick={() => setShowStart(true)}><Plus size={16} /> Start check</Button> : undefined} />
+    <div className="page-wrap">
+      <CustodyChecks canManage={canManage} showStart={showStart} onShowStart={setShowStart} />
+    </div>
+  </ShellPage>;
+}
+
+function ComplianceReportsPage() {
+  const { role } = useRole();
   const [, setLocation] = useLocation();
   const reports = useListComplianceReports();
   const createReport = useCreateComplianceReport();
@@ -1168,11 +1192,10 @@ function Reports() {
   const client = useQueryClient();
   const { toast } = useToast();
   const [showNew, setShowNew] = useState(false);
+  const [showStart, setShowStart] = useState(false);
   const [auditAction, setAuditAction] = useState("");
   const [auditSearch, setAuditSearch] = useState("");
   const audit = useGetAuditLogs({ limit: 20, action: (auditAction || undefined) as ActivityEvent["type"] | undefined, search: auditSearch || undefined });
-
-  if (!canViewReports(role)) return <NotFound />;
 
   async function createReportItem(values: { title: string; periodStart: string; periodEnd: string }) {
     await createReport.mutateAsync({ data: { title: values.title, periodStart: values.periodStart || null, periodEnd: values.periodEnd || null } });
@@ -1192,8 +1215,11 @@ function Reports() {
     }
   }
 
+  const canStartCustody = canManageCustody(role);
+  const canCreateReport = canEditReports(role);
+
   return <ShellPage>
-    <Topbar title="Reports & audit" description="Investigate activity and assemble compliance reports." action={canEditReports(role) ? <Button className="button-accent" onClick={() => setShowNew(true)}><Plus size={16} /> New report</Button> : undefined} />
+    <Topbar title="Reports & audit" description="Investigate activity and assemble compliance reports." action={(canCreateReport || canStartCustody) ? <div className="topbar-button-row">{canStartCustody && <Button className="button-accent" data-testid="button-start-custody-header" onClick={() => setShowStart(true)}><Plus size={16} /> Start check</Button>}{canCreateReport && <Button className="button-accent" data-testid="button-new-report-header" onClick={() => setShowNew(true)}><Plus size={16} /> New Report</Button>}</div> : undefined} />
     <div className="page-wrap">
       <Card className="activity-card">
         <SectionHeading eyebrow="Audit trail" title="Activity log" detail="Every change across the estate, filterable for investigation." />
@@ -1206,7 +1232,7 @@ function Reports() {
         {audit.isLoading ? <div className="stack-skeleton"><Skeleton className="h-14" /><Skeleton className="h-14" /><Skeleton className="h-14" /></div> : audit.isError ? <ErrorState onRetry={() => void audit.refetch()} /> : audit.data?.length ? <ActivityList events={audit.data} /> : <EmptyState title="No activity yet" />}
       </Card>
       <Card className="table-card" style={{ marginTop: 13, padding: 20 }}>
-        <SectionHeading eyebrow="Compliance" title="Reports" detail="Draft, review, and finalize compliance reports." />
+        <SectionHeading eyebrow="Compliance" title="Reports" detail="Draft, review, and finalize compliance reports." action={canEditReports(role) ? <Button className="button-accent" data-testid="button-new-report" onClick={() => setShowNew(true)}><Plus size={16} /> New Report</Button> : undefined} />
         {reports.isLoading ? <LoadingBlock /> : reports.isError ? <ErrorState onRetry={() => void reports.refetch()} /> : reports.data?.length ? (
           <div className="table-scroll"><table className="asset-table"><thead><tr><th>Report</th><th>Stage</th><th>Period</th><th>Updated</th><th /></tr></thead><tbody>
             {reports.data.map((report) => <tr key={report.id} data-testid={`row-report-${report.id}`} onClick={() => setLocation(`/reports/${report.id}`)}>
@@ -1219,6 +1245,7 @@ function Reports() {
           </tbody></table></div>
         ) : <EmptyState title="No reports yet" text="Start a compliance report to capture findings." />}
       </Card>
+      <CustodyChecks canManage={canStartCustody} showStart={showStart} onShowStart={setShowStart} />
     </div>
     {showNew && <Modal title="Start compliance report" onClose={() => setShowNew(false)}><ReportForm onSubmit={createReportItem} onCancel={() => setShowNew(false)} submitting={createReport.isPending} /></Modal>}
   </ShellPage>;
@@ -1382,7 +1409,7 @@ function ClerkQueryClientCacheInvalidator() {
 
 function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
-  return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={clerkAppearance} signInUrl={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} localization={{ signIn: { start: { title: "Welcome back", subtitle: "Sign in to access your workspace" } }, signUp: { start: { title: "Create your workspace", subtitle: "Get started with AssetControl" } } }} routerPush={(to) => setLocation(stripBase(to))} routerReplace={(to) => setLocation(stripBase(to), { replace: true })}><QueryClientProvider client={queryClient}><ClerkApiAuthBridge /><ClerkQueryClientCacheInvalidator /><Switch><Route path="/" component={HomeRedirect} /><Route path="/sign-in/*?" component={SignInPage} /><Route path="/sign-up/*?" component={SignUpPage} /><Route path="/workspace" component={UserPortal} /><Route path="/inventory" component={UserPortal} /><Route path="/assets/:assetId" component={UserPortal} /><Route path="/maintenance" component={UserPortal} /><Route path="/directory" component={UserPortal} /><Route path="/team" component={UserPortal} /><Route path="/reports/:reportId" component={UserPortal} /><Route path="/reports" component={UserPortal} /><Route component={UserPortal} /></Switch><Toaster /></QueryClientProvider></ClerkProvider>;
+  return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={clerkAppearance} signInUrl={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} localization={{ signIn: { start: { title: "Welcome back", subtitle: "Sign in to access your workspace" } }, signUp: { start: { title: "Create your workspace", subtitle: "Get started with AssetControl" } } }} routerPush={(to) => setLocation(stripBase(to))} routerReplace={(to) => setLocation(stripBase(to), { replace: true })}><QueryClientProvider client={queryClient}><ClerkApiAuthBridge /><ClerkQueryClientCacheInvalidator /><Switch><Route path="/" component={HomeRedirect} /><Route path="/sign-in/*?" component={SignInPage} /><Route path="/sign-up/*?" component={SignUpPage} /><Route path="/workspace" component={UserPortal} /><Route path="/inventory" component={UserPortal} /><Route path="/assets/:assetId" component={UserPortal} /><Route path="/maintenance" component={UserPortal} /><Route path="/directory" component={UserPortal} /><Route path="/team" component={UserPortal} /><Route path="/reports/:reportId" component={UserPortal} /><Route path="/reports" component={UserPortal} /><Route path="/custody/:token" component={CustodyRespondPage} /><Route component={UserPortal} /></Switch><Toaster /></QueryClientProvider></ClerkProvider>;
 }
 
 function App() {

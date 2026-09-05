@@ -261,3 +261,74 @@ export type Maintenance = typeof maintenanceTable.$inferSelect;
 export type Attachment = typeof attachmentsTable.$inferSelect;
 export type ComplianceReport = typeof complianceReportsTable.$inferSelect;
 export type EmailSend = typeof emailSendsTable.$inferSelect;
+
+export const CUSTODY_CHECK_STATUSES = ["open", "closed"] as const;
+export type CustodyCheckStatus = (typeof CUSTODY_CHECK_STATUSES)[number];
+
+export const CUSTODY_CADENCES = ["hour", "day"] as const;
+export type CustodyCadence = (typeof CUSTODY_CADENCES)[number];
+
+export const CUSTODY_MAIL_STATUSES = ["queued", "sent", "blocked", "skipped_no_email"] as const;
+export type CustodyMailStatus = (typeof CUSTODY_MAIL_STATUSES)[number];
+
+export const CUSTODY_ITEM_RESPONSES = ["pending", "confirmed", "denied"] as const;
+export type CustodyItemResponse = (typeof CUSTODY_ITEM_RESPONSES)[number];
+
+export const custodyChecksTable = pgTable("asset_custody_checks", {
+  id: varchar("id", { length: 32 }).primaryKey(),
+  title: text("title").notNull(),
+  dueAt: timestamp("due_at", { withTimezone: true }).notNull(),
+  status: varchar("status", { length: 16 }).$type<CustodyCheckStatus>().notNull().default("open"),
+  batchSize: integer("batch_size").notNull().default(25),
+  cadence: varchar("cadence", { length: 8 }).$type<CustodyCadence>().notNull().default("hour"),
+  lastSendAt: timestamp("last_send_at", { withTimezone: true }),
+  locationId: varchar("location_id", { length: 32 }),
+  departmentId: varchar("department_id", { length: 32 }),
+  createdBy: varchar("created_by", { length: 64 }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const custodyRecipientsTable = pgTable("asset_custody_recipients", {
+  id: varchar("id", { length: 32 }).primaryKey(),
+  checkId: varchar("check_id", { length: 32 })
+    .notNull()
+    .references(() => custodyChecksTable.id),
+  personId: varchar("person_id", { length: 32 }).notNull(),
+  personName: text("person_name").notNull(),
+  email: text("email").notNull().default(""),
+  tokenHash: varchar("token_hash", { length: 64 }),
+  mailStatus: varchar("mail_status", { length: 24 }).$type<CustodyMailStatus>().notNull().default("queued"),
+  sendAttempts: integer("send_attempts").notNull().default(0),
+  lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true }),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const custodyItemsTable = pgTable("asset_custody_items", {
+  id: varchar("id", { length: 32 }).primaryKey(),
+  checkId: varchar("check_id", { length: 32 })
+    .notNull()
+    .references(() => custodyChecksTable.id),
+  recipientId: varchar("recipient_id", { length: 32 })
+    .notNull()
+    .references(() => custodyRecipientsTable.id),
+  assetId: varchar("asset_id", { length: 32 }).notNull(),
+  assetTag: varchar("asset_tag", { length: 64 }).notNull(),
+  assetName: text("asset_name").notNull(),
+  response: varchar("response", { length: 16 }).$type<CustodyItemResponse>().notNull().default("pending"),
+  respondedAt: timestamp("responded_at", { withTimezone: true }),
+  note: text("note").notNull().default(""),
+});
+
+export const insertCustodyCheckSchema = createInsertSchema(custodyChecksTable).omit({
+  createdAt: true,
+});
+export const insertCustodyRecipientSchema = createInsertSchema(custodyRecipientsTable).omit({
+  createdAt: true,
+});
+export const insertCustodyItemSchema = createInsertSchema(custodyItemsTable);
+
+export type CustodyCheck = typeof custodyChecksTable.$inferSelect;
+export type CustodyRecipient = typeof custodyRecipientsTable.$inferSelect;
+export type CustodyItem = typeof custodyItemsTable.$inferSelect;

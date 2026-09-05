@@ -12,6 +12,7 @@ import { sendEmail, type EmailContent } from "./email";
 import {
   assetAssignedEmail,
   assetReturnedEmail,
+  custodyCheckEmail,
   maintenanceEmail,
   reportStageEmail,
   teamInviteEmail,
@@ -81,7 +82,7 @@ async function deliver(
   window: string,
   recipient: string,
   message: EmailContent,
-): Promise<void> {
+): Promise<"sent" | "skipped"> {
   const existing = await db
     .select({ id: emailSendsTable.id })
     .from(emailSendsTable)
@@ -94,10 +95,10 @@ async function deliver(
       ),
     )
     .limit(1);
-  if (existing.length > 0) return;
+  if (existing.length > 0) return "sent";
 
   const result = await sendEmail({ ...message, to: recipient });
-  if (result.skipped) return;
+  if (result.skipped) return "skipped";
 
   await db
     .insert(emailSendsTable)
@@ -110,6 +111,7 @@ async function deliver(
       sentAt: new Date(),
     })
     .onConflictDoNothing();
+  return "sent";
 }
 
 async function notifyUnsafe(payload: NotifyPayload): Promise<void> {
@@ -179,6 +181,27 @@ async function notifyUnsafe(payload: NotifyPayload): Promise<void> {
 
 export async function notify(payload: NotifyPayload): Promise<void> {
   await notifySafely(payload.type, () => notifyUnsafe(payload));
+}
+
+export async function sendCustodyMail(input: {
+  recipientId: string;
+  attempt: number;
+  email: string;
+  personName: string;
+  checkTitle: string;
+  dueAt: string;
+  assets: { assetTag: string; assetName: string }[];
+  href: string;
+}): Promise<"sent" | "skipped"> {
+  const to = uniqueValidEmails([input.email])[0];
+  if (!to) return "skipped";
+  return deliver(
+    "custody_check",
+    input.recipientId,
+    `attempt-${input.attempt}`,
+    to,
+    custodyCheckEmail(input),
+  );
 }
 
 export async function assigneeEmailFor(personId: string | null | undefined): Promise<string | null> {

@@ -74,6 +74,24 @@ export function reportStageEmail(input: { title: string; status: "ready_for_revi
   ], { href: appHref("/reports"), label: "Open reports" });
 }
 
+export function custodyCheckEmail(input: {
+  personName: string;
+  checkTitle: string;
+  dueAt: string;
+  assets: { assetTag: string; assetName: string }[];
+  href: string;
+}) {
+  const lines = input.assets.map((asset) => `${asset.assetName} (${asset.assetTag})`);
+  const extra = lines.length > 3
+    ? `${lines.slice(0, 3).join(", ")} and ${lines.length - 3} more`
+    : lines.join(", ");
+  return layout(`Please confirm you still have your assigned equipment`, [
+    `Hi ${input.personName || "there"},`,
+    `AssetControl is running “${input.checkTitle}”. Confirm you still have: ${extra || "your assigned equipment"}.`,
+    `Please reply by ${input.dueAt}. If something is missing, say so on the confirmation page.`,
+  ], { href: input.href, label: "Confirm equipment" });
+}
+
 export function warrantyEmail(input: {
   window: "warranty_30d" | "warranty_14d" | "warranty_7d" | "warranty_expired";
   assetName: string;

@@ -17,6 +17,10 @@
     {
       "path": "/api/internal/cron/warranty",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/internal/cron/custody",
+      "schedule": "0 * * * *"
     }
   ]
 }

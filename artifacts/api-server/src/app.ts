@@ -12,7 +12,8 @@ import { HealthCheckResponse } from "@workspace/api-zod";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { attachAppUser } from "./lib/auth";
-import { warrantyCronHandler } from "./routes/cron";
+import { warrantyCronHandler, custodyCronHandler } from "./routes/cron";
+import publicCustodyRouter from "./routes/custody-public";
 
 const app: Express = express();
 
@@ -98,7 +99,10 @@ app.get("/api/healthz", (_req, res) => {
 });
 app.get("/api/internal/cron/warranty", warrantyCronHandler);
 app.post("/api/internal/cron/warranty", warrantyCronHandler);
+app.get("/api/internal/cron/custody", custodyCronHandler);
+app.post("/api/internal/cron/custody", custodyCronHandler);
 
+app.use("/api/public", publicCustodyRouter);
 app.use("/api", attachAppUser, router);
 
 export default app;

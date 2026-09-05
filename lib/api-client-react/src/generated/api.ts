@@ -39,10 +39,16 @@ import type {
   ComplianceReportInput,
   ComplianceReportUpdate,
   CurrentUser,
+  CustodyCheck,
+  CustodyCheckDetail,
+  CustodyCheckInput,
+  CustodyCheckUpdate,
+  CustodySendResult,
   DashboardSummary,
   Department,
   DepartmentInput,
   DepartmentUpdate,
+  ErrorResponse,
   GetAuditLogsParams,
   GetDashboardActivityParams,
   GetDashboardMaintenanceParams,
@@ -64,6 +70,8 @@ import type {
   Person,
   PersonInput,
   PersonUpdate,
+  PublicCustodyResponse,
+  PublicCustodyView,
   User,
   UserInput,
   UserRoleUpdate,
@@ -2272,7 +2280,7 @@ export const getCreateLookupUrl = () => {
 }
 
 /**
- * @summary Create a dropdown option (Admin and Manager)
+ * @summary Create a dropdown option (Admin)
  */
 export const createLookup = async (lookupInput: LookupInput, options?: Parameters<typeof customFetch>[1]): Promise<LookupOption> => {
 
@@ -2321,7 +2329,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateLookupMutationError = ErrorType<void>
 
     /**
- * @summary Create a dropdown option (Admin and Manager)
+ * @summary Create a dropdown option (Admin)
  */
 export const useCreateLookup = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLookup>>, TError,{data: BodyType<LookupInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -2343,7 +2351,7 @@ export const getUpdateLookupUrl = (lookupId: string,) => {
 }
 
 /**
- * @summary Update a dropdown option (Admin and Manager)
+ * @summary Update a dropdown option (Admin)
  */
 export const updateLookup = async (lookupId: string,
     lookupUpdate: LookupUpdate, options?: Parameters<typeof customFetch>[1]): Promise<LookupOption> => {
@@ -2393,7 +2401,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UpdateLookupMutationError = ErrorType<NotFoundResponse | void>
 
     /**
- * @summary Update a dropdown option (Admin and Manager)
+ * @summary Update a dropdown option (Admin)
  */
 export const useUpdateLookup = <TError = ErrorType<NotFoundResponse | void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateLookup>>, TError,{lookupId: string;data: BodyType<LookupUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -2415,7 +2423,7 @@ export const getDeleteLookupUrl = (lookupId: string,) => {
 }
 
 /**
- * @summary Delete a dropdown option (Admin and Manager)
+ * @summary Delete a dropdown option (Admin)
  */
 export const deleteLookup = async (lookupId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
 
@@ -2464,7 +2472,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type DeleteLookupMutationError = ErrorType<NotFoundResponse | void>
 
     /**
- * @summary Delete a dropdown option (Admin and Manager)
+ * @summary Delete a dropdown option (Admin)
  */
 export const useDeleteLookup = <TError = ErrorType<NotFoundResponse | void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLookup>>, TError,{lookupId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -4104,5 +4112,593 @@ export const useDeleteComplianceReport = <TError = ErrorType<NotFoundResponse>,
         TContext
       > => {
       return useMutation(getDeleteComplianceReportMutationOptions(options));
+    }
+
+export const getListCustodyChecksUrl = () => {
+
+
+
+
+  return `/api/custody-checks`
+}
+
+/**
+ * @summary List custody checks (Admin, Auditor, Manager)
+ */
+export const listCustodyChecks = async ( options?: Parameters<typeof customFetch>[1]): Promise<CustodyCheck[]> => {
+
+  return customFetch<CustodyCheck[]>(getListCustodyChecksUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListCustodyChecksQueryKey = () => {
+    return [
+    `/api/custody-checks`
+    ] as const;
+    }
+
+
+export const getListCustodyChecksQueryOptions = <TData = Awaited<ReturnType<typeof listCustodyChecks>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCustodyChecks>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListCustodyChecksQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCustodyChecks>>> = ({ signal }) => listCustodyChecks({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listCustodyChecks>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListCustodyChecksQueryResult = NonNullable<Awaited<ReturnType<typeof listCustodyChecks>>>
+export type ListCustodyChecksQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List custody checks (Admin, Auditor, Manager)
+ */
+
+export function useListCustodyChecks<TData = Awaited<ReturnType<typeof listCustodyChecks>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCustodyChecks>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListCustodyChecksQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateCustodyCheckUrl = () => {
+
+
+
+
+  return `/api/custody-checks`
+}
+
+/**
+ * @summary Start a custody check (Admin and Auditor)
+ */
+export const createCustodyCheck = async (custodyCheckInput: CustodyCheckInput, options?: Parameters<typeof customFetch>[1]): Promise<CustodyCheck> => {
+
+  return customFetch<CustodyCheck>(getCreateCustodyCheckUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(custodyCheckInput)
+  }
+);}
+
+
+
+
+
+export const getCreateCustodyCheckMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCustodyCheck>>, TError,{data: BodyType<CustodyCheckInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCustodyCheck>>, TError,{data: BodyType<CustodyCheckInput>}, TContext> => {
+
+const mutationKey = ['createCustodyCheck'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCustodyCheck>>, {data: BodyType<CustodyCheckInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createCustodyCheck(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCustodyCheckMutationResult = NonNullable<Awaited<ReturnType<typeof createCustodyCheck>>>
+    export type CreateCustodyCheckMutationBody = BodyType<CustodyCheckInput>
+    export type CreateCustodyCheckMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Start a custody check (Admin and Auditor)
+ */
+export const useCreateCustodyCheck = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCustodyCheck>>, TError,{data: BodyType<CustodyCheckInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createCustodyCheck>>,
+        TError,
+        {data: BodyType<CustodyCheckInput>},
+        TContext
+      > => {
+      return useMutation(getCreateCustodyCheckMutationOptions(options));
+    }
+
+export const getGetCustodyCheckUrl = (checkId: string,) => {
+
+
+
+
+  return `/api/custody-checks/${checkId}`
+}
+
+/**
+ * @summary Get a custody check with recipients
+ */
+export const getCustodyCheck = async (checkId: string, options?: Parameters<typeof customFetch>[1]): Promise<CustodyCheckDetail> => {
+
+  return customFetch<CustodyCheckDetail>(getGetCustodyCheckUrl(checkId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCustodyCheckQueryKey = (checkId: string,) => {
+    return [
+    `/api/custody-checks/${checkId}`
+    ] as const;
+    }
+
+
+export const getGetCustodyCheckQueryOptions = <TData = Awaited<ReturnType<typeof getCustodyCheck>>, TError = ErrorType<NotFoundResponse>>(checkId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCustodyCheck>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCustodyCheckQueryKey(checkId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCustodyCheck>>> = ({ signal }) => getCustodyCheck(checkId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: checkId !== null && checkId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCustodyCheck>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCustodyCheckQueryResult = NonNullable<Awaited<ReturnType<typeof getCustodyCheck>>>
+export type GetCustodyCheckQueryError = ErrorType<NotFoundResponse>
+
+
+/**
+ * @summary Get a custody check with recipients
+ */
+
+export function useGetCustodyCheck<TData = Awaited<ReturnType<typeof getCustodyCheck>>, TError = ErrorType<NotFoundResponse>>(
+ checkId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCustodyCheck>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCustodyCheckQueryOptions(checkId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateCustodyCheckUrl = (checkId: string,) => {
+
+
+
+
+  return `/api/custody-checks/${checkId}`
+}
+
+/**
+ * @summary Close a custody check (Admin and Auditor)
+ */
+export const updateCustodyCheck = async (checkId: string,
+    custodyCheckUpdate: CustodyCheckUpdate, options?: Parameters<typeof customFetch>[1]): Promise<CustodyCheck> => {
+
+  return customFetch<CustodyCheck>(getUpdateCustodyCheckUrl(checkId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(custodyCheckUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateCustodyCheckMutationOptions = <TError = ErrorType<NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCustodyCheck>>, TError,{checkId: string;data: BodyType<CustodyCheckUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateCustodyCheck>>, TError,{checkId: string;data: BodyType<CustodyCheckUpdate>}, TContext> => {
+
+const mutationKey = ['updateCustodyCheck'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCustodyCheck>>, {checkId: string;data: BodyType<CustodyCheckUpdate>}> = (props) => {
+          const {checkId,data} = props ?? {};
+
+          return  updateCustodyCheck(checkId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateCustodyCheckMutationResult = NonNullable<Awaited<ReturnType<typeof updateCustodyCheck>>>
+    export type UpdateCustodyCheckMutationBody = BodyType<CustodyCheckUpdate>
+    export type UpdateCustodyCheckMutationError = ErrorType<NotFoundResponse>
+
+    /**
+ * @summary Close a custody check (Admin and Auditor)
+ */
+export const useUpdateCustodyCheck = <TError = ErrorType<NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCustodyCheck>>, TError,{checkId: string;data: BodyType<CustodyCheckUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateCustodyCheck>>,
+        TError,
+        {checkId: string;data: BodyType<CustodyCheckUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateCustodyCheckMutationOptions(options));
+    }
+
+export const getSendCustodyCheckBatchUrl = (checkId: string,) => {
+
+
+
+
+  return `/api/custody-checks/${checkId}/send`
+}
+
+/**
+ * @summary Send the next email batch now (Admin and Auditor)
+ */
+export const sendCustodyCheckBatch = async (checkId: string, options?: Parameters<typeof customFetch>[1]): Promise<CustodySendResult> => {
+
+  return customFetch<CustodySendResult>(getSendCustodyCheckBatchUrl(checkId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getSendCustodyCheckBatchMutationOptions = <TError = ErrorType<NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendCustodyCheckBatch>>, TError,{checkId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendCustodyCheckBatch>>, TError,{checkId: string}, TContext> => {
+
+const mutationKey = ['sendCustodyCheckBatch'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendCustodyCheckBatch>>, {checkId: string}> = (props) => {
+          const {checkId} = props ?? {};
+
+          return  sendCustodyCheckBatch(checkId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendCustodyCheckBatchMutationResult = NonNullable<Awaited<ReturnType<typeof sendCustodyCheckBatch>>>
+
+    export type SendCustodyCheckBatchMutationError = ErrorType<NotFoundResponse>
+
+    /**
+ * @summary Send the next email batch now (Admin and Auditor)
+ */
+export const useSendCustodyCheckBatch = <TError = ErrorType<NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendCustodyCheckBatch>>, TError,{checkId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendCustodyCheckBatch>>,
+        TError,
+        {checkId: string},
+        TContext
+      > => {
+      return useMutation(getSendCustodyCheckBatchMutationOptions(options));
+    }
+
+export const getRemindCustodyCheckUrl = (checkId: string,) => {
+
+
+
+
+  return `/api/custody-checks/${checkId}/remind`
+}
+
+/**
+ * @summary Re-queue pending recipients for another batched send (Admin and Auditor)
+ */
+export const remindCustodyCheck = async (checkId: string, options?: Parameters<typeof customFetch>[1]): Promise<CustodyCheck> => {
+
+  return customFetch<CustodyCheck>(getRemindCustodyCheckUrl(checkId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRemindCustodyCheckMutationOptions = <TError = ErrorType<NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof remindCustodyCheck>>, TError,{checkId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof remindCustodyCheck>>, TError,{checkId: string}, TContext> => {
+
+const mutationKey = ['remindCustodyCheck'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof remindCustodyCheck>>, {checkId: string}> = (props) => {
+          const {checkId} = props ?? {};
+
+          return  remindCustodyCheck(checkId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemindCustodyCheckMutationResult = NonNullable<Awaited<ReturnType<typeof remindCustodyCheck>>>
+
+    export type RemindCustodyCheckMutationError = ErrorType<NotFoundResponse>
+
+    /**
+ * @summary Re-queue pending recipients for another batched send (Admin and Auditor)
+ */
+export const useRemindCustodyCheck = <TError = ErrorType<NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof remindCustodyCheck>>, TError,{checkId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof remindCustodyCheck>>,
+        TError,
+        {checkId: string},
+        TContext
+      > => {
+      return useMutation(getRemindCustodyCheckMutationOptions(options));
+    }
+
+export const getGetPublicCustodyUrl = (token: string,) => {
+
+
+
+
+  return `/api/public/custody/${token}`
+}
+
+/**
+ * @summary Load a custody request from an email link (no sign-in)
+ */
+export const getPublicCustody = async (token: string, options?: Parameters<typeof customFetch>[1]): Promise<PublicCustodyView> => {
+
+  return customFetch<PublicCustodyView>(getGetPublicCustodyUrl(token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicCustodyQueryKey = (token: string,) => {
+    return [
+    `/api/public/custody/${token}`
+    ] as const;
+    }
+
+
+export const getGetPublicCustodyQueryOptions = <TData = Awaited<ReturnType<typeof getPublicCustody>>, TError = ErrorType<NotFoundResponse | ErrorResponse>>(token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicCustody>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicCustodyQueryKey(token);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicCustody>>> = ({ signal }) => getPublicCustody(token, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: token !== null && token !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicCustody>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPublicCustodyQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicCustody>>>
+export type GetPublicCustodyQueryError = ErrorType<NotFoundResponse | ErrorResponse>
+
+
+/**
+ * @summary Load a custody request from an email link (no sign-in)
+ */
+
+export function useGetPublicCustody<TData = Awaited<ReturnType<typeof getPublicCustody>>, TError = ErrorType<NotFoundResponse | ErrorResponse>>(
+ token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicCustody>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPublicCustodyQueryOptions(token,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRespondPublicCustodyUrl = (token: string,) => {
+
+
+
+
+  return `/api/public/custody/${token}`
+}
+
+/**
+ * @summary Confirm or deny assets from an email link (no sign-in)
+ */
+export const respondPublicCustody = async (token: string,
+    publicCustodyResponse: PublicCustodyResponse, options?: Parameters<typeof customFetch>[1]): Promise<PublicCustodyView> => {
+
+  return customFetch<PublicCustodyView>(getRespondPublicCustodyUrl(token),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(publicCustodyResponse)
+  }
+);}
+
+
+
+
+
+export const getRespondPublicCustodyMutationOptions = <TError = ErrorType<NotFoundResponse | ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof respondPublicCustody>>, TError,{token: string;data: BodyType<PublicCustodyResponse>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof respondPublicCustody>>, TError,{token: string;data: BodyType<PublicCustodyResponse>}, TContext> => {
+
+const mutationKey = ['respondPublicCustody'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof respondPublicCustody>>, {token: string;data: BodyType<PublicCustodyResponse>}> = (props) => {
+          const {token,data} = props ?? {};
+
+          return  respondPublicCustody(token,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RespondPublicCustodyMutationResult = NonNullable<Awaited<ReturnType<typeof respondPublicCustody>>>
+    export type RespondPublicCustodyMutationBody = BodyType<PublicCustodyResponse>
+    export type RespondPublicCustodyMutationError = ErrorType<NotFoundResponse | ErrorResponse>
+
+    /**
+ * @summary Confirm or deny assets from an email link (no sign-in)
+ */
+export const useRespondPublicCustody = <TError = ErrorType<NotFoundResponse | ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof respondPublicCustody>>, TError,{token: string;data: BodyType<PublicCustodyResponse>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof respondPublicCustody>>,
+        TError,
+        {token: string;data: BodyType<PublicCustodyResponse>},
+        TContext
+      > => {
+      return useMutation(getRespondPublicCustodyMutationOptions(options));
     }
 

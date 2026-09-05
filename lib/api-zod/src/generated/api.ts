@@ -848,7 +848,7 @@ export const ListLookupsResponse = zod.array(ListLookupsResponseItem)
 
 
 /**
- * @summary Create a dropdown option (Admin and Manager)
+ * @summary Create a dropdown option (Admin)
  */
 
 
@@ -871,7 +871,7 @@ export const CreateLookupResponse = zod.object({
 
 
 /**
- * @summary Update a dropdown option (Admin and Manager)
+ * @summary Update a dropdown option (Admin)
  */
 export const UpdateLookupParams = zod.object({
   "lookupId": zod.coerce.string()
@@ -899,7 +899,7 @@ export const UpdateLookupResponse = zod.object({
 
 
 /**
- * @summary Delete a dropdown option (Admin and Manager)
+ * @summary Delete a dropdown option (Admin)
  */
 export const DeleteLookupParams = zod.object({
   "lookupId": zod.coerce.string()
@@ -1469,5 +1469,266 @@ export const DeleteComplianceReportParams = zod.object({
 })
 
 export const DeleteComplianceReportResponse = zod.void()
+
+
+/**
+ * @summary List custody checks (Admin, Auditor, Manager)
+ */
+export const ListCustodyChecksResponseItem = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "dueAt": zod.coerce.date(),
+  "status": zod.enum(['open', 'closed']),
+  "batchSize": zod.int(),
+  "cadence": zod.enum(['hour', 'day']),
+  "lastSendAt": zod.coerce.date().nullable(),
+  "locationId": zod.string().nullable(),
+  "departmentId": zod.string().nullable(),
+  "createdBy": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "recipientCount": zod.int(),
+  "queuedCount": zod.int(),
+  "sentCount": zod.int(),
+  "confirmedCount": zod.int(),
+  "deniedCount": zod.int(),
+  "pendingCount": zod.int(),
+  "blockedCount": zod.int()
+})
+export const ListCustodyChecksResponse = zod.array(ListCustodyChecksResponseItem)
+
+
+/**
+ * @summary Start a custody check (Admin and Auditor)
+ */
+
+export const createCustodyCheckBodyBatchSizeDefault = 25;
+export const createCustodyCheckBodyBatchSizeMax = 100;
+
+export const createCustodyCheckBodyCadenceDefault = `hour`;
+
+export const CreateCustodyCheckBody = zod.object({
+  "title": zod.string().min(1),
+  "dueAt": zod.coerce.date(),
+  "batchSize": zod.int().min(1).max(createCustodyCheckBodyBatchSizeMax).default(createCustodyCheckBodyBatchSizeDefault),
+  "cadence": zod.enum(['hour', 'day']).default(createCustodyCheckBodyCadenceDefault),
+  "locationId": zod.string().nullish(),
+  "departmentId": zod.string().nullish()
+})
+
+export const CreateCustodyCheckResponse = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "dueAt": zod.coerce.date(),
+  "status": zod.enum(['open', 'closed']),
+  "batchSize": zod.int(),
+  "cadence": zod.enum(['hour', 'day']),
+  "lastSendAt": zod.coerce.date().nullable(),
+  "locationId": zod.string().nullable(),
+  "departmentId": zod.string().nullable(),
+  "createdBy": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "recipientCount": zod.int(),
+  "queuedCount": zod.int(),
+  "sentCount": zod.int(),
+  "confirmedCount": zod.int(),
+  "deniedCount": zod.int(),
+  "pendingCount": zod.int(),
+  "blockedCount": zod.int()
+})
+
+
+/**
+ * @summary Get a custody check with recipients
+ */
+export const GetCustodyCheckParams = zod.object({
+  "checkId": zod.coerce.string()
+})
+
+export const GetCustodyCheckResponse = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "dueAt": zod.coerce.date(),
+  "status": zod.enum(['open', 'closed']),
+  "batchSize": zod.int(),
+  "cadence": zod.enum(['hour', 'day']),
+  "lastSendAt": zod.coerce.date().nullable(),
+  "locationId": zod.string().nullable(),
+  "departmentId": zod.string().nullable(),
+  "createdBy": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "recipientCount": zod.int(),
+  "queuedCount": zod.int(),
+  "sentCount": zod.int(),
+  "confirmedCount": zod.int(),
+  "deniedCount": zod.int(),
+  "pendingCount": zod.int(),
+  "blockedCount": zod.int()
+}).and(zod.object({
+  "recipients": zod.array(zod.object({
+  "id": zod.string(),
+  "personId": zod.string(),
+  "personName": zod.string(),
+  "email": zod.string(),
+  "mailStatus": zod.enum(['queued', 'sent', 'blocked', 'skipped_no_email']),
+  "sendAttempts": zod.int(),
+  "sentAt": zod.coerce.date().nullable(),
+  "expiresAt": zod.coerce.date().nullable(),
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "assetId": zod.string(),
+  "assetTag": zod.string(),
+  "assetName": zod.string(),
+  "response": zod.enum(['pending', 'confirmed', 'denied']),
+  "respondedAt": zod.coerce.date().nullable(),
+  "note": zod.string()
+}))
+}))
+}))
+
+
+/**
+ * @summary Close a custody check (Admin and Auditor)
+ */
+export const UpdateCustodyCheckParams = zod.object({
+  "checkId": zod.coerce.string()
+})
+
+export const UpdateCustodyCheckBody = zod.object({
+  "status": zod.enum(['closed'])
+})
+
+export const UpdateCustodyCheckResponse = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "dueAt": zod.coerce.date(),
+  "status": zod.enum(['open', 'closed']),
+  "batchSize": zod.int(),
+  "cadence": zod.enum(['hour', 'day']),
+  "lastSendAt": zod.coerce.date().nullable(),
+  "locationId": zod.string().nullable(),
+  "departmentId": zod.string().nullable(),
+  "createdBy": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "recipientCount": zod.int(),
+  "queuedCount": zod.int(),
+  "sentCount": zod.int(),
+  "confirmedCount": zod.int(),
+  "deniedCount": zod.int(),
+  "pendingCount": zod.int(),
+  "blockedCount": zod.int()
+})
+
+
+/**
+ * @summary Send the next email batch now (Admin and Auditor)
+ */
+export const SendCustodyCheckBatchParams = zod.object({
+  "checkId": zod.coerce.string()
+})
+
+export const SendCustodyCheckBatchResponse = zod.object({
+  "sent": zod.int(),
+  "skipped": zod.int(),
+  "blocked": zod.int(),
+  "remaining": zod.int(),
+  "previewLinks": zod.array(zod.object({
+  "email": zod.string(),
+  "href": zod.string()
+}))
+})
+
+
+/**
+ * @summary Re-queue pending recipients for another batched send (Admin and Auditor)
+ */
+export const RemindCustodyCheckParams = zod.object({
+  "checkId": zod.coerce.string()
+})
+
+export const RemindCustodyCheckResponse = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "dueAt": zod.coerce.date(),
+  "status": zod.enum(['open', 'closed']),
+  "batchSize": zod.int(),
+  "cadence": zod.enum(['hour', 'day']),
+  "lastSendAt": zod.coerce.date().nullable(),
+  "locationId": zod.string().nullable(),
+  "departmentId": zod.string().nullable(),
+  "createdBy": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "recipientCount": zod.int(),
+  "queuedCount": zod.int(),
+  "sentCount": zod.int(),
+  "confirmedCount": zod.int(),
+  "deniedCount": zod.int(),
+  "pendingCount": zod.int(),
+  "blockedCount": zod.int()
+})
+
+
+/**
+ * @summary Load a custody request from an email link (no sign-in)
+ */
+export const getPublicCustodyPathTokenMin = 8;
+
+
+
+export const GetPublicCustodyParams = zod.object({
+  "token": zod.coerce.string().min(getPublicCustodyPathTokenMin)
+})
+
+export const GetPublicCustodyResponse = zod.object({
+  "checkTitle": zod.string(),
+  "dueAt": zod.coerce.date(),
+  "personName": zod.string(),
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "assetId": zod.string(),
+  "assetTag": zod.string(),
+  "assetName": zod.string(),
+  "response": zod.enum(['pending', 'confirmed', 'denied']),
+  "respondedAt": zod.coerce.date().nullable(),
+  "note": zod.string()
+}))
+})
+
+
+/**
+ * @summary Confirm or deny assets from an email link (no sign-in)
+ */
+export const respondPublicCustodyPathTokenMin = 8;
+
+
+
+export const RespondPublicCustodyParams = zod.object({
+  "token": zod.coerce.string().min(respondPublicCustodyPathTokenMin)
+})
+
+export const respondPublicCustodyBodyItemsItemNoteDefault = ``;
+
+
+export const RespondPublicCustodyBody = zod.object({
+  "items": zod.array(zod.object({
+  "itemId": zod.string(),
+  "response": zod.enum(['confirmed', 'denied']),
+  "note": zod.string().default(respondPublicCustodyBodyItemsItemNoteDefault)
+})).min(1)
+})
+
+export const RespondPublicCustodyResponse = zod.object({
+  "checkTitle": zod.string(),
+  "dueAt": zod.coerce.date(),
+  "personName": zod.string(),
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "assetId": zod.string(),
+  "assetTag": zod.string(),
+  "assetName": zod.string(),
+  "response": zod.enum(['pending', 'confirmed', 'denied']),
+  "respondedAt": zod.coerce.date().nullable(),
+  "note": zod.string()
+}))
+})
 
 

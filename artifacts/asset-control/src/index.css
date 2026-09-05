@@ -221,3 +221,14 @@ button.chrome-item:hover { background:hsl(var(--primary) / .06); }
 @media (max-width: 1100px) { .directory-grid { grid-template-columns:1fr 1fr; } }
 @media (max-width: 480px) { .topbar { align-items:center; }.topbar h1 { font-size:24px; }.topbar-actions .button { padding:0 10px; }.metric-card { min-height:119px; padding:14px; }.metric-card strong { font-size:25px; margin-top:13px; }.shortcut-grid { grid-template-columns:1fr; }.status-strip { flex-wrap:wrap; }.status-strip button { margin-left:0; }.form-grid { grid-template-columns:1fr; }.field-full { margin-top:14px; }.modal-backdrop { padding:8px; }.asset-form { padding:17px; }.modal-head { padding:17px; }.maintenance-item { grid-template-columns:39px minmax(0,1fr) auto; }.maintenance-item .status-pill { grid-column:2 / -1; justify-self:start; }.maintenance-page-card .maintenance-item { grid-template-columns:48px minmax(0,1fr); }.maintenance-page-card .maintenance-item > .priority, .maintenance-page-card .maintenance-item > .status-pill { grid-column:2; justify-self:start; }.legend { flex-wrap:wrap; } }
 @media (max-width: 480px) { .inventory-actions { gap:7px; }.inventory-actions .text-button { font-size:10px; }.activity-filters { flex-direction:column; }.maintenance-page-card .maintenance-item > .maintenance-controls { grid-column:2; justify-self:start; } }
+.custody-public .auth-landing-main { max-width: 560px; text-align: left; }
+.custody-items { margin-top: 24px; display: grid; gap: 10px; }
+.custody-item { padding: 14px; border: 1px solid #e6dfd2; border-radius: 10px; background: #fffdf8; }
+.custody-item b { display: block; font-size: 14px; }
+.custody-item small { display: block; margin-top: 4px; color: hsl(var(--muted-foreground)); font: 10px var(--app-font-mono); }
+.custody-item .field-full { margin-top: 10px; }
+.custody-item .topbar-button-row { margin-top: 12px; }
+.custody-thanks { margin-top: 16px; }
+.custody-preview-links { margin-top: 16px; display: grid; gap: 6px; }
+.custody-preview-links p { margin: 0; color: hsl(var(--muted-foreground)); font: 500 9px var(--app-font-mono); text-transform: uppercase; letter-spacing: .05em; }
+.custody-preview-links a { font-size: 12px; color: #2b8c81; }

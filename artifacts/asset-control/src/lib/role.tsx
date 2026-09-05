@@ -77,6 +77,10 @@ export const canViewReports = (role: Role | null) =>
   role === "admin" || role === "auditor";
 export const canEditReports = (role: Role | null) =>
   role === "admin" || role === "auditor";
+export const canViewCustody = (role: Role | null) =>
+  role === "admin" || role === "auditor" || role === "manager";
+export const canManageCustody = (role: Role | null) =>
+  role === "admin" || role === "auditor";
 
 /** Roles a given actor is allowed to grant when onboarding a new user. */
 export function grantableRoles(actor: Role | null): Role[] {

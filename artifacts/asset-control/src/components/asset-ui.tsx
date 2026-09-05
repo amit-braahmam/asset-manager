@@ -3,7 +3,7 @@ import { type ChangeEvent, type ReactNode, useEffect, useRef, useState } from 'r
 import { useClerk, useUser } from '@clerk/react';
 import { Bell, Boxes, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, ClipboardList, FileText, Home, ImagePlus, LogOut, Menu, MoreHorizontal, Search, ShieldCheck, UsersRound, Wrench, X, ArrowUpRight, RefreshCw, Pencil, Trash2, Users } from 'lucide-react';
 import { customFetch, useGetDashboardActivity, useListLookups, useListWarrantyAlerts, type Asset, type Attachment, type MaintenanceItem, type WarrantyAlert } from '@workspace/api-client-react';
-import { useRole, ROLE_LABELS, canViewTeam, canViewReports } from '@/lib/role';
+import { useRole, ROLE_LABELS, canViewTeam, canViewReports, canViewCustody } from '@/lib/role';
 import { HELP_GUIDES, helpGuide, helpSectionFromPath, type HelpSection } from '@/lib/help-guides';
 import { lookupLabel } from '@/lib/lookup-options';
 
@@ -43,7 +43,7 @@ export function Sidebar() {
     { href: '/maintenance', label: 'Maintenance', icon: Wrench },
     { href: '/directory', label: 'Directory', icon: Users },
     ...(canViewTeam(role) ? [{ href: '/team', label: 'Team', icon: UsersRound }] : []),
-    ...(canViewReports(role) ? [{ href: '/reports', label: 'Reports', icon: FileText }] : []),
+    ...(canViewReports(role) || canViewCustody(role) ? [{ href: '/reports', label: 'Reports', icon: FileText }] : []),
   ];
   const isActive = (href: string) => location === href || location.startsWith(`${href}/`);
   const roleLabel = role ? ROLE_LABELS[role] : 'Signed-in operator';

@@ -611,6 +611,168 @@ export interface BulkAssetStatusInput {
   note?: string;
 }
 
+export type CustodyCheckStatus = typeof CustodyCheckStatus[keyof typeof CustodyCheckStatus];
+
+
+export const CustodyCheckStatus = {
+  open: 'open',
+  closed: 'closed',
+} as const;
+
+export type CustodyCheckCadence = typeof CustodyCheckCadence[keyof typeof CustodyCheckCadence];
+
+
+export const CustodyCheckCadence = {
+  hour: 'hour',
+  day: 'day',
+} as const;
+
+export interface CustodyCheck {
+  id: string;
+  title: string;
+  dueAt: string;
+  status: CustodyCheckStatus;
+  batchSize: number;
+  cadence: CustodyCheckCadence;
+  /** @nullable */
+  lastSendAt: string | null;
+  /** @nullable */
+  locationId: string | null;
+  /** @nullable */
+  departmentId: string | null;
+  createdBy: string;
+  createdAt: string;
+  recipientCount: number;
+  queuedCount: number;
+  sentCount: number;
+  confirmedCount: number;
+  deniedCount: number;
+  pendingCount: number;
+  blockedCount: number;
+}
+
+export type CustodyCheckInputCadence = typeof CustodyCheckInputCadence[keyof typeof CustodyCheckInputCadence];
+
+
+export const CustodyCheckInputCadence = {
+  hour: 'hour',
+  day: 'day',
+} as const;
+
+export interface CustodyCheckInput {
+  /** @minLength 1 */
+  title: string;
+  dueAt: string;
+  /**
+     * @minimum 1
+     * @maximum 100
+     */
+  batchSize?: number;
+  cadence?: CustodyCheckInputCadence;
+  /** @nullable */
+  locationId?: string | null;
+  /** @nullable */
+  departmentId?: string | null;
+}
+
+export type CustodyCheckUpdateStatus = typeof CustodyCheckUpdateStatus[keyof typeof CustodyCheckUpdateStatus];
+
+
+export const CustodyCheckUpdateStatus = {
+  closed: 'closed',
+} as const;
+
+export interface CustodyCheckUpdate {
+  status: CustodyCheckUpdateStatus;
+}
+
+export type CustodyItemResponse = typeof CustodyItemResponse[keyof typeof CustodyItemResponse];
+
+
+export const CustodyItemResponse = {
+  pending: 'pending',
+  confirmed: 'confirmed',
+  denied: 'denied',
+} as const;
+
+export interface CustodyItem {
+  id: string;
+  assetId: string;
+  assetTag: string;
+  assetName: string;
+  response: CustodyItemResponse;
+  /** @nullable */
+  respondedAt: string | null;
+  note: string;
+}
+
+export type CustodyRecipientMailStatus = typeof CustodyRecipientMailStatus[keyof typeof CustodyRecipientMailStatus];
+
+
+export const CustodyRecipientMailStatus = {
+  queued: 'queued',
+  sent: 'sent',
+  blocked: 'blocked',
+  skipped_no_email: 'skipped_no_email',
+} as const;
+
+export interface CustodyRecipient {
+  id: string;
+  personId: string;
+  personName: string;
+  email: string;
+  mailStatus: CustodyRecipientMailStatus;
+  sendAttempts: number;
+  /** @nullable */
+  sentAt: string | null;
+  /** @nullable */
+  expiresAt: string | null;
+  items: CustodyItem[];
+}
+
+export type CustodyCheckDetail = CustodyCheck & {
+  recipients: CustodyRecipient[];
+};
+
+export interface CustodySendPreviewLink {
+  email: string;
+  href: string;
+}
+
+export interface CustodySendResult {
+  sent: number;
+  skipped: number;
+  blocked: number;
+  remaining: number;
+  previewLinks: CustodySendPreviewLink[];
+}
+
+export interface PublicCustodyView {
+  checkTitle: string;
+  dueAt: string;
+  personName: string;
+  items: CustodyItem[];
+}
+
+export type PublicCustodyResponseItemResponse = typeof PublicCustodyResponseItemResponse[keyof typeof PublicCustodyResponseItemResponse];
+
+
+export const PublicCustodyResponseItemResponse = {
+  confirmed: 'confirmed',
+  denied: 'denied',
+} as const;
+
+export interface PublicCustodyResponseItem {
+  itemId: string;
+  response: PublicCustodyResponseItemResponse;
+  note?: string;
+}
+
+export interface PublicCustodyResponse {
+  /** @minItems 1 */
+  items: PublicCustodyResponseItem[];
+}
+
 /**
  * Resource not found
  */

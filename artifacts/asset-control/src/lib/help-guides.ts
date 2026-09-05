@@ -57,12 +57,13 @@ export const HELP_GUIDES: HelpGuide[] = [
   {
     id: "reports",
     title: "Reports",
-    summary: "The activity log for investigation, plus staged compliance reports.",
+    summary: "The activity log for investigation, staged compliance reports, and custody checks.",
     steps: [
       "The activity log is every change across the estate, filterable by action and search.",
       "Start a compliance report, then move it In preparation → Ready for review → Final.",
       "Auditors and Admins can advance or edit reports. Only Admins can delete them.",
-      "Open a report to see its metrics, notes, and status history.",
+      "Start a custody check to ask assigned people to confirm they still have their equipment. Mail is queued and leaves in batches.",
+      "When mail is off locally, Send next batch returns preview links so you can open the confirmation page without email.",
     ],
   },
 ];

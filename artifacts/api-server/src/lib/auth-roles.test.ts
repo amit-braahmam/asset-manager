@@ -96,6 +96,8 @@ describe("requireRoles", () => {
     { allowed: ["admin", "manager"], path: "create/assign/return asset" },
     { allowed: ["admin", "manager", "technician"], path: "update asset status" },
     { allowed: ["admin", "auditor"], path: "reports and audit logs" },
+    { allowed: ["admin", "auditor", "manager"], path: "list custody checks" },
+    { allowed: ["admin", "auditor"], path: "start or send custody checks" },
     { allowed: ["admin"], path: "change user role" },
     { allowed: ["admin"], path: "edit Directory dropdown options" },
     { allowed: ["admin"], path: "delete team member or compliance report" },

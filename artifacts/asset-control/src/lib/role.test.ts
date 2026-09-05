@@ -13,8 +13,10 @@ import {
   canManageMaintenance,
   canManageRoles,
   canManageLookups,
+  canManageCustody,
   canOnboardUsers,
   canUpdateAssetStatus,
+  canViewCustody,
   canViewReports,
   canViewTeam,
   grantableRoles,
@@ -70,6 +72,11 @@ describe("UI permission helpers match the API role matrix", () => {
   it("reports and audit are Admin + Auditor", () => {
     assert.deepEqual(allowed(canViewReports), ["admin", "auditor"]);
     assert.deepEqual(allowed(canEditReports), ["admin", "auditor"]);
+  });
+
+  it("custody checks are viewable by Admin, Auditor, and Manager; only Admin and Auditor start or send", () => {
+    assert.deepEqual(allowed(canViewCustody), ["admin", "auditor", "manager"]);
+    assert.deepEqual(allowed(canManageCustody), ["admin", "auditor"]);
   });
 
   it("Viewer cannot mutate or open Team/Reports", () => {
