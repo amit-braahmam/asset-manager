@@ -37,38 +37,48 @@ export const GetDashboardSummaryResponse = zod.object({
 /**
  * @summary Get recent asset activity
  */
-export const getDashboardActivityQueryLimitDefault = 5;
-export const getDashboardActivityQueryLimitMax = 50;
+export const getDashboardActivityQueryPageDefault = 1;
+
+export const getDashboardActivityQueryPageSizeDefault = 10;
+export const getDashboardActivityQueryPageSizeMax = 100;
 
 
 
 export const GetDashboardActivityQueryParams = zod.object({
-  "limit": zod.coerce.number().int().min(1).max(getDashboardActivityQueryLimitMax).default(getDashboardActivityQueryLimitDefault),
+  "page": zod.coerce.number().int().min(1).default(getDashboardActivityQueryPageDefault),
+  "pageSize": zod.coerce.number().int().min(1).max(getDashboardActivityQueryPageSizeMax).default(getDashboardActivityQueryPageSizeDefault),
   "action": zod.enum(['assignment', 'return', 'alert', 'import', 'maintenance', 'update']).optional(),
   "search": zod.coerce.string().optional()
 })
 
-export const GetDashboardActivityResponseItem = zod.object({
+export const GetDashboardActivityResponse = zod.object({
+  "items": zod.array(zod.object({
   "id": zod.string(),
   "type": zod.enum(['assignment', 'return', 'alert', 'import', 'maintenance', 'update']),
   "message": zod.string(),
   "actor": zod.string(),
   "createdAt": zod.coerce.date(),
   "assetTag": zod.string().nullable()
+})),
+  "total": zod.int(),
+  "page": zod.int(),
+  "pageSize": zod.int()
 })
-export const GetDashboardActivityResponse = zod.array(GetDashboardActivityResponseItem)
 
 
 /**
  * @summary Get upcoming maintenance
  */
-export const getDashboardMaintenanceQueryLimitDefault = 5;
-export const getDashboardMaintenanceQueryLimitMax = 50;
+export const getDashboardMaintenanceQueryPageDefault = 1;
+
+export const getDashboardMaintenanceQueryPageSizeDefault = 10;
+export const getDashboardMaintenanceQueryPageSizeMax = 100;
 
 
 
 export const GetDashboardMaintenanceQueryParams = zod.object({
-  "limit": zod.coerce.number().int().min(1).max(getDashboardMaintenanceQueryLimitMax).default(getDashboardMaintenanceQueryLimitDefault)
+  "page": zod.coerce.number().int().min(1).default(getDashboardMaintenanceQueryPageDefault),
+  "pageSize": zod.coerce.number().int().min(1).max(getDashboardMaintenanceQueryPageSizeMax).default(getDashboardMaintenanceQueryPageSizeDefault)
 })
 
 
@@ -77,7 +87,8 @@ export const GetDashboardMaintenanceQueryParams = zod.object({
 
 
 
-export const GetDashboardMaintenanceResponseItem = zod.object({
+export const GetDashboardMaintenanceResponse = zod.object({
+  "items": zod.array(zod.object({
   "id": zod.string(),
   "title": zod.string(),
   "scope": zod.enum(['asset', 'estate']),
@@ -93,8 +104,11 @@ export const GetDashboardMaintenanceResponseItem = zod.object({
   "resolutionNotes": zod.string(),
   "completedAt": zod.coerce.date().nullable(),
   "completedBy": zod.string().nullable()
+})),
+  "total": zod.int(),
+  "page": zod.int(),
+  "pageSize": zod.int()
 })
-export const GetDashboardMaintenanceResponse = zod.array(GetDashboardMaintenanceResponseItem)
 
 
 /**
@@ -117,7 +131,7 @@ export const ListWarrantyAlertsResponse = zod.array(ListWarrantyAlertsResponseIt
 
 export const listAssetsQueryPageDefault = 1;
 
-export const listAssetsQueryPageSizeDefault = 12;
+export const listAssetsQueryPageSizeDefault = 10;
 export const listAssetsQueryPageSizeMax = 100;
 
 
@@ -911,8 +925,10 @@ export const DeleteLookupResponse = zod.void()
 /**
  * @summary List upcoming maintenance
  */
-export const listMaintenanceQueryLimitDefault = 50;
-export const listMaintenanceQueryLimitMax = 100;
+export const listMaintenanceQueryPageDefault = 1;
+
+export const listMaintenanceQueryPageSizeDefault = 10;
+export const listMaintenanceQueryPageSizeMax = 100;
 
 
 
@@ -921,7 +937,8 @@ export const listMaintenanceQueryLimitMax = 100;
 
 
 export const ListMaintenanceQueryParams = zod.object({
-  "limit": zod.coerce.number().int().min(1).max(listMaintenanceQueryLimitMax).default(listMaintenanceQueryLimitDefault),
+  "page": zod.coerce.number().int().min(1).default(listMaintenanceQueryPageDefault),
+  "pageSize": zod.coerce.number().int().min(1).max(listMaintenanceQueryPageSizeMax).default(listMaintenanceQueryPageSizeDefault),
   "search": zod.coerce.string().optional(),
   "status": zod.coerce.string().min(1).optional(),
   "mode": zod.coerce.string().min(1).optional(),
@@ -936,7 +953,8 @@ export const ListMaintenanceQueryParams = zod.object({
 
 
 
-export const ListMaintenanceResponseItem = zod.object({
+export const ListMaintenanceResponse = zod.object({
+  "items": zod.array(zod.object({
   "id": zod.string(),
   "title": zod.string(),
   "scope": zod.enum(['asset', 'estate']),
@@ -952,8 +970,11 @@ export const ListMaintenanceResponseItem = zod.object({
   "resolutionNotes": zod.string(),
   "completedAt": zod.coerce.date().nullable(),
   "completedBy": zod.string().nullable()
+})),
+  "total": zod.int(),
+  "page": zod.int(),
+  "pageSize": zod.int()
 })
-export const ListMaintenanceResponse = zod.array(ListMaintenanceResponseItem)
 
 
 /**
@@ -1289,6 +1310,29 @@ export const CreateUserResponse = zod.object({
 
 
 /**
+ * @summary Update a user profile (self, or Admin for anyone)
+ */
+export const UpdateUserParams = zod.object({
+  "userId": zod.coerce.string()
+})
+
+export const UpdateUserBody = zod.object({
+  "name": zod.string().optional(),
+  "email": zod.email().optional()
+})
+
+export const UpdateUserResponse = zod.object({
+  "id": zod.string(),
+  "email": zod.string(),
+  "name": zod.string(),
+  "role": zod.enum(['admin', 'auditor', 'manager', 'technician', 'viewer']),
+  "invitedBy": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "lastSeenAt": zod.coerce.date()
+})
+
+
+/**
  * @summary Delete a team member (Admin only)
  */
 export const DeleteUserParams = zod.object({
@@ -1323,26 +1367,33 @@ export const UpdateUserRoleResponse = zod.object({
 /**
  * @summary Consolidated audit / activity log (Admin and Auditor)
  */
-export const getAuditLogsQueryLimitDefault = 5;
-export const getAuditLogsQueryLimitMax = 50;
+export const getAuditLogsQueryPageDefault = 1;
+
+export const getAuditLogsQueryPageSizeDefault = 10;
+export const getAuditLogsQueryPageSizeMax = 100;
 
 
 
 export const GetAuditLogsQueryParams = zod.object({
   "search": zod.coerce.string().optional(),
   "action": zod.enum(['assignment', 'return', 'alert', 'import', 'maintenance', 'update']).optional(),
-  "limit": zod.coerce.number().int().min(1).max(getAuditLogsQueryLimitMax).default(getAuditLogsQueryLimitDefault)
+  "page": zod.coerce.number().int().min(1).default(getAuditLogsQueryPageDefault),
+  "pageSize": zod.coerce.number().int().min(1).max(getAuditLogsQueryPageSizeMax).default(getAuditLogsQueryPageSizeDefault)
 })
 
-export const GetAuditLogsResponseItem = zod.object({
+export const GetAuditLogsResponse = zod.object({
+  "items": zod.array(zod.object({
   "id": zod.string(),
   "type": zod.enum(['assignment', 'return', 'alert', 'import', 'maintenance', 'update']),
   "message": zod.string(),
   "actor": zod.string(),
   "createdAt": zod.coerce.date(),
   "assetTag": zod.string().nullable()
+})),
+  "total": zod.int(),
+  "page": zod.int(),
+  "pageSize": zod.int()
 })
-export const GetAuditLogsResponse = zod.array(GetAuditLogsResponseItem)
 
 
 /**

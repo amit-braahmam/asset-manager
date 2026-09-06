@@ -73,6 +73,13 @@ export const canOnboardUsers = (role: Role | null) =>
   role === "admin" || role === "manager";
 export const canManageRoles = (role: Role | null) => role === "admin";
 export const canManageLookups = (role: Role | null) => role === "admin";
+export const canEditUserProfile = (
+  role: Role | null,
+  actorId: string | undefined,
+  targetId: string,
+) => Boolean(actorId && (actorId === targetId || role === "admin"));
+export const canEditPendingUserEmail = (role: Role | null, targetId: string) =>
+  role === "admin" && targetId.startsWith("pending:");
 export const canViewReports = (role: Role | null) =>
   role === "admin" || role === "auditor";
 export const canEditReports = (role: Role | null) =>

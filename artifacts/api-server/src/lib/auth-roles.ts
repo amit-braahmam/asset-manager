@@ -58,6 +58,16 @@ export function hasRole(req: Request, ...allowed: UserRole[]): boolean {
   return !!role && allowed.includes(role);
 }
 
+/** Self can edit their own name; Admin can edit anyone. */
+export function canEditUserProfile(actor: AppUser, targetId: string): boolean {
+  return actor.id === targetId || actor.role === "admin";
+}
+
+/** Only Admin may change email, and only for pending invitations. */
+export function canEditPendingUserEmail(actor: AppUser, targetId: string): boolean {
+  return actor.role === "admin" && targetId.startsWith(PENDING_USER_PREFIX);
+}
+
 /** Display label for the acting user, used in audit/history entries. */
 export function actorLabel(req: Request): string {
   const user = req.appUser;

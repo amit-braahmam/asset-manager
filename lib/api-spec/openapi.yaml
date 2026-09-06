@@ -66,7 +66,8 @@ paths:
       tags: [dashboard]
       summary: Get recent asset activity
       parameters:
-        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
         - $ref: "#/components/parameters/ActivityAction"
         - $ref: "#/components/parameters/ActivitySearch"
       responses:
@@ -75,25 +76,22 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/ActivityEvent"
+                $ref: "#/components/schemas/ActivityListResponse"
   /dashboard/maintenance:
     get:
       operationId: getDashboardMaintenance
       tags: [dashboard]
       summary: Get upcoming maintenance
       parameters:
-        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
       responses:
         "200":
           description: Upcoming maintenance rows
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/MaintenanceItem"
+                $ref: "#/components/schemas/MaintenanceListResponse"
   /notifications/warranty:
     get:
       operationId: listWarrantyAlerts
@@ -584,7 +582,8 @@ paths:
       tags: [maintenance]
       summary: List upcoming maintenance
       parameters:
-        - $ref: "#/components/parameters/MaintenanceLimit"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
         - $ref: "#/components/parameters/Search"
         - $ref: "#/components/parameters/MaintenanceStatus"
         - $ref: "#/components/parameters/MaintenanceMode"
@@ -597,9 +596,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/MaintenanceItem"
+                $ref: "#/components/schemas/MaintenanceListResponse"
     post:
       operationId: createMaintenance
       tags: [maintenance]
@@ -816,6 +813,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/User"
   /users/{userId}:
+    patch:
+      operationId: updateUser
+      tags: [users]
+      summary: Update a user profile (self, or Admin for anyone)
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserProfileUpdate"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "403":
+          description: Not allowed to edit this profile
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Email already in use
     delete:
       operationId: deleteUser
       tags: [users]
@@ -859,16 +881,15 @@ paths:
       parameters:
         - $ref: "#/components/parameters/ActivitySearch"
         - $ref: "#/components/parameters/ActivityAction"
-        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
       responses:
         "200":
           description: Audit log entries
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/ActivityEvent"
+                $ref: "#/components/schemas/ActivityListResponse"
   /reports:
     get:
       operationId: listComplianceReports
@@ -1237,7 +1258,7 @@ components:
         type: integer
         minimum: 1
         maximum: 100
-        default: 12
+        default: 10
     Limit:
       name: limit
       in: query
@@ -1359,6 +1380,42 @@ components:
           type: string
           enum: [admin, auditor, manager, technician, viewer]
       required: [role]
+    UserProfileUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+    ActivityListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityEvent"
+        total:
+          type: integer
+        page:
+          type: integer
+        pageSize:
+          type: integer
+      required: [items, total, page, pageSize]
+    MaintenanceListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/MaintenanceItem"
+        total:
+          type: integer
+        page:
+          type: integer
+        pageSize:
+          type: integer
+      required: [items, total, page, pageSize]
     ComplianceReport:
       type: object
       properties:

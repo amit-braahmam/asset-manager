@@ -20,7 +20,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
-  ActivityEvent,
+  ActivityListResponse,
   Asset,
   AssetAssignmentInput,
   AssetDetail,
@@ -65,6 +65,7 @@ import type {
   LookupUpdate,
   MaintenanceInput,
   MaintenanceItem,
+  MaintenanceListResponse,
   MaintenanceUpdate,
   NotFoundResponse,
   Person,
@@ -74,6 +75,7 @@ import type {
   PublicCustodyView,
   User,
   UserInput,
+  UserProfileUpdate,
   UserRoleUpdate,
   WarrantyAlert
 } from './api.schemas';
@@ -278,9 +280,9 @@ export const getGetDashboardActivityUrl = (params?: GetDashboardActivityParams,)
 /**
  * @summary Get recent asset activity
  */
-export const getDashboardActivity = async (params?: GetDashboardActivityParams, options?: Parameters<typeof customFetch>[1]): Promise<ActivityEvent[]> => {
+export const getDashboardActivity = async (params?: GetDashboardActivityParams, options?: Parameters<typeof customFetch>[1]): Promise<ActivityListResponse> => {
 
-  return customFetch<ActivityEvent[]>(getGetDashboardActivityUrl(params),
+  return customFetch<ActivityListResponse>(getGetDashboardActivityUrl(params),
   {
     ...options,
     method: 'GET'
@@ -362,9 +364,9 @@ export const getGetDashboardMaintenanceUrl = (params?: GetDashboardMaintenancePa
 /**
  * @summary Get upcoming maintenance
  */
-export const getDashboardMaintenance = async (params?: GetDashboardMaintenanceParams, options?: Parameters<typeof customFetch>[1]): Promise<MaintenanceItem[]> => {
+export const getDashboardMaintenance = async (params?: GetDashboardMaintenanceParams, options?: Parameters<typeof customFetch>[1]): Promise<MaintenanceListResponse> => {
 
-  return customFetch<MaintenanceItem[]>(getGetDashboardMaintenanceUrl(params),
+  return customFetch<MaintenanceListResponse>(getGetDashboardMaintenanceUrl(params),
   {
     ...options,
     method: 'GET'
@@ -2503,9 +2505,9 @@ export const getListMaintenanceUrl = (params?: ListMaintenanceParams,) => {
 /**
  * @summary List upcoming maintenance
  */
-export const listMaintenance = async (params?: ListMaintenanceParams, options?: Parameters<typeof customFetch>[1]): Promise<MaintenanceItem[]> => {
+export const listMaintenance = async (params?: ListMaintenanceParams, options?: Parameters<typeof customFetch>[1]): Promise<MaintenanceListResponse> => {
 
-  return customFetch<MaintenanceItem[]>(getListMaintenanceUrl(params),
+  return customFetch<MaintenanceListResponse>(getListMaintenanceUrl(params),
   {
     ...options,
     method: 'GET'
@@ -3519,6 +3521,78 @@ export const useCreateUser = <TError = ErrorType<unknown>,
       return useMutation(getCreateUserMutationOptions(options));
     }
 
+export const getUpdateUserUrl = (userId: string,) => {
+
+
+
+
+  return `/api/users/${userId}`
+}
+
+/**
+ * @summary Update a user profile (self, or Admin for anyone)
+ */
+export const updateUser = async (userId: string,
+    userProfileUpdate: UserProfileUpdate, options?: Parameters<typeof customFetch>[1]): Promise<User> => {
+
+  return customFetch<User>(getUpdateUserUrl(userId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(userProfileUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateUserMutationOptions = <TError = ErrorType<void | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateUser>>, TError,{userId: string;data: BodyType<UserProfileUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateUser>>, TError,{userId: string;data: BodyType<UserProfileUpdate>}, TContext> => {
+
+const mutationKey = ['updateUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateUser>>, {userId: string;data: BodyType<UserProfileUpdate>}> = (props) => {
+          const {userId,data} = props ?? {};
+
+          return  updateUser(userId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateUserMutationResult = NonNullable<Awaited<ReturnType<typeof updateUser>>>
+    export type UpdateUserMutationBody = BodyType<UserProfileUpdate>
+    export type UpdateUserMutationError = ErrorType<void | NotFoundResponse>
+
+    /**
+ * @summary Update a user profile (self, or Admin for anyone)
+ */
+export const useUpdateUser = <TError = ErrorType<void | NotFoundResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateUser>>, TError,{userId: string;data: BodyType<UserProfileUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateUser>>,
+        TError,
+        {userId: string;data: BodyType<UserProfileUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateUserMutationOptions(options));
+    }
+
 export const getDeleteUserUrl = (userId: string,) => {
 
 
@@ -3680,9 +3754,9 @@ export const getGetAuditLogsUrl = (params?: GetAuditLogsParams,) => {
 /**
  * @summary Consolidated audit / activity log (Admin and Auditor)
  */
-export const getAuditLogs = async (params?: GetAuditLogsParams, options?: Parameters<typeof customFetch>[1]): Promise<ActivityEvent[]> => {
+export const getAuditLogs = async (params?: GetAuditLogsParams, options?: Parameters<typeof customFetch>[1]): Promise<ActivityListResponse> => {
 
-  return customFetch<ActivityEvent[]>(getGetAuditLogsUrl(params),
+  return customFetch<ActivityListResponse>(getGetAuditLogsUrl(params),
   {
     ...options,
     method: 'GET'

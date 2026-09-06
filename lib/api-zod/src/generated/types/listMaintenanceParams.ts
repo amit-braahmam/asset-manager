@@ -6,19 +6,24 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { MaintenanceActivityTypeParameter } from './maintenanceActivityTypeParameter';
-import type { MaintenanceLimitParameter } from './maintenanceLimitParameter';
 import type { MaintenanceModeParameter } from './maintenanceModeParameter';
 import type { MaintenancePriorityParameter } from './maintenancePriorityParameter';
 import type { MaintenanceScopeParameter } from './maintenanceScopeParameter';
 import type { MaintenanceStatusParameter } from './maintenanceStatusParameter';
+import type { PageParameter } from './pageParameter';
+import type { PageSizeParameter } from './pageSizeParameter';
 import type { SearchParameter } from './searchParameter';
 
 export type ListMaintenanceParams = {
 /**
  * @minimum 1
+ */
+page?: PageParameter;
+/**
+ * @minimum 1
  * @maximum 100
  */
-limit?: MaintenanceLimitParameter;
+pageSize?: PageSizeParameter;
 search?: SearchParameter;
 /**
  * @minLength 1

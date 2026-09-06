@@ -85,6 +85,81 @@ export interface UserRoleUpdate {
   role: UserRoleUpdateRole;
 }
 
+export interface UserProfileUpdate {
+  name?: string;
+  email?: string;
+}
+
+export type ActivityEventType = typeof ActivityEventType[keyof typeof ActivityEventType];
+
+
+export const ActivityEventType = {
+  assignment: 'assignment',
+  return: 'return',
+  alert: 'alert',
+  import: 'import',
+  maintenance: 'maintenance',
+  update: 'update',
+} as const;
+
+export interface ActivityEvent {
+  id: string;
+  type: ActivityEventType;
+  message: string;
+  actor: string;
+  createdAt: string;
+  /** @nullable */
+  assetTag: string | null;
+}
+
+export interface ActivityListResponse {
+  items: ActivityEvent[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export type MaintenanceItemScope = typeof MaintenanceItemScope[keyof typeof MaintenanceItemScope];
+
+
+export const MaintenanceItemScope = {
+  asset: 'asset',
+  estate: 'estate',
+} as const;
+
+export interface MaintenanceItem {
+  id: string;
+  title: string;
+  scope: MaintenanceItemScope;
+  /** @minLength 1 */
+  mode: string;
+  /** @minLength 1 */
+  activityType: string;
+  /** @nullable */
+  assetId: string | null;
+  /** @nullable */
+  assetTag: string | null;
+  category: string;
+  scheduledAt: string;
+  technician: string;
+  /** @minLength 1 */
+  priority: string;
+  /** @minLength 1 */
+  status: string;
+  resolutionNotes: string;
+  /** @nullable */
+  completedAt: string | null;
+  /** @nullable */
+  completedBy: string | null;
+}
+
+export interface MaintenanceListResponse {
+  items: MaintenanceItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 export type ComplianceReportStatus = typeof ComplianceReportStatus[keyof typeof ComplianceReportStatus];
 
 
@@ -410,28 +485,6 @@ export interface AssetListResponse {
   pageSize: number;
 }
 
-export type ActivityEventType = typeof ActivityEventType[keyof typeof ActivityEventType];
-
-
-export const ActivityEventType = {
-  assignment: 'assignment',
-  return: 'return',
-  alert: 'alert',
-  import: 'import',
-  maintenance: 'maintenance',
-  update: 'update',
-} as const;
-
-export interface ActivityEvent {
-  id: string;
-  type: ActivityEventType;
-  message: string;
-  actor: string;
-  createdAt: string;
-  /** @nullable */
-  assetTag: string | null;
-}
-
 export type WarrantyAlertWindow = typeof WarrantyAlertWindow[keyof typeof WarrantyAlertWindow];
 
 
@@ -449,40 +502,6 @@ export interface WarrantyAlert {
   warrantyEnd: string;
   window: WarrantyAlertWindow;
   daysRemaining: number;
-}
-
-export type MaintenanceItemScope = typeof MaintenanceItemScope[keyof typeof MaintenanceItemScope];
-
-
-export const MaintenanceItemScope = {
-  asset: 'asset',
-  estate: 'estate',
-} as const;
-
-export interface MaintenanceItem {
-  id: string;
-  title: string;
-  scope: MaintenanceItemScope;
-  /** @minLength 1 */
-  mode: string;
-  /** @minLength 1 */
-  activityType: string;
-  /** @nullable */
-  assetId: string | null;
-  /** @nullable */
-  assetTag: string | null;
-  category: string;
-  scheduledAt: string;
-  technician: string;
-  /** @minLength 1 */
-  priority: string;
-  /** @minLength 1 */
-  status: string;
-  resolutionNotes: string;
-  /** @nullable */
-  completedAt: string | null;
-  /** @nullable */
-  completedBy: string | null;
 }
 
 export type MaintenanceInputScope = typeof MaintenanceInputScope[keyof typeof MaintenanceInputScope];
@@ -840,9 +859,13 @@ export type MaintenancePriorityParameter = string;
 export type GetDashboardActivityParams = {
 /**
  * @minimum 1
- * @maximum 50
  */
-limit?: LimitParameter;
+page?: PageParameter;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+pageSize?: PageSizeParameter;
 action?: ActivityActionParameter;
 search?: ActivitySearchParameter;
 };
@@ -850,9 +873,13 @@ search?: ActivitySearchParameter;
 export type GetDashboardMaintenanceParams = {
 /**
  * @minimum 1
- * @maximum 50
  */
-limit?: LimitParameter;
+page?: PageParameter;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+pageSize?: PageSizeParameter;
 };
 
 export type ListAssetsParams = {
@@ -881,9 +908,13 @@ group?: LookupGroupParameter;
 export type ListMaintenanceParams = {
 /**
  * @minimum 1
+ */
+page?: PageParameter;
+/**
+ * @minimum 1
  * @maximum 100
  */
-limit?: MaintenanceLimitParameter;
+pageSize?: PageSizeParameter;
 search?: SearchParameter;
 /**
  * @minLength 1
@@ -909,8 +940,12 @@ search?: ActivitySearchParameter;
 action?: ActivityActionParameter;
 /**
  * @minimum 1
- * @maximum 50
  */
-limit?: LimitParameter;
+page?: PageParameter;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+pageSize?: PageSizeParameter;
 };
 

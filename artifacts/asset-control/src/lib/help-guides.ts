@@ -49,9 +49,9 @@ export const HELP_GUIDES: HelpGuide[] = [
     summary: "Who can sign in, and which role they hold in AssetControl.",
     steps: [
       "Roles: Admin, Auditor, Manager, Technician, Viewer. Each role is listed with what it can do.",
-      "Managers can onboard teammates. Admins can change roles and remove members.",
-      "A pending invite stays on the list until that person signs up with the same email.",
-      "Team is visible to Admin, Auditor, and Manager. Inventory users without those roles will not see this section.",
+      "Managers can onboard teammates. Admins can change roles, edit profiles, and remove members.",
+      "A pending invite stays on the list until that person signs up with the same email. Admins can still edit that invite’s name and email.",
+      "Team is visible to Admin and Manager. Everyone can edit their own name from Profile, above Sign out.",
     ],
   },
   {

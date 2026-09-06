@@ -5,6 +5,7 @@ import {
   type ActivityEvent,
 } from "@workspace/api-zod";
 import { db, assetHistoryTable, assetsTable } from "@workspace/db";
+import { paged } from "../lib/paging";
 import { seedReady } from "../lib/seed";
 import { requireRoles } from "../lib/auth";
 
@@ -35,8 +36,7 @@ router.get("/audit/logs", requireRoles("admin", "auditor"), async (req, res) => 
     .from(assetHistoryTable)
     .innerJoin(assetsTable, eq(assetHistoryTable.assetId, assetsTable.id))
     .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(desc(assetHistoryTable.createdAt))
-    .limit(query.limit);
+    .orderBy(desc(assetHistoryTable.createdAt));
   const data: ActivityEvent[] = rows.map(({ history, asset }) => ({
     id: history.id,
     type: activityType(history.action),
@@ -45,7 +45,7 @@ router.get("/audit/logs", requireRoles("admin", "auditor"), async (req, res) => 
     createdAt: history.createdAt,
     assetTag: asset.assetTag,
   }));
-  res.json(data);
+  res.json(paged(data, query.page, query.pageSize));
 });
 
 export default router;

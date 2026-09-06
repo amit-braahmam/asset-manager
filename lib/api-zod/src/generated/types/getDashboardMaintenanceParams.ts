@@ -5,12 +5,17 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { LimitParameter } from './limitParameter';
+import type { PageParameter } from './pageParameter';
+import type { PageSizeParameter } from './pageSizeParameter';
 
 export type GetDashboardMaintenanceParams = {
 /**
  * @minimum 1
- * @maximum 50
  */
-limit?: LimitParameter;
+page?: PageParameter;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+pageSize?: PageSizeParameter;
 };

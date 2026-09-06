@@ -9,6 +9,8 @@ export {
   PENDING_USER_PREFIX,
   MANAGER_GRANTABLE_ROLES,
   canOnboardRole,
+  canEditUserProfile,
+  canEditPendingUserEmail,
   isLastAdminDemotion,
   isLastAdminDeletion,
   requireRoles,

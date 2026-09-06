@@ -1,11 +1,14 @@
 import { Link, useLocation } from 'wouter';
-import { type ChangeEvent, type ReactNode, useEffect, useRef, useState } from 'react';
+import { type ChangeEvent, type FormEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 import { useClerk, useUser } from '@clerk/react';
-import { Bell, Boxes, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, ClipboardList, FileText, Home, ImagePlus, LogOut, Menu, MoreHorizontal, Search, ShieldCheck, UsersRound, Wrench, X, ArrowUpRight, RefreshCw, Pencil, Trash2, Users } from 'lucide-react';
-import { customFetch, useGetDashboardActivity, useListLookups, useListWarrantyAlerts, type Asset, type Attachment, type MaintenanceItem, type WarrantyAlert } from '@workspace/api-client-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { Bell, Boxes, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, ClipboardList, FileText, Home, ImagePlus, LogOut, Menu, MoreHorizontal, Search, ShieldCheck, User, UsersRound, Wrench, X, ArrowUpRight, RefreshCw, Pencil, Trash2, Users } from 'lucide-react';
+import { customFetch, useGetDashboardActivity, useListLookups, useListWarrantyAlerts, useUpdateUser, type Asset, type Attachment, type MaintenanceItem, type WarrantyAlert } from '@workspace/api-client-react';
 import { useRole, ROLE_LABELS, canViewTeam, canViewReports, canViewCustody } from '@/lib/role';
 import { HELP_GUIDES, helpGuide, helpSectionFromPath, type HelpSection } from '@/lib/help-guides';
 import { lookupLabel } from '@/lib/lookup-options';
+import { DEFAULT_PAGE_SIZE, PAGE_SIZES, pageSlice } from '@/lib/paging';
+import { useToast } from '@/hooks/use-toast';
 
 export const statusLabels: Record<string, string> = { available: 'Available', assigned: 'Assigned', in_repair: 'In repair', rma: 'RMA', retired: 'Retired', lost: 'Lost' };
 export const statusTone: Record<string, string> = { available: 'status-green', assigned: 'status-blue', in_repair: 'status-orange', rma: 'status-red', retired: 'status-gray', lost: 'status-purple' };
@@ -34,8 +37,9 @@ export function Sidebar() {
   const [location] = useLocation();
   const { user } = useUser();
   const { signOut } = useClerk();
-  const { role } = useRole();
+  const { role, user: roleUser } = useRole();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const nav = [
     { href: '/workspace', label: 'Overview', icon: Home },
@@ -62,7 +66,8 @@ export function Sidebar() {
       document.removeEventListener('keydown', onKeyDown);
     };
   }, [menuOpen]);
-  return <aside className="sidebar">
+  return <>
+    <aside className="sidebar">
     <Link href="/" className="brand" data-testid="link-brand"><span className="brand-mark"><ShieldCheck size={20} strokeWidth={2.4} /></span><span className="brand-copy"><strong>asset<span>control</span></strong><small>OPERATIONS CONSOLE</small></span></Link>
     <nav className="side-nav"><div className="nav-section">Workspace</div>{nav.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`link-${label.toLowerCase()}`} className={`nav-item ${isActive(href) ? 'active' : ''}`}><Icon size={18} /><span className="nav-label">{label}</span></Link>)}</nav>
     <div className="sidebar-foot"><div className="health-row"><span className="health-dot" /> All systems operational</div>
@@ -73,11 +78,14 @@ export function Sidebar() {
           <MoreHorizontal size={17} />
         </button>
         {menuOpen && <div className="profile-menu" role="menu">
+          <button type="button" role="menuitem" data-testid="button-edit-profile" onClick={() => { setMenuOpen(false); setProfileOpen(true); }}><User size={14} /> Profile</button>
           <button type="button" role="menuitem" data-testid="button-sign-out" onClick={() => void signOut({ redirectUrl: '/' })}><LogOut size={14} /> Sign out</button>
         </div>}
       </div>
     </div>
-  </aside>;
+    </aside>
+    {profileOpen && roleUser && <ProfileModal userId={roleUser.id} name={roleUser.name || user?.fullName || ''} email={roleUser.email} emailEditable={false} onClose={() => setProfileOpen(false)} />}
+  </>;
 }
 
 export function Topbar({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
@@ -105,9 +113,9 @@ function NotificationsPanel() {
   const [coords, setCoords] = useState({ top: 0, right: 0 });
   const wrapRef = useRef<HTMLDivElement>(null);
   const warranty = useListWarrantyAlerts();
-  const activity = useGetDashboardActivity({ limit: 5 });
+  const activity = useGetDashboardActivity({ page: 1, pageSize: 5 });
   const alerts = warranty.data ?? [];
-  const events = activity.data ?? [];
+  const events = activity.data?.items ?? [];
   function placePanel() {
     const box = wrapRef.current?.getBoundingClientRect();
     if (!box) return;
@@ -215,7 +223,68 @@ export function Button({ children, className = '', ...props }: React.ButtonHTMLA
 
 export function MetricCard({ label, value, detail, tone = 'teal', icon: Icon }: { label: string; value: string | number; detail: string; tone?: string; icon: typeof Boxes }) { return <div className={`metric-card ${tone}`}><div className="metric-top"><span className="metric-label">{label}</span><span className="metric-icon"><Icon size={16} /></span></div><strong data-testid={`metric-${label.toLowerCase().replaceAll(' ', '-')}`}>{value}</strong><span className="metric-detail">{detail}</span></div>; }
 
-export function Pagination({ page, pageSize, total, onPage }: { page: number; pageSize: number; total: number; onPage: (page: number) => void }) { const pages = Math.max(1, Math.ceil(total / pageSize)); return <div className="pagination"><span>Showing <b>{total ? (page - 1) * pageSize + 1 : 0}–{Math.min(page * pageSize, total)}</b> of <b>{total}</b></span><div><button data-testid="button-page-prev" disabled={page <= 1} onClick={() => onPage(page - 1)}><ChevronLeft size={16} /></button><span className="page-number">{page} / {pages}</span><button data-testid="button-page-next" disabled={page >= pages} onClick={() => onPage(page + 1)}><ChevronRight size={16} /></button></div></div>; }
+export function Pagination({ page, pageSize, total, onPage, onPageSize }: { page: number; pageSize: number; total: number; onPage: (page: number) => void; onPageSize?: (size: number) => void }) {
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  if (total === 0) return null;
+  return <div className="pagination" data-testid="pagination">
+    <span>Showing <b>{(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)}</b> of <b>{total}</b></span>
+    {onPageSize && <label className="pagination-size">Show<select data-testid="select-page-size" value={pageSize} onChange={(event) => onPageSize(Number(event.target.value))}>{PAGE_SIZES.map((size) => <option key={size} value={size}>{size}</option>)}</select></label>}
+    <div className="pagination-nav">
+      <button data-testid="button-page-prev" disabled={page <= 1} onClick={() => onPage(page - 1)}><ChevronLeft size={16} /></button>
+      <span className="page-number">{page} / {pages}</span>
+      <button data-testid="button-page-next" disabled={page >= pages} onClick={() => onPage(page + 1)}><ChevronRight size={16} /></button>
+    </div>
+  </div>;
+}
+
+export function PagedRecords<T>({ items, children }: { items: T[]; children: (pageItems: T[]) => ReactNode }) {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const paged = pageSlice(items, page, pageSize);
+  return <>
+    {children(paged.items)}
+    <Pagination page={paged.page} pageSize={paged.pageSize} total={paged.total} onPage={setPage} onPageSize={(size) => { setPageSize(size); setPage(1); }} />
+  </>;
+}
+
+export function ProfileModal({ userId, name, email, emailEditable, onClose }: { userId: string; name: string; email: string; emailEditable: boolean; onClose: () => void }) {
+  const [values, setValues] = useState({ name, email });
+  const [error, setError] = useState('');
+  const updateUser = useUpdateUser();
+  const client = useQueryClient();
+  const { user: clerkUser } = useUser();
+  const { refetch } = useRole();
+  const { toast } = useToast();
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    setError('');
+    try {
+      await updateUser.mutateAsync({
+        userId,
+        data: emailEditable ? { name: values.name.trim(), email: values.email.trim() } : { name: values.name.trim() },
+      });
+      await client.invalidateQueries();
+      refetch();
+      await clerkUser?.reload();
+      toast({ title: 'Profile updated' });
+      onClose();
+    } catch (err) {
+      const data = err && typeof err === 'object' && 'data' in err ? (err as { data?: { error?: string } }).data : undefined;
+      setError(data?.error || (err instanceof Error ? err.message : 'Unable to update this profile.'));
+    }
+  }
+  return <Modal title="Edit profile" onClose={onClose}>
+    <form className="asset-form" onSubmit={submit}>
+      <p className="modal-intro">{emailEditable ? 'Update the invitation name and email before this person signs in.' : 'This name is shown on Team and in the workspace.'}</p>
+      <div className="form-grid">
+        <label className="field"><span>Name</span><input data-testid="input-profile-name" value={values.name} onChange={(event) => setValues((current) => ({ ...current, name: event.target.value }))} required /></label>
+        <label className="field"><span>Email</span><input data-testid="input-profile-email" type="email" value={values.email} onChange={(event) => setValues((current) => ({ ...current, email: event.target.value }))} disabled={!emailEditable} required /></label>
+      </div>
+      {error && <p className="form-error">{error}</p>}
+      <div className="modal-actions"><button type="button" className="button button-ghost" onClick={onClose}>Cancel</button><button className="button button-dark" disabled={updateUser.isPending || !values.name.trim()}>{updateUser.isPending ? 'Saving…' : 'Save profile'}</button></div>
+    </form>
+  </Modal>;
+}
 
 export function Modal({ title, children, onClose, className = "" }: { title: string; children: ReactNode; onClose: () => void; className?: string }) { return <div className="modal-backdrop" role="presentation" onMouseDown={(e) => e.target === e.currentTarget && onClose()}><div className={`modal ${className}`.trim()} role="dialog" aria-modal="true"><div className="modal-head"><div><div className="eyebrow">AssetControl / action</div><h2>{title}</h2></div><button className="icon-button" onClick={onClose} aria-label="Close" data-testid="button-close-modal"><X size={18} /></button></div>{children}</div></div>; }
 

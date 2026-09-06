@@ -1,8 +1,11 @@
 import { Router, type IRouter, type Request } from "express";
+import { clerkClient } from "@clerk/express";
 import { asc, eq, ne, and } from "drizzle-orm";
 import {
   CreateUserBody,
   DeleteUserParams,
+  UpdateUserBody,
+  UpdateUserParams,
   UpdateUserRoleBody,
   UpdateUserRoleParams,
   type User as ApiUser,
@@ -14,6 +17,8 @@ import {
   requireRoles,
   PENDING_USER_PREFIX,
   canOnboardRole,
+  canEditPendingUserEmail,
+  canEditUserProfile,
   isLastAdminDemotion,
   isLastAdminDeletion,
 } from "../lib/auth";
@@ -128,6 +133,68 @@ router.patch("/users/:userId/role", requireRoles("admin"), async (req, res) => {
     .from(usersTable)
     .where(eq(usersTable.id, userId))
     .limit(1);
+  res.json(toUser(updated[0]));
+});
+
+async function syncClerkName(userId: string, name: string) {
+  if (userId.startsWith(PENDING_USER_PREFIX)) return;
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  try {
+    await clerkClient.users.updateUser(userId, {
+      firstName: parts[0] ?? "",
+      lastName: parts.slice(1).join(" ") || "",
+    });
+  } catch {
+    // Local profile still updates if Clerk is unreachable.
+  }
+}
+
+router.patch("/users/:userId", async (req, res) => {
+  const actor = req.appUser;
+  if (!actor) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const { userId } = UpdateUserParams.parse(req.params);
+  const body = UpdateUserBody.parse(req.body);
+  if (!canEditUserProfile(actor, userId)) {
+    res.status(403).json({ error: "You can only edit your own profile." });
+    return;
+  }
+
+  const existing = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+  if (existing.length === 0) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  const nextName = body.name != null ? body.name.trim() : existing[0].name;
+  if (!nextName) {
+    res.status(400).json({ error: "Name is required." });
+    return;
+  }
+
+  let nextEmail = existing[0].email;
+  if (body.email != null && body.email !== existing[0].email) {
+    if (!canEditPendingUserEmail(actor, userId)) {
+      res.status(403).json({ error: "Email can only be changed for pending invitations." });
+      return;
+    }
+    nextEmail = body.email.toLowerCase();
+    const clash = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(and(eq(usersTable.email, nextEmail), ne(usersTable.id, userId)))
+      .limit(1);
+    if (clash.length > 0) {
+      res.status(409).json({ error: "A user with this email already exists." });
+      return;
+    }
+  }
+
+  await db.update(usersTable).set({ name: nextName, email: nextEmail }).where(eq(usersTable.id, userId));
+  await syncClerkName(userId, nextName);
+  const updated = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
   res.json(toUser(updated[0]));
 });
 

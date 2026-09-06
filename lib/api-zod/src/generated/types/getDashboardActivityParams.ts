@@ -7,14 +7,19 @@
  */
 import type { ActivityActionParameter } from './activityActionParameter';
 import type { ActivitySearchParameter } from './activitySearchParameter';
-import type { LimitParameter } from './limitParameter';
+import type { PageParameter } from './pageParameter';
+import type { PageSizeParameter } from './pageSizeParameter';
 
 export type GetDashboardActivityParams = {
 /**
  * @minimum 1
- * @maximum 50
  */
-limit?: LimitParameter;
+page?: PageParameter;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+pageSize?: PageSizeParameter;
 action?: ActivityActionParameter;
 search?: ActivitySearchParameter;
 };

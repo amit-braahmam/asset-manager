@@ -17,6 +17,7 @@ import {
   EmptyState,
   LoadingBlock,
   Modal,
+  PagedRecords,
   formatDate,
 } from "@/components/asset-ui";
 import { useToast } from "@/hooks/use-toast";
@@ -62,22 +63,24 @@ export function CustodyChecks({
         {canManage && <Button className="button-accent" data-testid="button-start-custody" onClick={() => onShowStart(true)}><Plus size={16} /> Start check</Button>}
       </div>
       {checks.isLoading ? <LoadingBlock /> : checks.isError ? <EmptyState title="Could not load custody checks" text="Retry from Reports after the API is running." /> : checks.data?.length ? (
-        <div className="table-scroll">
-          <table className="asset-table">
-            <thead><tr><th>Check</th><th>Due</th><th>Mail</th><th>Answers</th><th /></tr></thead>
-            <tbody>
-              {checks.data.map((check) => (
-                <tr key={check.id} data-testid={`row-custody-${check.id}`} onClick={() => setOpenId(check.id)}>
-                  <td><b>{check.title}</b><small className="mono" style={{ display: "block", marginTop: 4 }}>{check.status === "open" ? "Open" : "Closed"} · {check.batchSize}/{check.cadence}</small></td>
-                  <td className="muted">{formatDate(check.dueAt)}</td>
-                  <td className="muted">{check.sentCount} sent · {check.queuedCount} queued</td>
-                  <td className="muted">{check.confirmedCount} confirmed · {check.deniedCount} missing · {check.pendingCount} waiting</td>
-                  <td><button className="text-button" onClick={(event) => { event.stopPropagation(); setOpenId(check.id); }}>Open</button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <PagedRecords items={checks.data}>{(rows) => (
+          <div className="table-scroll">
+            <table className="asset-table">
+              <thead><tr><th>Check</th><th>Due</th><th>Mail</th><th>Answers</th><th /></tr></thead>
+              <tbody>
+                {rows.map((check) => (
+                  <tr key={check.id} data-testid={`row-custody-${check.id}`} onClick={() => setOpenId(check.id)}>
+                    <td><b>{check.title}</b><small className="mono" style={{ display: "block", marginTop: 4 }}>{check.status === "open" ? "Open" : "Closed"} · {check.batchSize}/{check.cadence}</small></td>
+                    <td className="muted">{formatDate(check.dueAt)}</td>
+                    <td className="muted">{check.sentCount} sent · {check.queuedCount} queued</td>
+                    <td className="muted">{check.confirmedCount} confirmed · {check.deniedCount} missing · {check.pendingCount} waiting</td>
+                    <td><button className="text-button" onClick={(event) => { event.stopPropagation(); setOpenId(check.id); }}>Open</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}</PagedRecords>
       ) : <EmptyState title="No custody checks yet" text={canManage ? "Start a check to email assigned custodians in batches." : "Admins and Auditors start possession checks from this page."} />}
       {showStart && (
         <Modal title="Start custody check" onClose={() => onShowStart(false)}>

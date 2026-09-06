@@ -1,4 +1,4 @@
-import { Router, type IRouter, type Request, type Response } from "express";
+import { Router, type IRouter, type Response } from "express";
 import { and, asc, desc, eq, gte, ilike, or } from "drizzle-orm";
 import {
   AssignAssetBody,
@@ -78,6 +78,7 @@ import {
 } from "@workspace/db";
 import { db } from "@workspace/db";
 import { randomUUID } from "node:crypto";
+import { paged } from "../lib/paging";
 import { seedReady } from "../lib/seed";
 import { collectWarrantyAlerts } from "../lib/warranty-alerts";
 import {
@@ -221,11 +222,6 @@ async function getAssetDetail(assetId: string): Promise<ApiAssetDetail | null> {
   };
 }
 
-function getLimit(req: Request, parser: typeof GetDashboardActivityQueryParams | typeof GetDashboardMaintenanceQueryParams | typeof ListMaintenanceQueryParams) {
-  const result = parser.safeParse(req.query);
-  return result.success ? result.data.limit : 5;
-}
-
 function activityType(action: string): ActivityEvent["type"] {
   if (action === "return") return "return";
   if (action === "assignment") return "assignment";
@@ -235,8 +231,9 @@ function activityType(action: string): ActivityEvent["type"] {
   return "update";
 }
 
-async function listMaintenanceItems(
-  limit: number,
+async function listMaintenancePage(
+  page: number,
+  pageSize: number,
   filters: {
     search?: string;
     status?: string;
@@ -245,7 +242,7 @@ async function listMaintenanceItems(
     activityType?: string;
     priority?: string;
   } = {},
-): Promise<ApiMaintenanceItem[]> {
+) {
   const conditions = [];
   if (filters.status) conditions.push(eq(maintenanceTable.status, filters.status));
   if (filters.mode) conditions.push(eq(maintenanceTable.mode, filters.mode));
@@ -266,10 +263,9 @@ async function listMaintenanceItems(
     .from(maintenanceTable)
     .leftJoin(assetsTable, eq(maintenanceTable.assetId, assetsTable.id))
     .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(asc(maintenanceTable.scheduledAt))
-    .limit(limit);
+    .orderBy(asc(maintenanceTable.scheduledAt));
   const labels = await activityLabelMap();
-  return rows.map(({ maintenance, asset }) => toMaintenanceItem(maintenance, asset, labels));
+  return paged(rows.map(({ maintenance, asset }) => toMaintenanceItem(maintenance, asset, labels)), page, pageSize);
 }
 
 function toMaintenanceItem(
@@ -396,8 +392,7 @@ router.get("/dashboard/activity", async (req, res) => {
     .from(assetHistoryTable)
     .innerJoin(assetsTable, eq(assetHistoryTable.assetId, assetsTable.id))
     .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(desc(assetHistoryTable.createdAt))
-    .limit(query.limit);
+    .orderBy(desc(assetHistoryTable.createdAt));
   const data: ActivityEvent[] = rows.map(({ history, asset }) => ({
     id: history.id,
     type: activityType(history.action),
@@ -406,12 +401,13 @@ router.get("/dashboard/activity", async (req, res) => {
     createdAt: history.createdAt,
     assetTag: asset.assetTag,
   }));
-  res.json(data);
+  res.json(paged(data, query.page, query.pageSize));
 });
 
 router.get("/dashboard/maintenance", async (req, res) => {
   await seedReady;
-  res.json(await listMaintenanceItems(getLimit(req, GetDashboardMaintenanceQueryParams)));
+  const query = GetDashboardMaintenanceQueryParams.parse(req.query);
+  res.json(await listMaintenancePage(query.page, query.pageSize));
 });
 
 router.get("/notifications/warranty", async (_req, res) => {
@@ -1117,7 +1113,7 @@ router.delete("/lookups/:lookupId", requireRoles("admin"), async (req, res) => {
 router.get("/maintenance", async (req, res) => {
   await seedReady;
   const query = ListMaintenanceQueryParams.parse(req.query);
-  res.json(await listMaintenanceItems(query.limit, query));
+  res.json(await listMaintenancePage(query.page, query.pageSize, query));
 });
 
 router.post("/maintenance", requireRoles("admin", "manager"), async (req, res) => {

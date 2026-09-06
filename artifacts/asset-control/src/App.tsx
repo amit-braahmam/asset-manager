@@ -116,6 +116,8 @@ import {
   canOnboardUsers,
   canManageRoles,
   canManageLookups,
+  canEditUserProfile,
+  canEditPendingUserEmail,
   canViewReports,
   canEditReports,
   canViewCustody,
@@ -142,8 +144,10 @@ import {
   MetricCard,
   Modal,
   Pagination,
+  PagedRecords,
   PhotoGallery,
   PhotoPicker,
+  ProfileModal,
   SearchBox,
   SelectField,
   Sidebar,
@@ -158,6 +162,7 @@ import { DirectoryLookups } from "@/components/directory-lookups";
 import { CustodyChecks } from "@/components/custody-checks";
 import { CustodyRespondPage } from "@/components/custody-respond";
 import { lookupOptions } from "@/lib/lookup-options";
+import { DEFAULT_PAGE_SIZE } from "@/lib/paging";
 import "./index.css";
 
 const queryClient = new QueryClient({
@@ -322,13 +327,22 @@ function Dashboard() {
   const summary = useGetDashboardSummary();
   const [activityAction, setActivityAction] = useState("");
   const [activitySearch, setActivitySearch] = useState("");
+  const [activityPage, setActivityPage] = useState(1);
+  const [activityPageSize, setActivityPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [maintenancePage, setMaintenancePage] = useState(1);
+  const [maintenancePageSize, setMaintenancePageSize] = useState(DEFAULT_PAGE_SIZE);
   const activity = useGetDashboardActivity({
-    limit: 6,
+    page: activityPage,
+    pageSize: activityPageSize,
     action: (activityAction || undefined) as ActivityEvent["type"] | undefined,
     search: activitySearch || undefined,
   });
-  const maintenance = useGetDashboardMaintenance({ limit: 4 });
+  const maintenance = useGetDashboardMaintenance({ page: maintenancePage, pageSize: maintenancePageSize });
   const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    setActivityPage(1);
+  }, [activityAction, activitySearch]);
 
   if (summary.isLoading) return <ShellPage><Topbar title="Overview" description="A live pulse of your company’s equipment estate." /><div className="page-wrap"><LoadingBlock /></div></ShellPage>;
   if (summary.isError || !summary.data) {
@@ -360,11 +374,13 @@ function Dashboard() {
                 <option value="">All activity</option><option value="assignment">Assignments</option><option value="return">Returns</option><option value="maintenance">Maintenance</option><option value="update">Updates</option><option value="import">Imports</option><option value="alert">Alerts</option>
               </select>
             </div>
-            {activity.isLoading ? <div className="stack-skeleton"><Skeleton className="h-14" /><Skeleton className="h-14" /><Skeleton className="h-14" /></div> : activity.isError ? <ErrorState onRetry={() => void activity.refetch()} /> : activity.data?.length ? <ActivityList events={activity.data} /> : <EmptyState />}
+            {activity.isLoading ? <div className="stack-skeleton"><Skeleton className="h-14" /><Skeleton className="h-14" /><Skeleton className="h-14" /></div> : activity.isError ? <ErrorState onRetry={() => void activity.refetch()} /> : activity.data?.items.length ? <ActivityList events={activity.data.items} /> : <EmptyState />}
+            {activity.data && <Pagination page={activity.data.page} pageSize={activity.data.pageSize} total={activity.data.total} onPage={setActivityPage} onPageSize={(size) => { setActivityPageSize(size); setActivityPage(1); }} />}
           </Card>
           <Card className="maintenance-card fade-up delay-2">
             <SectionHeading eyebrow="Next 14 days" title="Maintenance queue" detail="Planned work and open service tasks." action={<Link href="/maintenance" className="text-button">Open queue <ArrowRight size={14} /></Link>} />
-            {maintenance.isLoading ? <div className="stack-skeleton"><Skeleton className="h-14" /><Skeleton className="h-14" /></div> : maintenance.isError ? <ErrorState onRetry={() => void maintenance.refetch()} /> : maintenance.data?.length ? <MaintenanceList items={maintenance.data} /> : <EmptyState title="Queue is clear" text="No maintenance tasks are scheduled." />}
+            {maintenance.isLoading ? <div className="stack-skeleton"><Skeleton className="h-14" /><Skeleton className="h-14" /></div> : maintenance.isError ? <ErrorState onRetry={() => void maintenance.refetch()} /> : maintenance.data?.items.length ? <MaintenanceList items={maintenance.data.items} /> : <EmptyState title="Queue is clear" text="No maintenance tasks are scheduled." />}
+            {maintenance.data && <Pagination page={maintenance.data.page} pageSize={maintenance.data.pageSize} total={maintenance.data.total} onPage={setMaintenancePage} onPageSize={(size) => { setMaintenancePageSize(size); setMaintenancePage(1); }} />}
           </Card>
         </div>
         <Card className="quick-actions fade-up delay-3">
@@ -391,6 +407,7 @@ function Inventory({ openCreate = false }: { openCreate?: boolean }) {
   const [category, setCategory] = useState("");
   const [locationId, setLocationId] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [selected, setSelected] = useState<string[]>([]);
   const [bulkStatus, setBulkStatus] = useState("available");
   const [showCreate, setShowCreate] = useState(openCreate);
@@ -403,7 +420,7 @@ function Inventory({ openCreate = false }: { openCreate?: boolean }) {
     category: category || undefined,
     locationId: locationId || undefined,
     page,
-    pageSize: 8,
+    pageSize,
   });
   const create = useCreateAsset();
   const createPhoto = useCreateAssetAttachment();
@@ -509,7 +526,7 @@ function Inventory({ openCreate = false }: { openCreate?: boolean }) {
         {canManage && selected.length > 0 && <div className="bulk-toolbar"><span className="eyebrow">Bulk action</span><span>{selected.length} selected</span><SelectField value={bulkStatus} onChange={setBulkStatus} options={statusOptions} label="Set status" testId="select-bulk-status" /><Button className="button-dark" onClick={() => void handleBulkStatus()} disabled={bulkUpdate.isPending}>{bulkUpdate.isPending ? "Updating…" : "Apply status"}</Button>{canDelete && <Button className="button-ghost" onClick={() => void handleBulkDelete()} disabled={bulkDelete.isPending}>{bulkDelete.isPending ? "Deleting…" : "Delete selected"}</Button>}<button className="text-button" onClick={() => setSelected([])}>Clear</button></div>}
         <Card className="table-card">
           {assets.isLoading ? <div className="table-loading"><Skeleton className="h-12" /><Skeleton className="h-12" /><Skeleton className="h-12" /><Skeleton className="h-12" /></div> : assets.isError ? <ErrorState onRetry={() => void assets.refetch()} /> : items.length ? <AssetTable items={items} selected={selected} selectable={canManage} onSelect={(id) => setSelected((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])} onDelete={canDelete ? handleDeleteAsset : undefined} /> : <EmptyState title="No matching assets" text="Try a different search or clear one of the filters." />}
-          {assets.data && <Pagination page={assets.data.page} pageSize={assets.data.pageSize} total={assets.data.total} onPage={(next) => { setPage(next); setSelected([]); }} />}
+          {assets.data && <Pagination page={assets.data.page} pageSize={assets.data.pageSize} total={assets.data.total} onPage={(next) => { setPage(next); setSelected([]); }} onPageSize={(size) => { setPageSize(size); setPage(1); setSelected([]); }} />}
         </Card>
       </div>
       {canManage && showCreate && <Modal title="Add asset" onClose={() => setShowCreate(false)}><AssetForm locations={locations.data ?? []} onSubmit={handleCreate} onCancel={() => setShowCreate(false)} submitting={create.isPending} /></Modal>}
@@ -708,7 +725,7 @@ function AssetDetailPage() {
             {data.notes && <div className="notes-box"><span className="eyebrow">Operator notes</span><p>{data.notes}</p></div>}
             {Object.keys(data.specifications).length ? <div className="spec-grid" style={{ marginTop: 15 }}>{Object.entries(data.specifications).map(([key, value]) => <div key={key}><span>{key}</span><b>{value}</b></div>)}</div> : null}
           </Card>
-          <Card><SectionHeading eyebrow="Audit trail" title="Recent history" />{data.history.length ? <div className="history-list">{data.history.map((event) => <div className="history-row" key={event.id}><span className="history-dot" /><div><b>{event.detail}</b><small>{event.actor} · {formatRelative(event.createdAt)}</small></div></div>)}</div> : <EmptyState title="No activity yet" />}</Card>
+          <Card><SectionHeading eyebrow="Audit trail" title="Recent history" />{data.history.length ? <PagedRecords items={data.history}>{(rows) => <div className="history-list">{rows.map((event) => <div className="history-row" key={event.id}><span className="history-dot" /><div><b>{event.detail}</b><small>{event.actor} · {formatRelative(event.createdAt)}</small></div></div>)}</div>}</PagedRecords> : <EmptyState title="No activity yet" />}</Card>
         </div>
         <Card className="table-card" style={{ marginTop: 13, padding: 20 }}>
           <SectionHeading eyebrow="Photos" title="Asset photos" detail="Up to five images, 5 MB each." />
@@ -825,9 +842,9 @@ function Directory() {
     <Topbar title="Directory" description={canLookups ? "Keep departments, custodians, locations, and dropdown options current for clean assignments." : "Keep departments, custodians, and locations current for clean assignments."} action={canManage ? <div className="topbar-button-row"><Button className="button-ghost" onClick={() => setShowImport(true)}><FileUp size={15} /> Import people</Button><Button className="button-ghost" onClick={() => setModal({ kind: "department" })}>Add department</Button><Button className="button-ghost" onClick={() => setModal({ kind: "location" })}><MapPin size={15} /> Add location</Button><Button className="button-accent" onClick={() => setModal({ kind: "person" })}><Plus size={16} /> Add person</Button></div> : undefined} />
     <div className="page-wrap">
       <div className="directory-grid">
-        <Card><SectionHeading eyebrow="Organization" title="Departments" detail={`${departmentsQuery.data?.length ?? "—"} departments in the lookup.`} /><div className="directory-list">{departmentsQuery.isLoading ? <LoadingBlock /> : departmentsQuery.data?.length ? departmentsQuery.data.map((department) => <div className="directory-row" key={department.id}><div className="avatar department-avatar">{department.name.slice(0, 1)}</div><div><b>{department.name}</b><small>{department.personCount} people</small></div>{canManage && <button className="row-arrow" aria-label={`Edit ${department.name}`} onClick={() => setModal({ kind: "department", id: department.id })}><Pencil size={14} /></button>}{canDelete && <button className="row-arrow danger-action" aria-label={`Delete ${department.name}`} onClick={() => void removeRecord("department", department.id, department.name)}><Trash2 size={14} /></button>}</div>) : <EmptyState title="No departments yet" text="Add a department before assigning people." />}</div></Card>
-        <Card><SectionHeading eyebrow="Custodians" title="People" detail={`${peopleQuery.data?.length ?? "—"} people available for assignment.`} /><div className="directory-list">{peopleQuery.isLoading ? <LoadingBlock /> : peopleQuery.data?.length ? peopleQuery.data.map((person) => <div className="directory-row" key={person.id}><div className="avatar">{initials(person.name)}</div><div><b>{person.name}</b><small>{person.department} · {person.email}</small></div>{canManage && <button className="row-arrow" aria-label={`Edit ${person.name}`} onClick={() => setModal({ kind: "person", id: person.id })}><Pencil size={14} /></button>}{canDelete && <button className="row-arrow danger-action" aria-label={`Delete ${person.name}`} onClick={() => void removeRecord("person", person.id, person.name)}><Trash2 size={14} /></button>}</div>) : <EmptyState title="No people yet" text="Add a person to make assignment available." />}</div></Card>
-        <Card><SectionHeading eyebrow="Operating footprint" title="Locations" detail={`${locationsQuery.data?.length ?? "—"} sites in the register.`} /><div className="directory-list">{locationsQuery.isLoading ? <LoadingBlock /> : locationsQuery.data?.length ? locationsQuery.data.map((location) => <div className="directory-row" key={location.id}><div className="avatar location-avatar"><MapPin size={15} /></div><div><b>{location.name}</b><small>{location.city} · {location.assetCount} assets</small></div>{canManage && <button className="row-arrow" aria-label={`Edit ${location.name}`} onClick={() => setModal({ kind: "location", id: location.id })}><Pencil size={14} /></button>}{canDelete && <button className="row-arrow danger-action" aria-label={`Delete ${location.name}`} onClick={() => void removeRecord("location", location.id, location.name)}><Trash2 size={14} /></button>}</div>) : <EmptyState title="No locations yet" text="Add a location before registering assets." />}</div></Card>
+        <Card><SectionHeading eyebrow="Organization" title="Departments" detail={`${departmentsQuery.data?.length ?? "—"} departments in the lookup.`} />{departmentsQuery.isLoading ? <LoadingBlock /> : departmentsQuery.data?.length ? <PagedRecords items={departmentsQuery.data}>{(rows) => <div className="directory-list">{rows.map((department) => <div className="directory-row" key={department.id}><div className="avatar department-avatar">{department.name.slice(0, 1)}</div><div><b>{department.name}</b><small>{department.personCount} people</small></div>{canManage && <button className="row-arrow" aria-label={`Edit ${department.name}`} onClick={() => setModal({ kind: "department", id: department.id })}><Pencil size={14} /></button>}{canDelete && <button className="row-arrow danger-action" aria-label={`Delete ${department.name}`} onClick={() => void removeRecord("department", department.id, department.name)}><Trash2 size={14} /></button>}</div>)}</div>}</PagedRecords> : <EmptyState title="No departments yet" text="Add a department before assigning people." />}</Card>
+        <Card><SectionHeading eyebrow="Custodians" title="People" detail={`${peopleQuery.data?.length ?? "—"} people available for assignment.`} />{peopleQuery.isLoading ? <LoadingBlock /> : peopleQuery.data?.length ? <PagedRecords items={peopleQuery.data}>{(rows) => <div className="directory-list">{rows.map((person) => <div className="directory-row" key={person.id}><div className="avatar">{initials(person.name)}</div><div><b>{person.name}</b><small>{person.department} · {person.email}</small></div>{canManage && <button className="row-arrow" aria-label={`Edit ${person.name}`} onClick={() => setModal({ kind: "person", id: person.id })}><Pencil size={14} /></button>}{canDelete && <button className="row-arrow danger-action" aria-label={`Delete ${person.name}`} onClick={() => void removeRecord("person", person.id, person.name)}><Trash2 size={14} /></button>}</div>)}</div>}</PagedRecords> : <EmptyState title="No people yet" text="Add a person to make assignment available." />}</Card>
+        <Card><SectionHeading eyebrow="Operating footprint" title="Locations" detail={`${locationsQuery.data?.length ?? "—"} sites in the register.`} />{locationsQuery.isLoading ? <LoadingBlock /> : locationsQuery.data?.length ? <PagedRecords items={locationsQuery.data}>{(rows) => <div className="directory-list">{rows.map((location) => <div className="directory-row" key={location.id}><div className="avatar location-avatar"><MapPin size={15} /></div><div><b>{location.name}</b><small>{location.city} · {location.assetCount} assets</small></div>{canManage && <button className="row-arrow" aria-label={`Edit ${location.name}`} onClick={() => setModal({ kind: "location", id: location.id })}><Pencil size={14} /></button>}{canDelete && <button className="row-arrow danger-action" aria-label={`Delete ${location.name}`} onClick={() => void removeRecord("location", location.id, location.name)}><Trash2 size={14} /></button>}</div>)}</div>}</PagedRecords> : <EmptyState title="No locations yet" text="Add a location before registering assets." />}</Card>
       </div>
       {canLookups && <DirectoryLookups canManage canDelete />}
     </div>
@@ -884,6 +901,8 @@ function Maintenance() {
   const [scope, setScope] = useState("");
   const [activityType, setActivityType] = useState("");
   const [priority, setPriority] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const lookups = useListLookups();
   const statusOptions = lookupOptions(lookups.data, "maintenance_status", [status]);
   const modeOptions = lookupOptions(lookups.data, "maintenance_mode", [mode]);
@@ -891,7 +910,8 @@ function Maintenance() {
   const activityOptions = lookupOptions(lookups.data, "maintenance_activity", [activityType]);
   const priorityOptions = lookupOptions(lookups.data, "maintenance_priority", [priority]);
   const maintenance = useListMaintenance({
-    limit: 50,
+    page,
+    pageSize,
     search: search || undefined,
     status: (status || undefined) as MaintenanceItem["status"] | undefined,
     mode: (mode || undefined) as MaintenanceItem["mode"] | undefined,
@@ -908,6 +928,10 @@ function Maintenance() {
   const { toast } = useToast();
   const [editing, setEditing] = useState<MaintenanceItem | null>(null);
   const [showForm, setShowForm] = useState<"asset" | "estate" | false>(false);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, status, mode, scope, activityType, priority]);
 
   async function save(values: MaintenanceFormValues, photos: File[]) {
     const data: MaintenanceInput = {
@@ -952,8 +976,8 @@ function Maintenance() {
         <SelectField value={activityType} onChange={setActivityType} options={activityOptions} label="Activity" testId="select-maintenance-activity" />
         <SelectField value={priority} onChange={setPriority} options={priorityOptions} label="Priority" testId="select-maintenance-priority" />
       </div>
-      <div className="maintenance-header"><div className="queue-summary"><span className="queue-number">{maintenance.data?.length ?? "—"}</span><div><b>Open service items</b><small>Sorted by scheduled date</small></div></div><div className="legend"><span><i className="legend-dot high" /> High priority</span><span><i className="legend-dot normal" /> Planned</span></div></div>
-      <Card className="maintenance-page-card">{maintenance.isLoading ? <div className="stack-skeleton"><Skeleton className="h-20" /><Skeleton className="h-20" /><Skeleton className="h-20" /></div> : maintenance.isError ? <ErrorState onRetry={() => void maintenance.refetch()} /> : maintenance.data?.length ? <MaintenanceList items={maintenance.data} onEdit={canEdit ? (item) => { setEditing(item); setShowForm(item.scope === "estate" ? "estate" : "asset"); } : undefined} onDelete={canSchedule ? (item) => void deleteItem(item) : undefined} /> : <EmptyState title="Maintenance queue is clear" text="Nothing matches these filters, or nothing is scheduled." />}</Card>
+      <div className="maintenance-header"><div className="queue-summary"><span className="queue-number">{maintenance.data?.total ?? "—"}</span><div><b>Open service items</b><small>Sorted by scheduled date</small></div></div><div className="legend"><span><i className="legend-dot high" /> High priority</span><span><i className="legend-dot normal" /> Planned</span></div></div>
+      <Card className="maintenance-page-card">{maintenance.isLoading ? <div className="stack-skeleton"><Skeleton className="h-20" /><Skeleton className="h-20" /><Skeleton className="h-20" /></div> : maintenance.isError ? <ErrorState onRetry={() => void maintenance.refetch()} /> : maintenance.data?.items.length ? <MaintenanceList items={maintenance.data.items} onEdit={canEdit ? (item) => { setEditing(item); setShowForm(item.scope === "estate" ? "estate" : "asset"); } : undefined} onDelete={canSchedule ? (item) => void deleteItem(item) : undefined} /> : <EmptyState title="Maintenance queue is clear" text="Nothing matches these filters, or nothing is scheduled." />}{maintenance.data && <Pagination page={maintenance.data.page} pageSize={maintenance.data.pageSize} total={maintenance.data.total} onPage={setPage} onPageSize={(size) => { setPageSize(size); setPage(1); }} />}</Card>
       <Card className="maintenance-note"><Wrench size={18} /><div><b>Maintenance control</b><p>Schedule, reprioritize, complete, or remove service work without leaving the asset register. Preventive OS, application, LAN, and firewall work lives on this same queue.</p></div></Card>
     </div>
     {(canSchedule || canEdit) && showForm && <Modal title={editing ? "Edit maintenance" : showForm === "estate" ? "Schedule preventive work" : "Schedule device work"} onClose={() => { setEditing(null); setShowForm(false); }}><MaintenanceForm assets={assets.data?.items ?? []} initial={editing} scope={editing?.scope ?? showForm} editing={Boolean(editing)} onSubmit={save} onCancel={() => { setEditing(null); setShowForm(false); }} submitting={create.isPending || update.isPending || createPhoto.isPending} /></Modal>}
@@ -1081,6 +1105,7 @@ function Team() {
   const client = useQueryClient();
   const { toast } = useToast();
   const [showInvite, setShowInvite] = useState(false);
+  const [profileMember, setProfileMember] = useState<User | null>(null);
 
   if (!canViewTeam(role)) return <NotFound />;
 
@@ -1124,23 +1149,26 @@ function Team() {
     <div className="page-wrap">
       <Card className="table-card">
         {users.isLoading ? <LoadingBlock /> : users.isError ? <ErrorState onRetry={() => void users.refetch()} /> : users.data?.length ? (
-          <div className="table-scroll"><table className="asset-table"><thead><tr><th>Member</th><th>Role</th><th>Status</th><th>Onboarding</th><th>Last active</th><th /></tr></thead><tbody>
-            {users.data.map((member) => {
-              const pending = member.id.startsWith("pending:");
-              return <tr key={member.id} data-testid={`row-user-${member.id}`}>
-                <td><div className="asset-name"><span className="asset-glyph">{initials(member.name || member.email)}</span><span><b>{member.name || "—"}</b><small className="mono">{member.email}</small></span></div></td>
-                <td>{canRoles && !pending ? <label className="field-select"><select data-testid={`select-role-${member.id}`} value={member.role} onChange={(event) => void changeRole(member, event.target.value)}>{ALL_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}</select><ChevronDown size={14} /></label> : <StatusPill status={pending ? member.role : member.role} />}</td>
-                <td>{pending ? <span className="status-pill status-orange"><i />Invited</span> : <span className="status-pill status-green"><i />Active</span>}</td>
-                <td className="muted">{member.invitedBy ? "Onboarded" : "Self-registered"}</td>
-                <td className="muted">{pending ? "—" : formatRelative(member.lastSeenAt)}</td>
-                <td>{canDelete && member.id !== user?.id && <button className="row-arrow danger-action" aria-label={`Delete ${member.email}`} onClick={() => void removeMember(member)}><Trash2 size={14} /></button>}</td>
-              </tr>;
-            })}
-          </tbody></table></div>
+          <PagedRecords items={users.data}>{(rows) => (
+            <div className="table-scroll"><table className="asset-table"><thead><tr><th>Member</th><th>Role</th><th>Status</th><th>Onboarding</th><th>Last active</th><th /></tr></thead><tbody>
+              {rows.map((member) => {
+                const pending = member.id.startsWith("pending:");
+                return <tr key={member.id} data-testid={`row-user-${member.id}`}>
+                  <td><div className="asset-name"><span className="asset-glyph">{initials(member.name || member.email)}</span><span><b>{member.name || "—"}</b><small className="mono">{member.email}</small></span></div></td>
+                  <td>{canRoles && !pending ? <label className="field-select"><select data-testid={`select-role-${member.id}`} value={member.role} onChange={(event) => void changeRole(member, event.target.value)}>{ALL_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}</select><ChevronDown size={14} /></label> : <StatusPill status={pending ? member.role : member.role} />}</td>
+                  <td>{pending ? <span className="status-pill status-orange"><i />Invited</span> : <span className="status-pill status-green"><i />Active</span>}</td>
+                  <td className="muted">{member.invitedBy ? "Onboarded" : "Self-registered"}</td>
+                  <td className="muted">{pending ? "—" : formatRelative(member.lastSeenAt)}</td>
+                  <td><div className="row-actions">{canEditUserProfile(role, user?.id, member.id) && <button className="row-arrow" aria-label={`Edit profile ${member.email}`} data-testid={`button-profile-${member.id}`} onClick={() => setProfileMember(member)}><Pencil size={14} /></button>}{canDelete && member.id !== user?.id && <button className="row-arrow danger-action" aria-label={`Delete ${member.email}`} onClick={() => void removeMember(member)}><Trash2 size={14} /></button>}</div></td>
+                </tr>;
+              })}
+            </tbody></table></div>
+          )}</PagedRecords>
         ) : <EmptyState title="No team members yet" text="Onboard your first teammate to get started." />}
       </Card>
     </div>
     {showInvite && <Modal title="Onboard user" onClose={() => setShowInvite(false)}><InviteForm roles={grantableRoles(role)} onSubmit={onboard} onCancel={() => setShowInvite(false)} submitting={createUser.isPending} /></Modal>}
+    {profileMember && <ProfileModal userId={profileMember.id} name={profileMember.name} email={profileMember.email} emailEditable={canEditPendingUserEmail(role, profileMember.id)} onClose={() => setProfileMember(null)} />}
   </ShellPage>;
 }
 
@@ -1195,7 +1223,13 @@ function ComplianceReportsPage() {
   const [showStart, setShowStart] = useState(false);
   const [auditAction, setAuditAction] = useState("");
   const [auditSearch, setAuditSearch] = useState("");
-  const audit = useGetAuditLogs({ limit: 20, action: (auditAction || undefined) as ActivityEvent["type"] | undefined, search: auditSearch || undefined });
+  const [auditPage, setAuditPage] = useState(1);
+  const [auditPageSize, setAuditPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const audit = useGetAuditLogs({ page: auditPage, pageSize: auditPageSize, action: (auditAction || undefined) as ActivityEvent["type"] | undefined, search: auditSearch || undefined });
+
+  useEffect(() => {
+    setAuditPage(1);
+  }, [auditAction, auditSearch]);
 
   async function createReportItem(values: { title: string; periodStart: string; periodEnd: string }) {
     await createReport.mutateAsync({ data: { title: values.title, periodStart: values.periodStart || null, periodEnd: values.periodEnd || null } });
@@ -1229,20 +1263,23 @@ function ComplianceReportsPage() {
             <option value="">All activity</option><option value="assignment">Assignments</option><option value="return">Returns</option><option value="maintenance">Maintenance</option><option value="update">Updates</option><option value="import">Imports</option><option value="alert">Alerts</option>
           </select>
         </div>
-        {audit.isLoading ? <div className="stack-skeleton"><Skeleton className="h-14" /><Skeleton className="h-14" /><Skeleton className="h-14" /></div> : audit.isError ? <ErrorState onRetry={() => void audit.refetch()} /> : audit.data?.length ? <ActivityList events={audit.data} /> : <EmptyState title="No activity yet" />}
+        {audit.isLoading ? <div className="stack-skeleton"><Skeleton className="h-14" /><Skeleton className="h-14" /><Skeleton className="h-14" /></div> : audit.isError ? <ErrorState onRetry={() => void audit.refetch()} /> : audit.data?.items.length ? <ActivityList events={audit.data.items} /> : <EmptyState title="No activity yet" />}
+        {audit.data && <Pagination page={audit.data.page} pageSize={audit.data.pageSize} total={audit.data.total} onPage={setAuditPage} onPageSize={(size) => { setAuditPageSize(size); setAuditPage(1); }} />}
       </Card>
       <Card className="table-card" style={{ marginTop: 13, padding: 20 }}>
         <SectionHeading eyebrow="Compliance" title="Reports" detail="Draft, review, and finalize compliance reports." action={canEditReports(role) ? <Button className="button-accent" data-testid="button-new-report" onClick={() => setShowNew(true)}><Plus size={16} /> New Report</Button> : undefined} />
         {reports.isLoading ? <LoadingBlock /> : reports.isError ? <ErrorState onRetry={() => void reports.refetch()} /> : reports.data?.length ? (
-          <div className="table-scroll"><table className="asset-table"><thead><tr><th>Report</th><th>Stage</th><th>Period</th><th>Updated</th><th /></tr></thead><tbody>
-            {reports.data.map((report) => <tr key={report.id} data-testid={`row-report-${report.id}`} onClick={() => setLocation(`/reports/${report.id}`)}>
-              <td><b>{report.title}</b></td>
-              <td><span className={`status-pill ${REPORT_STAGE_TONE[report.status]}`}><i />{REPORT_STAGE_LABEL[report.status]}</span></td>
-              <td className="muted">{report.periodStart ? `${formatDate(report.periodStart)} – ${formatDate(report.periodEnd)}` : "—"}</td>
-              <td className="muted">{formatRelative(report.updatedAt)}</td>
-              <td><div className="row-actions">{canDeleteReports(role) && <button className="row-arrow danger-action" aria-label={`Delete ${report.title}`} onClick={(event) => { event.stopPropagation(); void removeReport(report); }}><Trash2 size={14} /></button>}<button className="row-arrow" aria-label={`Open ${report.title}`} onClick={(event) => { event.stopPropagation(); setLocation(`/reports/${report.id}`); }}><ArrowRight size={16} /></button></div></td>
-            </tr>)}
-          </tbody></table></div>
+          <PagedRecords items={reports.data}>{(rows) => (
+            <div className="table-scroll"><table className="asset-table"><thead><tr><th>Report</th><th>Stage</th><th>Period</th><th>Updated</th><th /></tr></thead><tbody>
+              {rows.map((report) => <tr key={report.id} data-testid={`row-report-${report.id}`} onClick={() => setLocation(`/reports/${report.id}`)}>
+                <td><b>{report.title}</b></td>
+                <td><span className={`status-pill ${REPORT_STAGE_TONE[report.status]}`}><i />{REPORT_STAGE_LABEL[report.status]}</span></td>
+                <td className="muted">{report.periodStart ? `${formatDate(report.periodStart)} – ${formatDate(report.periodEnd)}` : "—"}</td>
+                <td className="muted">{formatRelative(report.updatedAt)}</td>
+                <td><div className="row-actions">{canDeleteReports(role) && <button className="row-arrow danger-action" aria-label={`Delete ${report.title}`} onClick={(event) => { event.stopPropagation(); void removeReport(report); }}><Trash2 size={14} /></button>}<button className="row-arrow" aria-label={`Open ${report.title}`} onClick={(event) => { event.stopPropagation(); setLocation(`/reports/${report.id}`); }}><ArrowRight size={16} /></button></div></td>
+              </tr>)}
+            </tbody></table></div>
+          )}</PagedRecords>
         ) : <EmptyState title="No reports yet" text="Start a compliance report to capture findings." />}
       </Card>
       <CustodyChecks canManage={canStartCustody} showStart={showStart} onShowStart={setShowStart} />

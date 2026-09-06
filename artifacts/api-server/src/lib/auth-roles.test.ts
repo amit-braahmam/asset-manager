@@ -4,6 +4,8 @@ import type { Request, Response } from "express";
 import type { UserRole } from "@workspace/db/schema";
 import {
   actorLabel,
+  canEditPendingUserEmail,
+  canEditUserProfile,
   canOnboardRole,
   hasRole,
   isLastAdminDemotion,
@@ -122,6 +124,21 @@ describe("requireRoles", () => {
     const result = invoke(["admin"], null);
     assert.equal(result.nextCalled, false);
     assert.equal(result.status, 403);
+  });
+});
+
+describe("profile edit", () => {
+  it("lets a user edit their own profile and Admin edit anyone", () => {
+    const manager = user("manager");
+    assert.equal(canEditUserProfile(manager, manager.id), true);
+    assert.equal(canEditUserProfile(manager, "user-viewer"), false);
+    assert.equal(canEditUserProfile(user("admin"), "user-viewer"), true);
+  });
+
+  it("lets Admin change email only on pending invitations", () => {
+    assert.equal(canEditPendingUserEmail(user("admin"), "pending:abc"), true);
+    assert.equal(canEditPendingUserEmail(user("admin"), "user-viewer"), false);
+    assert.equal(canEditPendingUserEmail(user("manager"), "pending:abc"), false);
   });
 });
 

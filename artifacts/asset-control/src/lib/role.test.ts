@@ -13,6 +13,8 @@ import {
   canManageMaintenance,
   canManageRoles,
   canManageLookups,
+  canEditUserProfile,
+  canEditPendingUserEmail,
   canManageCustody,
   canOnboardUsers,
   canUpdateAssetStatus,
@@ -67,6 +69,15 @@ describe("UI permission helpers match the API role matrix", () => {
     assert.deepEqual(allowed(canManageLookups), ["admin"]);
     assert.deepEqual(allowed(canDeleteTeamMembers), ["admin"]);
     assert.deepEqual(allowed(canDeleteReports), ["admin"]);
+  });
+
+  it("profile edit is self or Admin; pending email is Admin only", () => {
+    assert.equal(canEditUserProfile("viewer", "user-1", "user-1"), true);
+    assert.equal(canEditUserProfile("manager", "user-mgr", "user-1"), false);
+    assert.equal(canEditUserProfile("admin", "user-admin", "user-1"), true);
+    assert.equal(canEditPendingUserEmail("admin", "pending:abc"), true);
+    assert.equal(canEditPendingUserEmail("admin", "user-1"), false);
+    assert.equal(canEditPendingUserEmail("manager", "pending:abc"), false);
   });
 
   it("reports and audit are Admin + Auditor", () => {
