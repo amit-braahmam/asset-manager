@@ -163,6 +163,7 @@ import { CustodyChecks } from "@/components/custody-checks";
 import { CustodyRespondPage } from "@/components/custody-respond";
 import { lookupOptions } from "@/lib/lookup-options";
 import { DEFAULT_PAGE_SIZE } from "@/lib/paging";
+import { maintenanceTechnicianOptions } from "@/lib/maintenance-technicians";
 import "./index.css";
 
 const queryClient = new QueryClient({
@@ -589,8 +590,8 @@ function AssetForm({
   );
 }
 
-function Field({ label, value, onChange, placeholder, options, type = "text", required = false }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string; options?: { value: string; label: string }[]; type?: string; required?: boolean }) {
-  return <label className="field"><span>{label}</span>{options ? <div className="field-select"><select value={value} onChange={(event) => onChange(event.target.value)} required={required}>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select><ChevronDown size={14} /></div> : <input type={type} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} required={required} />}</label>;
+function Field({ label, value, onChange, placeholder, options, type = "text", required = false, testId }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string; options?: { value: string; label: string }[]; type?: string; required?: boolean; testId?: string }) {
+  return <label className="field"><span>{label}</span>{options ? <div className="field-select"><select data-testid={testId} value={value} onChange={(event) => onChange(event.target.value)} required={required}>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select><ChevronDown size={14} /></div> : <input data-testid={testId} type={type} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} required={required} />}</label>;
 }
 
 function AssetDetailPage() {
@@ -966,7 +967,7 @@ function Maintenance() {
   }
 
   return <ShellPage>
-    <Topbar title="Maintenance" description="Device service and preventive work share one queue: OS/app patches, LAN, and firewall updates included." action={canSchedule ? <div className="topbar-button-row"><Button className="button-ghost" onClick={() => { setEditing(null); setShowForm("estate"); }}>Preventive work</Button><Button className="button-accent" onClick={() => { setEditing(null); setShowForm("asset"); }}><Plus size={16} /> Device work</Button></div> : undefined} />
+    <Topbar title="Maintenance" description="Device service and preventive work share one queue: OS/app patches, LAN, and firewall updates included." action={canSchedule ? <div className="topbar-button-row"><Button className="button-accent" onClick={() => { setEditing(null); setShowForm("estate"); }}>Preventive work</Button><Button className="button-accent" onClick={() => { setEditing(null); setShowForm("asset"); }}><Plus size={16} /> Device work</Button></div> : undefined} />
     <div className="page-wrap">
       <div className="inventory-toolbar">
         <SearchBox value={search} onChange={setSearch} placeholder="Search title, technician, or asset tag…" />
@@ -999,6 +1000,7 @@ type MaintenanceFormValues = {
 
 function MaintenanceForm({ assets, initial, scope, editing, onSubmit, onCancel, submitting }: { assets: Asset[]; initial?: MaintenanceItem | null; scope: "asset" | "estate"; editing: boolean; onSubmit: (values: MaintenanceFormValues, photos: File[]) => Promise<void>; onCancel: () => void; submitting: boolean }) {
   const lookups = useListLookups();
+  const users = useListUsers();
   const [values, setValues] = useState<MaintenanceFormValues>({
     title: initial?.title ?? "",
     assetId: initial?.assetId ?? assets[0]?.id ?? "",
@@ -1023,6 +1025,7 @@ function MaintenanceForm({ assets, initial, scope, editing, onSubmit, onCancel, 
   const modeOptions = lookupOptions(lookups.data, "maintenance_mode", [values.mode]);
   const priorityOptions = lookupOptions(lookups.data, "maintenance_priority", [values.priority]);
   const statusOptions = lookupOptions(lookups.data, "maintenance_status", [values.status]);
+  const technicianOptions = maintenanceTechnicianOptions(users.data, values.technician);
   return <form className="asset-form" onSubmit={submit}>
     <p className="modal-intro">{values.scope === "estate" ? "Record preventive OS, application, LAN, or firewall work. This is not tied to a single device." : "Record the next service action for a device and keep the technician accountable."}</p>
     <div className="form-grid">
@@ -1031,7 +1034,7 @@ function MaintenanceForm({ assets, initial, scope, editing, onSubmit, onCancel, 
       {values.scope === "estate" && <Field label="Activity type" value={values.activityType} onChange={(value) => setValues((current) => ({ ...current, activityType: value }))} options={activityOptions} required />}
       <Field label="Mode" value={values.mode} onChange={(value) => setValues((current) => ({ ...current, mode: value }))} options={modeOptions} />
       <Field label="Scheduled at" value={values.scheduledAt} onChange={(value) => setValues((current) => ({ ...current, scheduledAt: value }))} type="datetime-local" required />
-      <Field label="Technician" value={values.technician} onChange={(value) => setValues((current) => ({ ...current, technician: value }))} placeholder="Name or team" required />
+      <Field label="Technician" value={values.technician} onChange={(value) => setValues((current) => ({ ...current, technician: value }))} options={technicianOptions} required testId="select-maintenance-technician" />
       <Field label="Priority" value={values.priority} onChange={(value) => setValues((current) => ({ ...current, priority: value }))} options={priorityOptions} />
       <Field label="Status" value={values.status} onChange={(value) => setValues((current) => ({ ...current, status: value }))} options={statusOptions} />
     </div>
@@ -1040,7 +1043,7 @@ function MaintenanceForm({ assets, initial, scope, editing, onSubmit, onCancel, 
     {initial && <MaintenancePhotos maintenanceId={initial.id} />}
     {!initial && <PhotoPicker files={photos} onChange={setPhotos} remaining={remaining} />}
     {error && <p className="form-error">{error}</p>}
-    <div className="modal-actions"><Button type="button" className="button-ghost" onClick={onCancel}>Cancel</Button><Button className="button-dark" disabled={submitting || (values.scope === "asset" && !values.assetId) || !values.title}>{submitting ? "Saving…" : editing ? "Save changes" : "Schedule work"}</Button></div>
+    <div className="modal-actions"><Button type="button" className="button-ghost" onClick={onCancel}>Cancel</Button><Button className="button-dark" disabled={submitting || (values.scope === "asset" && !values.assetId) || !values.title || !values.technician}>{submitting ? "Saving…" : editing ? "Save changes" : "Schedule work"}</Button></div>
   </form>;
 }
 

@@ -27,7 +27,7 @@ export const HELP_GUIDES: HelpGuide[] = [
     summary: "One queue for device service and preventive fleet work (OS, applications, LAN, firewall).",
     steps: [
       "Device work is tied to one asset. Preventive work is fleet-wide and is not tied to a single device.",
-      "Choose Scheduled or Emergency, set a technician and priority, then complete the item with outcome notes.",
+      "Choose Scheduled or Emergency, assign a Manager or Technician, then complete the item with outcome notes.",
       "Filters cover status, mode, scope, activity type, and priority. Attach photos when you schedule or complete work.",
       "Technicians can complete and edit items. Managers and Admins can also schedule and remove them.",
     ],

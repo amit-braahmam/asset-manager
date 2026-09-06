@@ -17,6 +17,12 @@ export function isActiveAppUser(id: string): boolean {
   return !id.startsWith(PENDING_USER_PREFIX);
 }
 
+export const MAINTENANCE_ASSIGNEE_ROLES: UserRole[] = ["manager", "technician"];
+
+export function isMaintenanceAssignee(user: { id: string; role: string }): boolean {
+  return isActiveAppUser(user.id) && (user.role === "manager" || user.role === "technician");
+}
+
 export function technicianMatches(
   technician: string,
   user: { email: string; name: string },

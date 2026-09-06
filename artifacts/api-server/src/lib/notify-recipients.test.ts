@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   isActiveAppUser,
+  isMaintenanceAssignee,
   normalizeEmail,
   technicianMatches,
   uniqueValidEmails,
@@ -22,6 +23,15 @@ describe("isActiveAppUser", () => {
   it("treats pending: ids as inactive", () => {
     assert.equal(isActiveAppUser("user_abc"), true);
     assert.equal(isActiveAppUser("pending:abc123"), false);
+  });
+});
+
+describe("isMaintenanceAssignee", () => {
+  it("keeps active managers and technicians only", () => {
+    assert.equal(isMaintenanceAssignee({ id: "user_1", role: "manager" }), true);
+    assert.equal(isMaintenanceAssignee({ id: "user_2", role: "technician" }), true);
+    assert.equal(isMaintenanceAssignee({ id: "user_3", role: "admin" }), false);
+    assert.equal(isMaintenanceAssignee({ id: "pending:abc", role: "technician" }), false);
   });
 });
 

@@ -23,6 +23,7 @@ import {
   isLastAdminDeletion,
 } from "../lib/auth";
 import { notify } from "../lib/notify";
+import { isMaintenanceAssignee } from "../lib/notify-recipients";
 
 const router: IRouter = Router();
 
@@ -53,9 +54,14 @@ router.get("/me", (req: Request, res) => {
   res.json(data);
 });
 
-router.get("/users", requireRoles("admin", "manager"), async (_req, res) => {
+router.get("/users", requireRoles("admin", "manager", "technician"), async (req, res) => {
   const rows = await db.select().from(usersTable).orderBy(asc(usersTable.createdAt));
-  res.json(rows.map(toUser));
+  const users = rows.map(toUser);
+  if (req.appUser!.role === "technician") {
+    res.json(users.filter(isMaintenanceAssignee));
+    return;
+  }
+  res.json(users);
 });
 
 router.post("/users", requireRoles("admin", "manager"), async (req, res) => {
