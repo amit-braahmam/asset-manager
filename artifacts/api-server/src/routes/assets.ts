@@ -94,7 +94,7 @@ import { assigneeEmailFor, notify } from "../lib/notify";
 import type { LookupGroup } from "@workspace/db/lookups";
 import {
   decodeImagePayload,
-  readLocalImage,
+  readStoredImage,
   removeStoredImage,
   storeImage,
 } from "../lib/storage";
@@ -300,7 +300,8 @@ function toAttachment(row: DbAttachment): ApiAttachment {
     entityId: row.entityId,
     fileName: row.fileName,
     contentType: row.contentType,
-    url: row.url,
+    // Never expose raw Blob URLs — serve through the authenticated file route.
+    url: `/api/attachments/${row.id}/file`,
     createdAt: row.createdAt,
   };
 }
@@ -1313,7 +1314,12 @@ router.post("/assets/:assetId/attachments", requireRoles("admin", "manager"), as
     const created = await createAttachment("asset", assetId, body, actorLabel(req));
     res.status(201).json(created);
   } catch (err) {
-    res.status(400).json({ error: err instanceof Error ? err.message : "Unable to save this photo." });
+    const message = err instanceof Error ? err.message : "Unable to save this photo.";
+    const safe =
+      /empty|5 MB|JPEG|PNG|WebP|GIF|up to 5 photos/i.test(message)
+        ? message
+        : "Unable to save this photo.";
+    res.status(400).json({ error: safe });
   }
 });
 
@@ -1345,7 +1351,12 @@ router.post("/maintenance/:maintenanceId/attachments", requireRoles("admin", "ma
     const created = await createAttachment("maintenance", maintenanceId, body, actorLabel(req));
     res.status(201).json(created);
   } catch (err) {
-    res.status(400).json({ error: err instanceof Error ? err.message : "Unable to save this photo." });
+    const message = err instanceof Error ? err.message : "Unable to save this photo.";
+    const safe =
+      /empty|5 MB|JPEG|PNG|WebP|GIF|up to 5 photos/i.test(message)
+        ? message
+        : "Unable to save this photo.";
+    res.status(400).json({ error: safe });
   }
 });
 
@@ -1370,18 +1381,19 @@ router.get("/attachments/:attachmentId/file", async (req, res) => {
     res.status(404).json({ error: "Attachment not found" });
     return;
   }
-  if (existing[0].url.startsWith("http")) {
-    res.redirect(existing[0].url);
-    return;
-  }
-  const bytes = await readLocalImage(attachmentId);
-  if (!bytes) {
+  try {
+    const stored = await readStoredImage(existing[0].storageKey);
+    if (!stored) {
+      res.status(404).json({ error: "File not found" });
+      return;
+    }
+    res.setHeader("Content-Type", stored.contentType || existing[0].contentType);
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Content-Disposition", `inline; filename="${existing[0].fileName.replaceAll('"', "")}"`);
+    res.send(stored.bytes);
+  } catch {
     res.status(404).json({ error: "File not found" });
-    return;
   }
-  res.setHeader("Content-Type", existing[0].contentType);
-  res.setHeader("Content-Disposition", `inline; filename="${existing[0].fileName.replaceAll('"', "")}"`);
-  res.send(bytes);
 });
 
 export default router;

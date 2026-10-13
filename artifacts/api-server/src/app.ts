@@ -1,4 +1,4 @@
-import express, { type Express } from "express";
+import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
@@ -12,6 +12,8 @@ import { HealthCheckResponse } from "@workspace/api-zod";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { attachAppUser } from "./lib/auth";
+import { corsAllowsRequest } from "./lib/cors";
+import { apiRateLimit } from "./lib/rate-limit";
 import { warrantyCronHandler, custodyCronHandler } from "./routes/cron";
 import publicCustodyRouter from "./routes/custody-public";
 
@@ -57,25 +59,7 @@ app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin) {
-        callback(null, true);
-        return;
-      }
-      const extra = (process.env.CORS_ORIGIN ?? "")
-        .split(",")
-        .map((value) => value.trim())
-        .filter(Boolean);
-      try {
-        const host = new URL(origin).hostname;
-        const allowed =
-          extra.includes(origin) ||
-          host === "localhost" ||
-          host === "127.0.0.1" ||
-          host.endsWith(".vercel.app");
-        callback(null, allowed);
-      } catch {
-        callback(null, false);
-      }
+      callback(null, corsAllowsRequest(origin));
     },
     credentials: true,
   }),
@@ -103,6 +87,12 @@ app.get("/api/internal/cron/custody", custodyCronHandler);
 app.post("/api/internal/cron/custody", custodyCronHandler);
 
 app.use("/api/public", publicCustodyRouter);
-app.use("/api", attachAppUser, router);
+app.use("/api", apiRateLimit, attachAppUser, router);
+
+app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+  logger.error({ err }, "unhandled request error");
+  if (res.headersSent) return;
+  res.status(500).json({ error: "Something went wrong. Please try again." });
+});
 
 export default app;

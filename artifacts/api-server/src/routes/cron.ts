@@ -1,14 +1,10 @@
 import type { Request, Response } from "express";
 import { logger } from "../lib/logger";
+import { cronAuthorized } from "../lib/cron-auth";
 import { runWarrantyScan } from "../lib/warranty-scan";
 import { sendDueCustodyBatches } from "../lib/custody-ops";
 
-export function cronAuthorized(req: Request): boolean {
-  const secret = process.env.CRON_SECRET?.trim();
-  if (!secret) return false;
-  const header = req.headers.authorization ?? "";
-  return header === `Bearer ${secret}`;
-}
+export { cronAuthorized } from "../lib/cron-auth";
 
 export async function warrantyCronHandler(req: Request, res: Response): Promise<void> {
   if (!cronAuthorized(req)) {

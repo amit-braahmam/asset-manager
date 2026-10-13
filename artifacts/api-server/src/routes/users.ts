@@ -223,6 +223,21 @@ router.delete("/users/:userId", requireRoles("admin"), async (req, res) => {
     res.status(409).json({ error: "At least one Admin must remain." });
     return;
   }
+  // Revoke Clerk login before dropping the app row (pending invites have no Clerk user).
+  if (!userId.startsWith(PENDING_USER_PREFIX)) {
+    try {
+      await clerkClient.users.deleteUser(userId);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      if (!/not found|Resource not found|404/i.test(message)) {
+        res.status(502).json({
+          error: "Could not revoke this person's Clerk login. Try again or remove them in Clerk Dashboard.",
+        });
+        return;
+      }
+    }
+  }
+
   await db.delete(usersTable).where(eq(usersTable.id, userId));
   res.status(204).send();
 });

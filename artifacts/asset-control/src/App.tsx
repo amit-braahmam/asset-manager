@@ -1403,7 +1403,7 @@ function NotFound() {
 }
 
 function Landing() {
-  return <div className="auth-landing noise"><header className="auth-landing-header"><Link href="/" className="brand"><span className="brand-mark"><ShieldCheck size={20} strokeWidth={2.4} /></span><span className="brand-copy"><strong>asset<span>control</span></strong><small>OPERATIONS CONSOLE</small></span></Link><div className="auth-landing-actions"><Link href="/sign-in" className="button button-ghost">Sign in</Link><Link href="/sign-up" className="button button-accent">Create account</Link></div></header><main className="auth-landing-main"><div className="auth-kicker"><span className="health-dot" /> Asset operations, without the blind spots</div><h1>Know where every asset is. <em>Know what happens next.</em></h1><p>AssetControl gives growing operations teams one trusted register for inventory, people, locations, maintenance, and accountability.</p><div className="auth-landing-ctas"><Link href="/sign-up" className="button button-dark">Start your workspace <ArrowRight size={16} /></Link><Link href="/sign-in" className="text-link">Already have access? Sign in</Link></div><div className="auth-landing-proof"><span><Check size={15} /> Live asset register</span><span><Check size={15} /> Audit-ready activity</span><span><Check size={15} /> Maintenance visibility</span></div></main><div className="auth-landing-orbit orbit-one" /><div className="auth-landing-orbit orbit-two" /><AppFooter /></div>;
+  return <div className="auth-landing noise"><header className="auth-landing-header"><Link href="/" className="brand"><span className="brand-mark"><ShieldCheck size={20} strokeWidth={2.4} /></span><span className="brand-copy"><strong>asset<span>control</span></strong><small>OPERATIONS CONSOLE</small></span></Link><div className="auth-landing-actions"><Link href="/sign-in" className="button button-accent">Sign in</Link></div></header><main className="auth-landing-main"><div className="auth-kicker"><span className="health-dot" /> Asset operations, without the blind spots</div><h1>Know where every asset is. <em>Know what happens next.</em></h1><p>AssetControl gives growing operations teams one trusted register for inventory, people, locations, maintenance, and accountability. Access is invite-only — ask your Admin to onboard you on the Team page.</p><div className="auth-landing-ctas"><Link href="/sign-in" className="button button-dark">Sign in to your workspace <ArrowRight size={16} /></Link></div><div className="auth-landing-proof"><span><Check size={15} /> Live asset register</span><span><Check size={15} /> Audit-ready activity</span><span><Check size={15} /> Maintenance visibility</span></div></main><div className="auth-landing-orbit orbit-one" /><div className="auth-landing-orbit orbit-two" /><AppFooter /></div>;
 }
 
 function HomeRedirect() {
@@ -1415,11 +1415,23 @@ function UserPortal() {
 }
 
 function SignInPage() {
+  // Invitees still use /sign-up from their email link; public landing no longer advertises open registration.
   return <div className="auth-page"><SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} /></div>;
 }
 
 function SignUpPage() {
-  return <div className="auth-page"><SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} /></div>;
+  return (
+    <div className="auth-page">
+      <SignUp
+        routing="path"
+        path={`${basePath}/sign-up`}
+        signInUrl={`${basePath}/sign-in`}
+      />
+      <p className="auth-invite-hint" style={{ textAlign: "center", marginTop: 16, color: "#62727a", fontSize: 13 }}>
+        Sign-up is invitation only. Use the link from your Team invite email, or ask an Admin to onboard you.
+      </p>
+    </div>
+  );
 }
 
 function ClerkApiAuthBridge() {
@@ -1449,7 +1461,7 @@ function ClerkQueryClientCacheInvalidator() {
 
 function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
-  return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={clerkAppearance} signInUrl={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} localization={{ signIn: { start: { title: "Welcome back", subtitle: "Sign in to access your workspace" } }, signUp: { start: { title: "Create your workspace", subtitle: "Get started with AssetControl" } } }} routerPush={(to) => setLocation(stripBase(to))} routerReplace={(to) => setLocation(stripBase(to), { replace: true })}><QueryClientProvider client={queryClient}><ClerkApiAuthBridge /><ClerkQueryClientCacheInvalidator /><Switch><Route path="/" component={HomeRedirect} /><Route path="/sign-in/*?" component={SignInPage} /><Route path="/sign-up/*?" component={SignUpPage} /><Route path="/workspace" component={UserPortal} /><Route path="/inventory" component={UserPortal} /><Route path="/assets/:assetId" component={UserPortal} /><Route path="/maintenance" component={UserPortal} /><Route path="/directory" component={UserPortal} /><Route path="/team" component={UserPortal} /><Route path="/reports/:reportId" component={UserPortal} /><Route path="/reports" component={UserPortal} /><Route path="/custody/:token" component={CustodyRespondPage} /><Route component={UserPortal} /></Switch><Toaster /></QueryClientProvider></ClerkProvider>;
+  return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={clerkAppearance} signInUrl={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} localization={{ signIn: { start: { title: "Welcome back", subtitle: "Sign in to access your workspace" } }, signUp: { start: { title: "Accept your invitation", subtitle: "Use the same email your Admin onboarded" } } }} routerPush={(to) => setLocation(stripBase(to))} routerReplace={(to) => setLocation(stripBase(to), { replace: true })}><QueryClientProvider client={queryClient}><ClerkApiAuthBridge /><ClerkQueryClientCacheInvalidator /><Switch><Route path="/" component={HomeRedirect} /><Route path="/sign-in/*?" component={SignInPage} /><Route path="/sign-up/*?" component={SignUpPage} /><Route path="/workspace" component={UserPortal} /><Route path="/inventory" component={UserPortal} /><Route path="/assets/:assetId" component={UserPortal} /><Route path="/maintenance" component={UserPortal} /><Route path="/directory" component={UserPortal} /><Route path="/team" component={UserPortal} /><Route path="/reports/:reportId" component={UserPortal} /><Route path="/reports" component={UserPortal} /><Route path="/custody/:token" component={CustodyRespondPage} /><Route component={UserPortal} /></Switch><Toaster /></QueryClientProvider></ClerkProvider>;
 }
 
 function App() {

@@ -1,7 +1,7 @@
 import type { Request, RequestHandler } from "express";
 import { getAuth, clerkClient } from "@clerk/express";
 import { and, eq, like, not } from "drizzle-orm";
-import { db, usersTable, DEFAULT_USER_ROLE, type UserRole } from "@workspace/db";
+import { db, usersTable, type UserRole } from "@workspace/db";
 import { PENDING_USER_PREFIX, type AppUser } from "./auth-roles";
 
 export type { AppUser } from "./auth-roles";
@@ -103,11 +103,16 @@ export async function resolveAppUser(req: Request): Promise<AppUser | null> {
     }
   }
 
+  // Invite-only: first signed-in user becomes Admin; everyone else must match a pending Team invite.
+  if (!isFirstUser) {
+    return null;
+  }
+
   const row = {
     id: userId,
     email,
     name,
-    role: (isFirstUser ? "admin" : DEFAULT_USER_ROLE) as UserRole,
+    role: "admin" as UserRole,
     invitedBy: null,
     createdAt: now,
     lastSeenAt: now,
@@ -128,9 +133,16 @@ export async function resolveAppUser(req: Request): Promise<AppUser | null> {
  */
 export const attachAppUser: RequestHandler = async (req, res, next) => {
   try {
+    const clerkUserId = getClerkUserId(req);
+    if (!clerkUserId) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const user = await resolveAppUser(req);
     if (!user) {
-      res.status(401).json({ error: "Unauthorized" });
+      res.status(403).json({
+        error: "Invitation required. Ask an Admin to onboard your email on the Team page.",
+      });
       return;
     }
     req.appUser = user;

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { cronAuthorized } from "../routes/cron";
+import { cronAuthorized } from "./cron-auth";
 import type { Request } from "express";
 
 describe("cronAuthorized", () => {
