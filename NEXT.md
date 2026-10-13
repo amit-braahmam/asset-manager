@@ -25,7 +25,7 @@ Do not implement a step until Amit says go for **that** step.
 | Slice | Status | Start phrase |
 |---|---|---|
 | Remove local phone-website layout | **Done** (9 Oct 2026) — restored to last commit; `workspace-nav` deleted. Frontend 37/37 + typecheck. | — |
-| Phase 0 guardrails | **In progress on branch** `feat/api/phase-0-guardrails` (not merged to `main`). Manual steps: `docs/phase-0-manual-steps.md` | Merge PR when ready |
+| Phase 0 guardrails | **Done on branch** `feat/api/phase-0-guardrails` (commit `46587ce`). **Not merged to `main`.** Manual: `docs/phase-0-manual-steps.md` | Open/merge PR when ready |
 | Supervisor role + reports-to | Waiting | `go Supervisor` |
 | Field API (by-tag, sync/conflict) | Waiting | `go field API` |
 | Field app + offline v1 | Waiting | `go field app` |
